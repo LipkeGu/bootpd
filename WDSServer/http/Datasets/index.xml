@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<document>
+	<Navigation>
+		<link url="summary.html" target="main" value="Server Information" needs="nothing" />
+		<link url="tftpsession.html" target="main" value="TFTP Übersicht" needs="bootp" />
+		<link url="requests.html" target="main" value="Austehende Client Anfragen" needs="tftp" />
+	</Navigation>
+	
+	<scripts>
+		<script type="text/javascript" src="functions" />
+		<script type="text/javascript" src="jquery" />
+	</scripts>
+</document>
