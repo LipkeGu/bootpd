@@ -1,9 +1,9 @@
-﻿using System;
-using System.Net;
-using WDSServer.Network;
-
-namespace WDSServer
+﻿namespace WDSServer
 {
+	using System;
+	using System.Net;
+	using WDSServer.Network;
+
 	public class Server : Definitions
 	{
 		[STAThread]

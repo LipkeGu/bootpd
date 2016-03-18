@@ -1,9 +1,9 @@
-﻿using System;
-using System.Net;
-using System.Net.Sockets;
-
-namespace WDSServer.Providers
+﻿namespace WDSServer.Providers
 {
+	using System;
+	using System.Net;
+	using System.Net.Sockets;
+
 	public abstract class SocketProvider : Definitions
 	{
 		protected SocketState state;

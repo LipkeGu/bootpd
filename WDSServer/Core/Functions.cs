@@ -1,9 +1,9 @@
-﻿using System;
-using System.IO;
-using WDSServer.Network;
-
-namespace WDSServer
+﻿namespace WDSServer
 {
+	using System;
+	using System.IO;
+	using WDSServer.Network;
+
 	public static class Functions
 	{
 		public static sbyte GetTFTPOPCode(TFTPPacket packet) => GetTFTPOPCode(packet.Data);

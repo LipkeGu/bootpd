@@ -1,9 +1,9 @@
-﻿using System;
-using System.Net;
-using static WDSServer.Definitions;
-
-namespace WDSServer.Core.Providers
+﻿namespace WDSServer.Core.Providers
 {
+	using System;
+	using System.Net;
+	using static WDSServer.Definitions;
+
 	public abstract class Computer
 	{
 		protected Guid guid;

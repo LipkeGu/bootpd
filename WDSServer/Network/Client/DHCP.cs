@@ -1,9 +1,9 @@
-﻿using System;
-using System.Net;
-using WDSServer.Providers;
-
-namespace WDSServer.Network
+﻿namespace WDSServer.Network
 {
+	using System;
+	using System.Net;
+	using WDSServer.Providers;
+
 	public sealed class DHCPClient : ClientProvider, IDHCPClient_Provider
 	{
 		string bootfile;

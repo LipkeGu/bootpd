@@ -1,7 +1,7 @@
-﻿using System.Net;
-
-namespace WDSServer.Providers
+﻿namespace WDSServer.Providers
 {
+	using System.Net;
+
 	public abstract class ServerProvider : Definitions
 	{
 		protected IPEndPoint endp;

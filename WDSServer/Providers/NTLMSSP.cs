@@ -1,10 +1,10 @@
-﻿using System;
-using System.Globalization;
-using System.Security.Cryptography;
-using System.Text;
-
-namespace WDSServer.Providers
+﻿namespace WDSServer.Providers
 {
+	using System;
+	using System.Globalization;
+	using System.Security.Cryptography;
+	using System.Text;
+
 	public class NTLMSSP
 	{
 		private static byte[] nullEncMagic = { 0xAA, 0xD3, 0xB4, 0x35, 0xB5, 0x14, 0x04, 0xEE };

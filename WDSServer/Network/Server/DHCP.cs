@@ -1,12 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Text;
-
-using WDSServer.Providers;
-
-namespace WDSServer.Network
+﻿namespace WDSServer.Network
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Net;
+	using System.Text;
+	using WDSServer.Providers;
+
 	#region "Allgemeine DHCP Funktionen"
 	public sealed class DHCP : ServerProvider, IDHCPServer_Provider, IDisposable
 	{

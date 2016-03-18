@@ -1,12 +1,12 @@
-﻿using System;
-using System.Globalization;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
-
-namespace WDSServer
+﻿namespace WDSServer
 {
+	using System;
+	using System.Globalization;
+	using System.Linq;
+	using System.Net;
+	using System.Net.Sockets;
+	using System.Text;
+
 	public static class Exts
 	{
 		public static string F(this string fmt, params object[] objs) => string.Format(fmt, objs);

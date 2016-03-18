@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Specialized;
-using System.Linq;
-using System.Text;
-using static WDSServer.Definitions;
-
-namespace WDSServer.Network
+﻿namespace WDSServer.Network
 {
+	using System;
+	using System.Collections.Specialized;
+	using System.Linq;
+	using System.Text;
+	using static WDSServer.Definitions;
+
 	public sealed class HTTP : IDisposable
 	{
 		HTTPSocket socket;

@@ -1,9 +1,9 @@
-﻿using System;
-using System.Net;
-using System.Xml.Serialization;
-
-namespace WDSServer
+﻿namespace WDSServer
 {
+	using System;
+	using System.Net;
+	using System.Xml.Serialization;
+
 	public static class Settings
 	{
 		public static bool EnableDHCP = true;

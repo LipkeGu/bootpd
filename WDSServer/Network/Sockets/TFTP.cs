@@ -1,10 +1,10 @@
-﻿using System;
-using System.Net;
-using System.Net.Sockets;
-using WDSServer.Providers;
-
-namespace WDSServer.Network
+﻿namespace WDSServer.Network
 {
+	using System;
+	using System.Net;
+	using System.Net.Sockets;
+	using WDSServer.Providers;
+
 	public sealed class TFTPSocket : SocketProvider
 	{
 		public TFTPSocket(IPEndPoint endpoint, bool broadcast = false, int buffersize = 1024, SocketType type = SocketType.TFTP)

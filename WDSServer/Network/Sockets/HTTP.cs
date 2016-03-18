@@ -1,8 +1,8 @@
-﻿using System;
-using System.Net;
-
-namespace WDSServer.Network
+﻿namespace WDSServer.Network
 {
+	using System;
+	using System.Net;
+
 	public sealed class HTTPSocket : IDisposable
 	{
 		HttpListener socket;

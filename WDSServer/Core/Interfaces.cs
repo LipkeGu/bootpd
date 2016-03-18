@@ -1,8 +1,8 @@
-﻿using System;
-using WDSServer.Network;
-
-namespace WDSServer.Providers
+﻿namespace WDSServer.Providers
 {
+	using System;
+	using WDSServer.Network;
+
 	interface IDHCPServer_Provider
 	{
 		void Handle_DHCP_Request(DHCPPacket data, ref DHCPClient client);

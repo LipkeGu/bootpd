@@ -1,13 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Text;
-using System.Threading;
-
-using WDSServer.Providers;
-
-namespace WDSServer.Network
+﻿namespace WDSServer.Network
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Net;
+	using System.Text;
+	using System.Threading;
+	using WDSServer.Providers;
+
 	public sealed class TFTP : ServerProvider, ITFTPServer_Provider, IDisposable
 	{
 		public static Dictionary<IPAddress, TFTPClient> Clients = new Dictionary<IPAddress, TFTPClient>();

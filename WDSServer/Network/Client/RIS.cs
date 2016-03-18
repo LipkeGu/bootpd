@@ -1,7 +1,7 @@
-﻿using System.Net;
-
-namespace WDSServer.Network
+﻿namespace WDSServer.Network
 {
+	using System.Net;
+
 	public class RISClient
 	{
 		IPEndPoint endpoint;

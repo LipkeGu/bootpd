@@ -1,11 +1,10 @@
-﻿using System;
-using System.Net;
-using System.Net.Sockets;
-
-using WDSServer.Providers;
-
-namespace WDSServer.Network
+﻿namespace WDSServer.Network
 {
+	using System;
+	using System.Net;
+	using System.Net.Sockets;
+	using WDSServer.Providers;
+
 	public sealed class BINLSocket : SocketProvider
 	{
 		public BINLSocket(IPEndPoint endpoint, bool broadcast = false, bool enableMulticast = false, int buffersize = 1024, SocketType type = SocketType.BINL)

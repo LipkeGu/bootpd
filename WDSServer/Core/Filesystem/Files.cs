@@ -1,9 +1,9 @@
-﻿using System;
-using System.IO;
-using System.Xml;
-
-namespace WDSServer
+﻿namespace WDSServer
 {
+	using System;
+	using System.IO;
+	using System.Xml;
+
 	public class Files
 	{
 		public static bool Create<T>(string path)

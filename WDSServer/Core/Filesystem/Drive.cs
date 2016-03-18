@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-
-namespace WDSServer
+﻿namespace WDSServer
 {
+	using System;
+	using System.Collections.Generic;
+	using System.IO;
+	using System.Linq;
+
 	public static class Drives
 	{
 		public static List<DriveInfo> GetDrivesByType(DriveType type = DriveType.Fixed) => (from d in DriveInfo.GetDrives() where d.DriveType == DriveType.Fixed select d).ToList();

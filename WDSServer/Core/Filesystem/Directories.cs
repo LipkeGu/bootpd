@@ -1,8 +1,8 @@
-﻿using System;
-using System.IO;
-
-namespace WDSServer
+﻿namespace WDSServer
 {
+	using System;
+	using System.IO;
+
 	public class Directories
 	{
 		public static bool Create(string path)

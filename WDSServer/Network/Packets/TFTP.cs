@@ -1,9 +1,9 @@
-﻿using System;
-using System.Text;
-using WDSServer.Providers;
-
-namespace WDSServer.Network
+﻿namespace WDSServer.Network
 {
+	using System;
+	using System.Text;
+	using WDSServer.Providers;
+
 	public sealed class TFTPPacket : PacketProvider
 	{
 		public TFTPPacket(int size, TFTPOPCodes opcode)

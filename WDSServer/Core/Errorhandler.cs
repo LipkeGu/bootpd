@@ -1,7 +1,7 @@
-﻿using System;
-
-namespace WDSServer
+﻿namespace WDSServer
 {
+	using System;
+
 	public static class Errorhandler
 	{
 		public static void Report(Definitions.LogTypes level, string message)
