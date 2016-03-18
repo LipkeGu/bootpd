@@ -1,15 +1,16 @@
 ﻿using System;
 using System.Net;
+using System.Xml.Serialization;
 
 namespace WDSServer
 {
-	public class Settings
+	public static class Settings
 	{
-		public static string TFTPRoot = Filesystem.ReplaceSlashes(Environment.CurrentDirectory);
+		public static bool EnableDHCP = true;
+		public static bool EnableTFTP = true;
 
-		public static bool enableDHCP = true;
-		public static bool enableTFTP = true;
-		public static bool enableHTTP = true;
+		[XmlIgnore]
+		public static bool EnableHTTP = true;
 		public static bool ReUseAddress = false;
 
 		public static int DHCPPort = 67;
@@ -20,13 +21,15 @@ namespace WDSServer
 
 		public static int PollInterval = 4;
 		public static int RetryCount = 30;
+
 		public static int RequestID = 1;
 
+		[XmlIgnore]
 		public static IPAddress ServerIP = Exts.GetServerIP();
 		public static Definitions.ServerMode Servermode = Definitions.ServerMode.KnownOnly;
 
+		public static string TFTPRoot = Filesystem.ReplaceSlashes(Environment.CurrentDirectory);
 		public static string OSC_DEFAULT_FILE = "welcome.osc";
-
 		public static string WDS_BCD_FileName = "default.bcd";
 		public static string WDS_BOOT_PREFIX_X86 = "Boot/x86/";
 		public static string WDS_BOOT_PREFIX_X64 = "Boot/x64/";
@@ -40,16 +43,13 @@ namespace WDSServer
 
 		public static string DHCP_DEFAULT_BOOTFILE = "wdsnbp.0";
 
+		[XmlIgnore]
 		public static string ServerName = Environment.MachineName;
-		public static string ServerDomain = Environment.UserDomainName == Environment.MachineName
-			? "LOCALDOMAIN" : Environment.UserDomainName;
-
-		public static string UserDNSDomain = "{0}.local".F(ServerDomain);
-
+		public static string ServerDomain = "LOCALDOMAIN";
+		public static string UserDNSDomain = "Localdomain.local";
+		[XmlIgnore]
 		public static string Charset = "utf-8";
 
-
 		public static long MaxAllowedFileLength = 10485760;
-
 	}
 }

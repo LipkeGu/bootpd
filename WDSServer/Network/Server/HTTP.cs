@@ -6,22 +6,32 @@ using static WDSServer.Definitions;
 
 namespace WDSServer.Network
 {
-	sealed public class HTTP : IDisposable
+	public sealed class HTTP : IDisposable
 	{
 		HTTPSocket socket;
 
 		public HTTP(int port)
 		{
-			this.socket = new HTTPSocket(Settings.ServerName, port);
-			this.socket.HTTPDataReceived += DataReceived;
-			this.socket.HTTPDataSend += DataSend;
+			this.socket = new HTTPSocket(port);
+			this.socket.HTTPDataReceived += this.DataReceived;
+			this.socket.HTTPDataSend += this.DataSend;
+		}
+
+		~HTTP()
+		{
+			this.Close();
+		}
+
+		public void Dispose()
+		{
+			this.Close();
 		}
 
 		internal void DataSend(object source, HTTPDataSendEventArgs e)
 		{
 		}
 
-		internal string parseRequest(string url, NameValueCollection arguments, out long length)
+		internal string ParseRequest(string url, NameValueCollection arguments, out long length)
 		{
 			try
 			{
@@ -62,13 +72,52 @@ namespace WDSServer.Network
 			}
 		}
 
+		internal string HTML_header()
+		{
+			var pagecontent = string.Empty;
+
+			pagecontent += "<!DOCTYPE html>\n";
+			pagecontent += "<html>\n";
+			pagecontent += "\t<head>\n";
+			pagecontent += "\t\t<title>[[SERVERNAME]]</title>\n";
+			pagecontent += "\t\t<meta charset=\"{0}\" />\n".F(Settings.Charset);
+			pagecontent += "\t\t<meta http-equiv=\"expires\" content=\"0\" />\n";
+			pagecontent += "\t\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
+			pagecontent += "\t\t<link href=\"style.css\" rel=\"stylesheet\" type=\"text/css\" />\n";
+
+			var xmldoc = Files.ReadXML("http/DataSets/index.xml");
+			if (xmldoc != null && xmldoc.HasChildNodes)
+			{
+				var root = xmldoc.DocumentElement.GetElementsByTagName("script");
+				for (var i = 0; i < root.Count; i++)
+				{
+					var attributes = root[i].Attributes;
+					pagecontent += "\t\t<script type=\"{0}\" src=\"scripts/{1}.js\"></script>\n".F(attributes["type"].InnerText, attributes["src"].InnerText);
+				}
+			}
+
+			pagecontent += "\t</head>\n";
+
+			return pagecontent;
+		}
+
+		internal string HTML_footer()
+		{
+			var pagecontent = string.Empty;
+
+			pagecontent += "\t</body>\n";
+			pagecontent += "</html>\n";
+
+			return pagecontent;
+		}
+
 		internal void DataReceived(object source, HTTPDataReceivedEventArgs e)
 		{
 			var length = 0L;
 			var statuscode = 200;
 			var description = "OK";
 
-			var url = parseRequest(e.Filename, e.Arguments, out length);
+			var url = this.ParseRequest(e.Filename, e.Arguments, out length);
 
 			if (url == null)
 				return;
@@ -84,39 +133,16 @@ namespace WDSServer.Network
 				{
 					var pagecontent = string.Empty;
 
-
 					if (url.EndsWith(".htm") || url.EndsWith(".html"))
 					{
-						#region "HTML Header"
-						pagecontent += "<!DOCTYPE html>\n";
-						pagecontent += "<html>\n";
-						pagecontent += "\t<head>\n";
-						pagecontent += "\t\t<title>[[SERVERNAME]]</title>\n";
-						pagecontent += "\t\t<meta charset=\"{0}\" />\n".F(Settings.Charset);
-						pagecontent += "\t\t<meta http-equiv=\"expires\" content=\"0\" />\n";
-						pagecontent += "\t\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
-						pagecontent += "\t\t<link href=\"style.css\" rel=\"stylesheet\" type=\"text/css\" />\n";
-
-						var xmldoc = Files.ReadXML("http/DataSets/index.xml");
-						if (xmldoc != null && xmldoc.HasChildNodes)
-						{
-							var root = xmldoc.DocumentElement.GetElementsByTagName("script");
-							for (var i = 0; i < root.Count; i++)
-							{
-								var attributes = root[i].Attributes;
-								pagecontent += "\t\t<script type=\"{0}\" src=\"scripts/{1}.js\"></script>\n".F(attributes["type"].InnerText, attributes["src"].InnerText);
-							}
-						}
-
-						pagecontent += "\t</head>\n";
-						#endregion
+						pagecontent += this.HTML_header();
 
 						pagecontent += "\t<body>\n";
 						if (url.EndsWith("index.html"))
 						{
 							pagecontent += "\t\t<section id=\"nav\">\n";
 
-							pagecontent += generate_head_bar("index", "link");
+							pagecontent += this.Generate_head_bar("index", "link");
 
 							pagecontent += "\t\t</section>\n";
 						}
@@ -129,12 +155,12 @@ namespace WDSServer.Network
 
 					if (url.EndsWith(".htm") || url.EndsWith(".html"))
 					{
-						pagecontent = pagecontent.Replace("[[SERVER_INFO_BLOCK]]", gen_ServerInfo());
+						pagecontent = pagecontent.Replace("[[SERVER_INFO_BLOCK]]", this.Gen_ServerInfo());
 						pagecontent = pagecontent.Replace("[[SERVERNAME]]", Settings.ServerName);
 
 						if (pagecontent.Contains("[[CLIENT_BOOTP_OVERVIEW_LIST]]"))
 						{
-							var bootp_clients = gen_BOOTP_client_list();
+							var bootp_clients = this.Gen_BOOTP_client_list();
 							if (bootp_clients == null)
 							{
 								statuscode = 800;
@@ -146,7 +172,7 @@ namespace WDSServer.Network
 
 						if (pagecontent.Contains("[[CLIENT_TFTP_OVERVIEW_LIST]]"))
 						{
-							var tftp_clients = gen_TFTP_client_list();
+							var tftp_clients = this.Gen_TFTP_client_list();
 							if (tftp_clients == null)
 							{
 								statuscode = 800;
@@ -156,23 +182,21 @@ namespace WDSServer.Network
 								pagecontent = pagecontent.Replace("[[CLIENT_TFTP_OVERVIEW_LIST]]", tftp_clients);
 						}
 
-						#region "HTML Footer"
-						pagecontent += "\t</body>\n";
-						pagecontent += "</html>\n";
-						#endregion
+						pagecontent += this.HTML_footer();
 					}
 
 					if (statuscode == 800)
 						pagecontent = string.Empty;
 
 					data = Encoding.UTF8.GetBytes(pagecontent);
-					Send(data, statuscode, description);
+					this.Send(data, statuscode, description);
 					pagecontent = null;
 				}
 				else
 				{
-					Send(data, statuscode, description);
+					this.Send(data, statuscode, description);
 				}
+
 				Array.Clear(data, 0, data.Length);
 			}
 		}
@@ -182,7 +206,7 @@ namespace WDSServer.Network
 			this.socket.Send(buffer, statuscode, description);
 		}
 
-		internal string generate_head_bar(string pagename, string tag)
+		internal string Generate_head_bar(string pagename, string tag)
 		{
 			var output = string.Empty;
 
@@ -207,7 +231,7 @@ namespace WDSServer.Network
 			return output;
 		}
 
-		internal string gen_BOOTP_client_list()
+		internal string Gen_BOOTP_client_list()
 		{
 			var output = string.Empty;
 
@@ -217,14 +241,15 @@ namespace WDSServer.Network
 			{
 				var size = "width: 25%;";
 				if (DHCP.Mode != ServerMode.AllowAll)
-					output += "<div id=\"th\">ID</div><div id=\"th\">GUID (UUID)</div><div id=\"th\">IP-Address</div><div id=\"th\">Approval</div>";
+					output += "<div id=\"th\">ID</div><div id=\"th\">GUID (UUID)</div><div id=\"th\">IP-Addresse</div><div id=\"th\">Approval</div>";
 
 				var link_approval = string.Empty;
 
 				foreach (var client in pending_clients)
 				{
 					if (DHCP.Mode != ServerMode.AllowAll)
-						link_approval = "<a onclick=\"LoadDocument('approve.html?cid={1}', 'main', 'GET')\" href=\"#\">{0}</a>\n".F(client.Value.ActionDone, Exts.toBase64(client.Value.ID));
+						link_approval = "<a onclick=\"LoadDocument('approve.html?cid={1}', 'main', 'GET')\" href=\"#\">{0}</a>\n"
+							.F(client.Value.ActionDone, Exts.ToBase64(client.Value.ID));
 					else
 						link_approval = string.Empty;
 
@@ -238,7 +263,7 @@ namespace WDSServer.Network
 			return output;
 		}
 
-		internal string gen_TFTP_client_list()
+		internal string Gen_TFTP_client_list()
 		{
 			var output = string.Empty;
 			var active_clients = (from c in TFTP.Clients where c.Value.Stage == TFTPStage.Transmitting select c).ToList();
@@ -251,10 +276,9 @@ namespace WDSServer.Network
 				foreach (var client in active_clients)
 				{
 					output += "<tr><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td>"
-							 .F(client.Value.EndPoint.Address,
-							 Filesystem.StripRoot(client.Value.FileName),
-							 Math.Round((double)(client.Value.BlockSize / 1024), 2),
-							 Math.Round((double)(client.Value.TransferSize / 1024) / 1024, 2));
+						.F(client.Value.EndPoint.Address, Filesystem.StripRoot(client.Value.FileName),
+						Math.Round((double)(client.Value.BlockSize / 1024), 2),
+						Math.Round((double)(client.Value.TransferSize / 1024) / 1024, 2));
 					output += "</tr>\n";
 				}
 
@@ -266,7 +290,7 @@ namespace WDSServer.Network
 			return output;
 		}
 
-		internal string gen_ServerInfo()
+		internal string Gen_ServerInfo()
 		{
 			var output = string.Empty;
 			output += "<table>\n";
@@ -278,8 +302,7 @@ namespace WDSServer.Network
 			output += "<tbody id=\"overview\">\n";
 			output += "<tr><td>Servername:</td><td>{0}.{1}</td></tr>\n".F(Settings.ServerName, Settings.UserDNSDomain);
 			output += "<tr><td>Endpunkt:</td><td>{0}:{1}</td></tr>\n".F(Settings.ServerIP, Settings.BINLPort);
-			output += "<tr><td>Auf DHCP-Anfragen reagieren:</td><td>{0}</td></tr>\n".F(Settings.enableDHCP ? "Ja" : "Nein");
-
+			output += "<tr><td>Auf DHCP-Anfragen reagieren:</td><td>{0}</td></tr>\n".F(Settings.EnableDHCP ? "Ja" : "Nein");
 
 			var mode = string.Empty;
 			switch (DHCP.Mode)
@@ -299,7 +322,7 @@ namespace WDSServer.Network
 			output += "</tbody>\n";
 			output += "</table><br />\n";
 
-			if (Settings.enableTFTP)
+			if (Settings.EnableTFTP)
 			{
 				output += "<table>\n";
 				output += "<thead>\n";
@@ -319,16 +342,6 @@ namespace WDSServer.Network
 		private void Close()
 		{
 			this.socket.Dispose();
-		}
-
-		public void Dispose()
-		{
-			Close();
-		}
-
-		~HTTP()
-		{
-			Close();
 		}
 	}
 }

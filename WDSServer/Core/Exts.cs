@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -12,31 +13,31 @@ namespace WDSServer
 
 		public static int[] ToIntArray(this string value, char separator) => Array.ConvertAll(value.Split(separator), s => int.Parse(s));
 
-		public static string toBase64(string s) => Convert.ToBase64String(Encoding.ASCII.GetBytes(s.ToCharArray()));
+		public static string ToBase64(string s) => Convert.ToBase64String(Encoding.ASCII.GetBytes(s.ToCharArray()));
 
 		public static string FromBase64(string s) => Encoding.ASCII.GetString(Convert.FromBase64String(s));
 
-		public static int HexToInt(string input) => int.Parse(input, System.Globalization.NumberStyles.HexNumber);
+		public static int HexToInt(string input) => int.Parse(input, NumberStyles.HexNumber);
 
-		public static int HexToInt(byte input) => int.Parse(string.Format("{0:x2}", input), System.Globalization.NumberStyles.HexNumber);
+		public static int HexToInt(byte input) => int.Parse(F("{0:x2}", input), NumberStyles.HexNumber);
 
 		public static byte[] IntToHex(int input)
 		{
 			var result = new byte[1];
-			result[0] = byte.Parse(string.Format("{0:x2}", input), System.Globalization.NumberStyles.HexNumber);
+			result[0] = byte.Parse(F("{0:x2}", input), NumberStyles.HexNumber);
 
 			return result;
 		}
 
-		public static string GetDataAsString(byte[] macBytes, int index, int length, string delimeter = "")
+		public static string GetDataAsString(byte[] input, int index, int length, string delimeter = "")
 		{
 			var value = new byte[length];
 			var fmt = string.Empty;
 
-			Array.Copy(macBytes, index, value, 0, length);
+			Array.Copy(input, index, value, 0, length);
 
 			for (var i = 0; i < length; i++)
-				fmt += string.Format("{0:x2}{1}", value[i], delimeter);
+				fmt += F("{0:x2}{1}", value[i], delimeter);
 
 			return fmt.ToUpperInvariant();
 		}
@@ -51,17 +52,17 @@ namespace WDSServer
 			for (var i = 0; i < length; i++)
 			{
 				if (i == 0)
-					fmt += string.Format("{0:x2}", guid[i]);
+					fmt += F("{0:x2}", guid[i]);
 				else if (i == 4)
-					fmt += string.Format("{0:x2}{1}", guid[i], "-");
+					fmt += F("{0:x2}{1}", guid[i], "-");
 				else if (i == 6)
-					fmt += string.Format("{0:x2}{1}", guid[i], "-");
+					fmt += F("{0:x2}{1}", guid[i], "-");
 				else if (i == 8)
-					fmt += string.Format("{0:x2}{1}", guid[i], "-");
+					fmt += F("{0:x2}{1}", guid[i], "-");
 				else if (i == 10)
-					fmt += string.Format("{0:x2}{1}", guid[i], "-");
+					fmt += F("{0:x2}{1}", guid[i], "-");
 				else
-					fmt += string.Format("{0:x2}", guid[i]);
+					fmt += F("{0:x2}", guid[i]);
 			}
 
 			return fmt.Remove(0, 2);
@@ -85,6 +86,7 @@ namespace WDSServer
 
 						break;
 					}
+
 				return value;
 			}
 			catch (Exception)

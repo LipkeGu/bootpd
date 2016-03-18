@@ -1,8 +1,8 @@
-﻿using System;
-using System.Text;
-
-namespace WDSServer
+﻿namespace WDSServer
 {
+	using System;
+	using System.Text;
+
 	public class DistributionShare
 	{
 		public static bool CreateDS(string name, string description, string path) => true;

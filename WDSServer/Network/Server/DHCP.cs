@@ -7,17 +7,21 @@ using WDSServer.Providers;
 
 namespace WDSServer.Network
 {
-	#region "generic DHCP socket Functions"
-	sealed public class DHCP : ServerProvider, IDHCPServer_Provider, IDisposable
+	#region "Allgemeine DHCP Funktionen"
+	public sealed class DHCP : ServerProvider, IDHCPServer_Provider, IDisposable
 	{
 		public static Dictionary<string, DHCPClient> Clients =
 			new Dictionary<string, DHCPClient>();
-		DHCPMsgType msgType;
-		DHCPSocket DHCPsocket;
-		BINLSocket BINLsocket;
-		byte[] ntlmkey;
 
 		public static ServerMode Mode;
+
+		public DHCPSocket DHCPsocket;
+
+		public BINLSocket BINLsocket;
+
+		DHCPMsgType msgType;
+
+		byte[] ntlmkey;
 
 		public DHCP(IPEndPoint socket, int port, ServerMode mode = ServerMode.KnownOnly)
 		{
@@ -26,14 +30,14 @@ namespace WDSServer.Network
 
 			this.BINLsocket = new BINLSocket(new IPEndPoint(socket.Address, port));
 			this.BINLsocket.Type = SocketType.BINL;
-			this.BINLsocket.DataReceived += DataReceived;
-			this.BINLsocket.DataSend += DataSend;
+			this.BINLsocket.DataReceived += this.DataReceived;
+			this.BINLsocket.DataSend += this.DataSend;
 			this.endp = socket;
 
 			this.DHCPsocket = new DHCPSocket(this.endp, true);
 			this.DHCPsocket.Type = SocketType.DHCP;
-			this.DHCPsocket.DataReceived += DataReceived;
-			this.DHCPsocket.DataSend += DataSend;
+			this.DHCPsocket.DataReceived += this.DataReceived;
+			this.DHCPsocket.DataSend += this.DataSend;
 		}
 
 		public override IPEndPoint LocalEndPoint
@@ -42,6 +46,7 @@ namespace WDSServer.Network
 			{
 				return this.endp;
 			}
+
 			set
 			{
 				this.endp = value;
@@ -67,9 +72,219 @@ namespace WDSServer.Network
 			{
 				return this.type;
 			}
+
 			set
 			{
 				this.type = value;
+			}
+		}
+
+		public void Handle_DHCP_Request(DHCPPacket packet, ref DHCPClient client)
+		{
+			var response = new DHCPPacket(new byte[1024]);
+			Array.Copy(packet.Data, 0, response.Data, 0, 242);
+
+			response.BootpType = BootMessageType.Reply;
+			response.ServerName = Settings.ServerName;
+			response.NextServer = this.LocalEndPoint.Address;
+			response.Type = client.Type;
+			response.Offset += 243;
+
+			switch (packet.Type)
+			{
+				case SocketType.DHCP:
+					client.MsgType = DHCPMsgType.Offer;
+					break;
+				case SocketType.BINL:
+					if (Functions.GetOptionOffset(ref packet, DHCPOptionEnum.WDSNBP) != 0)
+						client.IsWDSClient = true;
+					else
+						client.IsWDSClient = false;
+
+					client.MsgType = DHCPMsgType.Ack;
+					break;
+				default:
+					Clients.Remove(client.ID);
+					return;
+			}
+
+			Functions.SelectBootFile(ref client, client.IsWDSClient);
+
+			// Bootfile
+			response.Bootfile = client.BootFile;
+
+			// Option 53
+			response.MessageType = client.MsgType;
+
+			// Option 60
+			var opt = Exts.SetDHCPOption(DHCPOptionEnum.Vendorclassidentifier, Encoding.ASCII.GetBytes("PXEClient".ToCharArray()));
+
+			Array.Copy(opt, 0, response.Data, response.Offset, opt.Length);
+			response.Offset += opt.Length;
+
+			// Option 54
+			var dhcpident = Exts.SetDHCPOption(DHCPOptionEnum.ServerIdentifier, Exts.GetServerIP().GetAddressBytes());
+
+			Array.Copy(dhcpident, 0, response.Data, response.Offset, dhcpident.Length);
+			response.Offset += dhcpident.Length;
+
+			// Option 97
+			var guidopt = Exts.SetDHCPOption(DHCPOptionEnum.GUID, Exts.GetOptionValue(packet.Data, DHCPOptionEnum.GUID));
+
+			Array.Copy(guidopt, 0, response.Data, response.Offset, guidopt.Length);
+			response.Offset += guidopt.Length;
+
+			// Option 252 - BCDStore
+			if (client.BCDPath != null)
+			{
+				var bcdstore = Exts.SetDHCPOption(DHCPOptionEnum.BCDPath, Encoding.ASCII.GetBytes(client.BCDPath.ToCharArray()));
+
+				Array.Copy(bcdstore, 0, response.Data, response.Offset, bcdstore.Length);
+				response.Offset += bcdstore.Length;
+			}
+
+			if (Mode == ServerMode.AllowAll)
+				client.ActionDone = true;
+
+			this.Handle_WDS_Options(ref response, client.AdminMessage, ref client);
+
+			// End of Packet (255)
+			var endopt = new byte[1];
+			endopt[0] = (byte)DHCPOptionEnum.End;
+
+			Array.Copy(endopt, 0, response.Data, response.Offset + 1, endopt.Length);
+			response.Offset += endopt.Length;
+
+			if (client == null)
+				throw new Exception("Stop no client!");
+
+			switch (packet.Type)
+			{
+				case SocketType.DHCP:
+					this.Send(ref response, client.EndPoint);
+					break;
+				case SocketType.BINL:
+					if (client.IsWDSClient)
+						if (client.ActionDone)
+						{
+							this.Send(ref response, client.EndPoint);
+							Clients.Remove(client.ID);
+							client = null;
+						}
+						else
+							break;
+					else
+						this.Send(ref response, client.EndPoint);
+					break;
+				default:
+					break;
+			}
+		}
+
+		public void Dispose()
+		{
+			Clients.Clear();
+		}
+
+		public void Handle_RIS_Request(RISPacket packet, ref RISClient client, bool encrypted = false)
+		{
+			var challenge = "rootroot";
+			var ntlmssp = new NTLMSSP("root", challenge);
+			var flags = ntlmssp.Flags;
+
+			Errorhandler.Report(LogTypes.Info, "Message Type: {0}".F(packet.OPCode));
+			switch (packet.OPCode)
+			{
+				case RISOPCodes.REQ:
+					return;
+				case RISOPCodes.RQU:
+					var data = this.ReadOSCFile(packet.FileName, encrypted, encrypted ? this.ntlmkey : null);
+					var rquResponse = new RISPacket(new byte[(data.Length + 40)]);
+
+					if (!encrypted)
+						rquResponse.RequestType = "RSU";
+					else
+						rquResponse.RequestType = "RSP";
+
+					rquResponse.Orign = 130;
+
+					Array.Copy(packet.Data, 8, rquResponse.Data, 8, 28);
+					rquResponse.Offset = 36;
+
+					Array.Copy(data, 0, rquResponse.Data, rquResponse.Offset, data.Length);
+
+					rquResponse.Offset += data.Length;
+					rquResponse.Length = data.Length + 36;
+					#endregion
+
+					this.Send(ref rquResponse, client.Endpoint);
+					break;
+				case RISOPCodes.NCQ:
+					break;
+				case RISOPCodes.AUT:
+					var ntlmssp_packet = Functions.Unpack_Packet(packet.Data);
+					if (packet.Length >= 28)
+					{
+						Console.WriteLine("Domain Info: ");
+						Console.WriteLine("Length: {0}", ntlmssp_packet[28]);
+						Console.WriteLine("Allocated: {0}", ntlmssp_packet[30]);
+						Console.WriteLine("Value: {0}", Encoding.ASCII.GetString(ntlmssp_packet, ntlmssp_packet[32], ntlmssp_packet[28]));
+
+						Console.WriteLine(string.Empty);
+						Console.WriteLine("User Info: ");
+						Console.WriteLine("Length: {0}", ntlmssp_packet[36]);
+						Console.WriteLine("Allocated: {0}", ntlmssp_packet[38]);
+						Console.WriteLine("Value: {0}", Encoding.ASCII.GetString(ntlmssp_packet, ntlmssp_packet[40], ntlmssp_packet[36]));
+
+						Console.WriteLine(string.Empty);
+						Console.WriteLine("Session Key: ");
+						Console.WriteLine("Length: {0}", ntlmssp_packet[20]);
+						Console.WriteLine("Allocated: {0}", ntlmssp_packet[22]);
+						Console.WriteLine("Value: {0}", Exts.GetDataAsString(ntlmssp_packet, ntlmssp_packet[24], ntlmssp_packet[20]));
+
+						Console.WriteLine(string.Empty);
+						Console.WriteLine("Workstation info: ");
+						Console.WriteLine("Length: {0}", ntlmssp_packet[44]);
+						Console.WriteLine("Allocated: {0}", ntlmssp_packet[46]);
+						Console.WriteLine("Value: {0}", Encoding.ASCII.GetString(ntlmssp_packet, ntlmssp_packet[48], ntlmssp_packet[44]));
+
+						Array.Copy(ntlmssp_packet, ntlmssp_packet[48], this.ntlmkey, 0, ntlmssp_packet[44]);
+
+						var resPacket = new RISPacket(new byte[10]);
+						resPacket.RequestType = "RES";
+						resPacket.Orign = 130;
+
+						resPacket.Offset += 4;
+						var res = BitConverter.GetBytes(0x00000000);
+
+						resPacket.Length = 4;
+
+						Array.Copy(res, 0, resPacket.Data, resPacket.Offset, res.Length);
+						resPacket.Offset += res.Length;
+						this.Send(ref resPacket, client.Endpoint);
+					}
+
+					break;
+				case RISOPCodes.CHL:
+					break;
+				case RISOPCodes.NEG:
+					var msg = NTLMSSP.CreateMessage(NTLMSSP.NTLMMessageType.Challenge, flags, challenge);
+					var negResponse = new RISPacket(new byte[(8 + msg.Length)]);
+
+					negResponse.OPCode = RISOPCodes.CHL;
+					negResponse.RequestType = "CHL";
+					negResponse.Orign = 130;
+
+					negResponse.Offset = 8;
+					Array.Copy(msg, 0, negResponse.Data, 8, msg.Length);
+
+					negResponse.Offset += msg.Length;
+					negResponse.Length = negResponse.Offset;
+
+					this.Send(ref negResponse, client.Endpoint);
+					break;
+				default:
+					break;
 			}
 		}
 
@@ -120,12 +335,12 @@ namespace WDSServer.Network
 								if (e.RemoteEndpoint.Address == IPAddress.None)
 									return;
 
-								Handle_DHCP_Request(request, ref c);
+								this.Handle_DHCP_Request(request, ref c);
 								break;
 							case DHCPMsgType.Discover:
 								Clients[clientTag].RequestID = 1;
 
-								Handle_DHCP_Request(request, ref c);
+								this.Handle_DHCP_Request(request, ref c);
 								break;
 							case DHCPMsgType.Release:
 								if (Clients.ContainsKey(clientTag))
@@ -135,8 +350,8 @@ namespace WDSServer.Network
 								return;
 						}
 					}
-					break;
 
+					break;
 				case (int)BootMessageType.RISRequest:
 					var packet = new RISPacket(e.Data);
 					var client = new RISClient(e.RemoteEndpoint);
@@ -148,19 +363,20 @@ namespace WDSServer.Network
 							Errorhandler.Report(LogTypes.Info, "====== RIS (OSChooser) ======");
 							packet.OPCode = packet.RequestType == "REQ" ? RISOPCodes.REQ : RISOPCodes.RQU;
 
-							Handle_RIS_Request(packet, ref client, packet.RequestType == "REQ" ? true : false);
+							this.Handle_RIS_Request(packet, ref client, packet.RequestType == "REQ" ? true : false);
 							break;
 						case "NEG":
 						case "AUT":
 							Errorhandler.Report(LogTypes.Info, "======= RIS (NTLMSSP) =======");
 							packet.OPCode = packet.RequestType == "NEG" ? RISOPCodes.NEG : RISOPCodes.AUT;
 
-							Handle_RIS_Request(packet, ref client);
+							this.Handle_RIS_Request(packet, ref client);
 							break;
 						default:
 							Errorhandler.Report(LogTypes.Info, "Got Unknown RIS Packet ({0})".F(packet.RequestType));
 							break;
 					}
+
 					Errorhandler.Report(LogTypes.Info, "=============================");
 
 					break;
@@ -193,7 +409,7 @@ namespace WDSServer.Network
 
 		internal void Send(ref RISPacket packet, IPEndPoint endpoint)
 		{
-			this.BINLsocket.send(endpoint, packet.Data, packet.Offset);
+			this.BINLsocket.Send(endpoint, packet.Data, packet.Offset);
 		}
 
 		internal void Send(ref DHCPPacket packet, IPEndPoint endpoint)
@@ -201,16 +417,15 @@ namespace WDSServer.Network
 			switch (packet.Type)
 			{
 				case SocketType.DHCP:
-					this.DHCPsocket.send(endpoint, packet.Data, packet.Offset);
+					this.DHCPsocket.Send(endpoint, packet.Data, packet.Offset);
 					break;
 				case SocketType.BINL:
-					this.BINLsocket.send(endpoint, packet.Data, packet.Offset);
+					this.BINLsocket.Send(endpoint, packet.Data, packet.Offset);
 					break;
 				default:
 					break;
 			}
 		}
-		#endregion
 
 		internal void Handle_WDS_Options(ref DHCPPacket packet, string adminMessage, ref DHCPClient client)
 		{
@@ -272,7 +487,7 @@ namespace WDSServer.Network
 			offset += 1;
 
 			Array.Copy(bytes, 0, block, offset, bytes.Length);
-			offset += (bytes.Length + 1);
+			offset += bytes.Length + 1;
 
 			// ActionDone
 			block[offset] = (byte)WDSNBPOptions.ActionDone;
@@ -294,225 +509,6 @@ namespace WDSServer.Network
 			Array.Copy(block, 0, wdsBlock, 0, offset);
 			Array.Copy(wdsBlock, 0, packet.Data, packet.Offset, wdsBlock.Length);
 			packet.Offset += wdsBlock.Length;
-		}
-
-		public void Handle_DHCP_Request(DHCPPacket packet, ref DHCPClient client)
-		{
-			var response = new DHCPPacket(new byte[1024]);
-			Array.Copy(packet.Data, 0, response.Data, 0, 242);
-
-			response.BootpType = BootMessageType.Reply;
-			response.ServerName = Settings.ServerName;
-			response.NextServer = this.LocalEndPoint.Address;
-			response.Type = client.Type;
-			response.Offset += 243;
-
-			switch (packet.Type)
-			{
-				case SocketType.DHCP:
-					client.MsgType = DHCPMsgType.Offer;
-					break;
-				case SocketType.BINL:
-					if (Functions.GetOptionOffset(ref packet, DHCPOptionEnum.WDSNBP) != 0)
-						client.IsWDSClient = true;
-					else
-						client.IsWDSClient = false;
-
-					client.MsgType = DHCPMsgType.Ack;
-					break;
-				default:
-					Clients.Remove(client.ID);
-					return;
-			}
-
-			Functions.SelectBootFile(ref client, client.IsWDSClient);
-
-			// Bootfile
-			response.Bootfile = client.BootFile;
-
-			// Option 53
-			response.MessageType = client.MsgType;
-
-			// Option 60
-			var opt = Exts.SetDHCPOption(DHCPOptionEnum.Vendorclassidentifier,
-					Encoding.ASCII.GetBytes("PXEClient".ToCharArray()));
-
-			Array.Copy(opt, 0, response.Data, response.Offset, opt.Length);
-			response.Offset += opt.Length;
-
-			// Option 54
-			var dhcpident = Exts.SetDHCPOption(DHCPOptionEnum.ServerIdentifier,
-				Exts.GetServerIP().GetAddressBytes());
-
-			Array.Copy(dhcpident, 0, response.Data, response.Offset, dhcpident.Length);
-			response.Offset += dhcpident.Length;
-
-			// Option 97
-			var guidopt = Exts.SetDHCPOption(DHCPOptionEnum.GUID,
-				Exts.GetOptionValue(packet.Data, DHCPOptionEnum.GUID));
-
-			Array.Copy(guidopt, 0, response.Data, response.Offset, guidopt.Length);
-			response.Offset += guidopt.Length;
-
-			// Option 252 - BCDStore
-			if (client.BCDPath != null)
-			{
-				var bcdstore = Exts.SetDHCPOption(DHCPOptionEnum.BCDPath,
-					  Encoding.ASCII.GetBytes(client.BCDPath.ToCharArray()));
-
-				Array.Copy(bcdstore, 0, response.Data, response.Offset, bcdstore.Length);
-				response.Offset += bcdstore.Length;
-			}
-
-			if (Mode == ServerMode.AllowAll)
-				client.ActionDone = true;
-
-			Handle_WDS_Options(ref response, client.AdminMessage, ref client);
-
-			// End of Packet (255)
-			var endopt = new byte[1];
-			endopt[0] = (byte)DHCPOptionEnum.End;
-
-			Array.Copy(endopt, 0, response.Data, response.Offset + 1, endopt.Length);
-			response.Offset += endopt.Length;
-
-
-
-			if (client == null)
-				throw new Exception("Stop no client!");
-
-			switch (packet.Type)
-			{
-				case SocketType.DHCP:
-					Send(ref response, client.EndPoint);
-					break;
-				case SocketType.BINL:
-					if (client.IsWDSClient)
-						if (client.ActionDone)
-						{
-							Send(ref response, client.EndPoint);
-							Clients.Remove(client.ID);
-							client = null;
-						}
-						else
-							break;
-					else
-						Send(ref response, client.EndPoint);
-					break;
-				default:
-					break;
-			}
-		}
-
-		public void Handle_RIS_Request(RISPacket packet, ref RISClient client, bool encrypted = false)
-		{
-
-			var challenge = "rootroot";
-			var ntlmssp = new NTLMSSP("root", challenge);
-			var flags = ntlmssp.Flags;
-
-			Errorhandler.Report(LogTypes.Info, "Message Type: {0}".F(packet.OPCode));
-			switch (packet.OPCode)
-			{
-				case RISOPCodes.REQ:
-					return;
-				case RISOPCodes.RQU:
-					#region "Read the OSC File"
-
-					var data = ReadOSCFile(packet.FileName, encrypted, encrypted ? this.ntlmkey : null);
-					#endregion
-
-					#region "Generate Response Packet"
-					var rquResponse = new RISPacket(new byte[(data.Length + 40)]);
-
-					if (!encrypted)
-						rquResponse.RequestType = "RSU";
-					else
-						rquResponse.RequestType = "RSP";
-
-					rquResponse.Orign = 130;
-
-					Array.Copy(packet.Data, 8, rquResponse.Data, 8, 28);
-					rquResponse.Offset = 36;
-
-					Array.Copy(data, 0, rquResponse.Data, rquResponse.Offset, data.Length);
-
-					rquResponse.Offset += data.Length;
-					rquResponse.Length = data.Length + 36;
-					#endregion
-
-					Send(ref rquResponse, client.Endpoint);
-					break;
-				case RISOPCodes.NCQ:
-					break;
-				case RISOPCodes.AUT:
-					var ntlmssp_packet = Functions.unpack_Packet(packet.Data);
-					#region "AUTh info (debug)"
-
-					if (packet.Length >= 28)
-					{
-						Console.WriteLine("Domain Info: ");
-						Console.WriteLine("Length: {0}", ntlmssp_packet[28]);
-						Console.WriteLine("Allocated: {0}", ntlmssp_packet[30]);
-						Console.WriteLine("Value: {0}", Encoding.ASCII.GetString(ntlmssp_packet, ntlmssp_packet[32], ntlmssp_packet[28]));
-
-						Console.WriteLine("");
-						Console.WriteLine("User Info: ");
-						Console.WriteLine("Length: {0}", ntlmssp_packet[36]);
-						Console.WriteLine("Allocated: {0}", ntlmssp_packet[38]);
-						Console.WriteLine("Value: {0}", Encoding.ASCII.GetString(ntlmssp_packet, ntlmssp_packet[40], ntlmssp_packet[36]));
-
-						Console.WriteLine("");
-						Console.WriteLine("Session Key: ");
-						Console.WriteLine("Length: {0}", ntlmssp_packet[20]);
-						Console.WriteLine("Allocated: {0}", ntlmssp_packet[22]);
-						Console.WriteLine("Value: {0}", Exts.GetDataAsString(ntlmssp_packet, ntlmssp_packet[24], ntlmssp_packet[20]));
-
-						Console.WriteLine("");
-						Console.WriteLine("Workstation info: ");
-						Console.WriteLine("Length: {0}", ntlmssp_packet[44]);
-						Console.WriteLine("Allocated: {0}", ntlmssp_packet[46]);
-						Console.WriteLine("Value: {0}", Encoding.ASCII.GetString(ntlmssp_packet, ntlmssp_packet[48], ntlmssp_packet[44]));
-						#endregion;
-
-						Array.Copy(ntlmssp_packet, ntlmssp_packet[48], this.ntlmkey, 0, ntlmssp_packet[44]);
-
-
-						var RESPacket = new RISPacket(new byte[10]);
-						RESPacket.RequestType = "RES";
-						RESPacket.Orign = 130;
-
-						RESPacket.Offset += 4;
-						var res = BitConverter.GetBytes(0x00000000);
-
-						RESPacket.Length = 4;
-
-						Array.Copy(res, 0, RESPacket.Data, RESPacket.Offset, res.Length);
-						RESPacket.Offset += res.Length;
-						Send(ref RESPacket, client.Endpoint);
-					}
-					break;
-				case RISOPCodes.CHL:
-					break;
-				case RISOPCodes.NEG:
-					var msg = NTLMSSP.CreateMessage(NTLMSSP.NTLMMessageType.Challenge, flags, challenge);
-					var negResponse = new RISPacket(new byte[(8 + msg.Length)]);
-
-					negResponse.OPCode = RISOPCodes.CHL;
-					negResponse.RequestType = "CHL";
-					negResponse.Orign = 130;
-
-					negResponse.Offset = 8;
-					Array.Copy(msg, 0, negResponse.Data, 8, msg.Length);
-
-					negResponse.Offset += msg.Length;
-					negResponse.Length = negResponse.Offset;
-
-					Send(ref negResponse, client.Endpoint);
-					break;
-				default:
-					break;
-			}
 		}
 
 		private byte[] ReadOSCFile(string filename, bool encrypted, byte[] key = null)
@@ -538,11 +534,6 @@ namespace WDSServer.Network
 			}
 			else
 				return oscContent;
-		}
-
-		public void Dispose()
-		{
-			Clients.Clear();
 		}
 	}
 }

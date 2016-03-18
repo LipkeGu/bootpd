@@ -5,13 +5,13 @@ using WDSServer.Providers;
 
 namespace WDSServer.Network
 {
-	sealed public class TFTPSocket : SocketProvider
+	public sealed class TFTPSocket : SocketProvider
 	{
 		public TFTPSocket(IPEndPoint endpoint, bool broadcast = false, int buffersize = 1024, SocketType type = SocketType.TFTP)
 		{
 			try
 			{
-				if (!Settings.enableTFTP)
+				if (!Settings.EnableTFTP)
 					return;
 
 				this.localEndPoint = endpoint;
@@ -36,7 +36,7 @@ namespace WDSServer.Network
 
 				this.socket.Bind(this.localEndPoint);
 				this.socket.BeginReceiveFrom(this.state.Buffer, 0, this.state.Buffersize, 0,
-					ref this.localEndPoint, new AsyncCallback(received), this.state);
+					ref this.localEndPoint, new AsyncCallback(this.Received), this.state);
 			}
 			catch (SocketException ex)
 			{
@@ -50,13 +50,27 @@ namespace WDSServer.Network
 			{
 				return this.type;
 			}
+
 			set
 			{
 				this.type = value;
 			}
 		}
 
-		internal override void received(IAsyncResult ar)
+		public void Send(IPEndPoint target, TFTPPacket packet)
+		{
+			var bytessend = this.socket.SendTo(packet.Data,
+				packet.Offset, SocketFlags.None, target);
+
+			this.OnDataSend(bytessend, target, this.type);
+		}
+
+		public void Dispose()
+		{
+			this.socket.Dispose();
+		}
+
+		internal override void Received(IAsyncResult ar)
 		{
 			this.state = (SocketState)ar.AsyncState;
 			var client = this.state.Socket;
@@ -68,23 +82,10 @@ namespace WDSServer.Network
 			var data = new byte[bytesRead];
 			Array.Copy(this.state.Buffer, data, data.Length);
 
-			OnDataReceived(data, (IPEndPoint)this.localEndPoint, this.type);
+			this.OnDataReceived(data, (IPEndPoint)this.localEndPoint, this.type);
 
 			client.BeginReceiveFrom(this.state.Buffer, 0, this.state.Buffersize,
-				0, ref this.localEndPoint, new AsyncCallback(received), this.state);
-		}
-
-		public void send(IPEndPoint target, TFTPPacket packet)
-		{
-			var bytessend = this.socket.SendTo(packet.Data,
-				packet.Offset, SocketFlags.None, target);
-
-			OnDataSend(bytessend, target, this.type);
-		}
-
-		public void Dispose()
-		{
-			this.socket.Dispose();	
+				0, ref this.localEndPoint, new AsyncCallback(this.Received), this.state);
 		}
 	}
 }

@@ -4,7 +4,7 @@ using WDSServer.Providers;
 
 namespace WDSServer.Network
 {
-	sealed public class DHCPClient : ClientProvider, IDHCPClient_Provider
+	public sealed class DHCPClient : ClientProvider, IDHCPClient_Provider
 	{
 		string bootfile;
 		string bcdpath;
@@ -16,7 +16,7 @@ namespace WDSServer.Network
 		int pollInterval;
 		int requestID;
 
-		bool isWDSClient;
+		bool wdsclient;
 		bool actionDone;
 
 		Guid guid;
@@ -27,7 +27,7 @@ namespace WDSServer.Network
 		{
 			this.type = type;
 			this.endp = endpoint;
-			this.isWDSClient = false;
+			this.wdsclient = false;
 			this.pollInterval = Settings.PollInterval;
 			this.retrycount = Settings.RetryCount;
 
@@ -76,12 +76,12 @@ namespace WDSServer.Network
 		{
 			get
 			{
-				return this.isWDSClient;
+				return this.wdsclient;
 			}
 
 			set
 			{
-				this.isWDSClient = value;
+				this.wdsclient = value;
 			}
 		}
 

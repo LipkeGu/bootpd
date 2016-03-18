@@ -7,8 +7,40 @@ namespace WDSServer.Providers
 {
 	public class NTLMSSP
 	{
-		static private byte[] nullEncMagic = { 0xAA, 0xD3, 0xB4, 0x35, 0xB5, 0x14, 0x04, 0xEE };
-		static private byte[] magic = { 0x4B, 0x47, 0x53, 0x21, 0x40, 0x23, 0x24, 0x25 };
+		private static byte[] nullEncMagic = { 0xAA, 0xD3, 0xB4, 0x35, 0xB5, 0x14, 0x04, 0xEE };
+		private static byte[] magic = { 0x4B, 0x47, 0x53, 0x21, 0x40, 0x23, 0x24, 0x25 };
+
+		string username;
+		string password;
+
+		byte[] lmpassword;
+		byte[] ntpassword;
+		byte[] challenge;
+		byte[] userSessionKey;
+
+		string domain;
+		string workstation;
+
+		NTLMFlags flags;
+
+		public NTLMSSP(string password, string challenge)
+		{
+			this.lmpassword = new byte[21];
+			this.ntpassword = new byte[21];
+
+			this.challenge = Encoding.ASCII.GetBytes(challenge);
+			this.password = password;
+
+			this.GenerateHashes(this.password);
+
+			this.flags = NTLMFlags.Ris;
+		}
+
+		public NTLMSSP(string password, byte[] challenge)
+		{
+			this.Password = password;
+			this.challenge = challenge;
+		}
 
 		public enum NTLMFlags : int
 		{
@@ -60,38 +92,6 @@ namespace WDSServer.Providers
 			Authenticate = 0x03000000
 		}
 
-		string username;
-		string password;
-
-		byte[] lmpassword;
-		byte[] ntpassword;
-		byte[] challenge;
-		byte[] userSessionKey;
-
-		string domain;
-		string workstation;
-
-		NTLMFlags flags;
-
-		public NTLMSSP(string password, string challenge)
-		{
-			this.lmpassword = new byte[21];
-			this.ntpassword = new byte[21];
-
-			this.challenge = Encoding.ASCII.GetBytes(challenge);
-			this.password = password;
-
-			this.GenerateHashes(this.password);
-
-			this.flags = NTLMFlags.Ris;
-		}
-
-		public NTLMSSP(string password, byte[] challenge)
-		{
-			this.Password = password;
-			this.challenge = challenge;
-		}
-
 		public string Domain
 		{
 			get
@@ -139,12 +139,11 @@ namespace WDSServer.Providers
 			}
 		}
 
-		public byte[] LM => GetResponse(this.lmpassword);
+		public byte[] LM => this.GetResponse(this.lmpassword);
 
 		public NTLMFlags Flags => this.flags;
 
-		public byte[] NT => GetResponse(this.ntpassword);
-
+		public byte[] NT => this.GetResponse(this.ntpassword);
 
 		public byte[] UserSessionKey
 		{
@@ -153,19 +152,16 @@ namespace WDSServer.Providers
 				var md4 = MD4.Create();
 
 				md4.Initialize();
-				this.userSessionKey = md4.ComputeHash(GetResponse(this.ntpassword));
+				this.userSessionKey = md4.ComputeHash(this.GetResponse(this.ntpassword));
 
 				return this.userSessionKey;
 			}
-
 		}
 
 		public static byte[] GenerateSubBlock(NTLMSubBlockType type, string value)
 		{
 			var offset = 0;
 			var d = Encoding.Unicode.GetBytes(value);
-
-
 			var t = BitConverter.GetBytes((short)type);
 			var l = BitConverter.GetBytes((short)d.Length);
 
@@ -183,17 +179,15 @@ namespace WDSServer.Providers
 			return block;
 		}
 
-		#region "NTLMSSP Functions"
 		public static byte[] CreateMessage(NTLMMessageType msgtype, NTLMFlags ntlmflags, string challenge)
 		{
-
 			var targetnameOffset = 48;
 
 			var domain = Encoding.Unicode.GetBytes(Settings.ServerDomain);
-			var tiboffset = (targetnameOffset + domain.Length);
+			var tiboffset = targetnameOffset + domain.Length;
 			var offset = 0;
-			var TargetInfoBlockSize = 0;
-			var tib = TargetInfoBlock(out TargetInfoBlockSize);
+			var targetInfoBlockSize = 0;
+			var tib = TargetInfoBlock(out targetInfoBlockSize);
 
 			var signature = Encoding.ASCII.GetBytes("NTLMSSP\0");
 			var indicator = BitConverter.GetBytes((int)msgtype);
@@ -207,85 +201,71 @@ namespace WDSServer.Providers
 			var context = new byte[8];
 			var tisb = SecBuffer(tib, tiboffset);
 
-			#region "calculate buffersize"
 			var buflen = signature.Length;
 			buflen += indicator.Length;
-			buflen += (tnsb.Length * 2);
+			buflen += tnsb.Length * 2;
 			buflen += flags.Length;
 			buflen += challeng.Length;
 			buflen += context.Length;
-			// buflen += tisb.Length;
-			// buflen += tib.Length;
+
+			/*
+			buflen += tisb.Length;
+			buflen += tib.Length;
+			
+			*/
+
 			buflen += domain.Length;
-			#endregion
 
-			var Message = new byte[buflen];
+			var message = new byte[buflen];
 
-			#region "Signature
-			Array.Copy(signature, 0, Message, offset, signature.Length);
+			Array.Copy(signature, 0, message, offset, signature.Length);
 			offset += signature.Length;
-			#endregion
 
-			#region "Indicator"
 			Console.WriteLine("Offset is now: {0} | 8 | {1} (indicator) | 4", offset, indicator.Length);
 			if (BitConverter.IsLittleEndian)
 				Array.Reverse(indicator);
 
-			Array.Copy(indicator, 0, Message, offset, indicator.Length);
+			Array.Copy(indicator, 0, message, offset, indicator.Length);
 			offset += indicator.Length;
-			#endregion
 
-			#region "Targetname Security Buffer"
 			Console.WriteLine("Offset is now: {0} | 12 | {1} (tnsb) | 8", offset, tnsb.Length);
-			Array.Copy(tnsb, 0, Message, offset, tnsb.Length);
+			Array.Copy(tnsb, 0, message, offset, tnsb.Length);
 			offset += tnsb.Length;
-			#endregion
-
-			#region "Flags"
 
 			Console.WriteLine("Offset is now: {0} | 20 | {1} (flasg) | 4", offset, 4);
 
 			if (BitConverter.IsLittleEndian)
 				Array.Reverse(flags);
 
-			Array.Copy(flags, 0, Message, offset, flags.Length);
+			Array.Copy(flags, 0, message, offset, flags.Length);
 			offset += flags.Length;
-			#endregion
-
-			#region "Challenge"
 
 			Console.WriteLine("Offset is now: {0} | 24 | {1} (Challenge) | 8", offset, challeng.Length);
 
-			Array.Copy(challeng, 0, Message, offset, challeng.Length);
+			Array.Copy(challeng, 0, message, offset, challeng.Length);
 			offset += challeng.Length;
-			#endregion
-
-			#region "Context"
 
 			Console.WriteLine("Offset is now: {0} | 32 | {1} (Context) | 8", offset, context.Length);
-			Array.Copy(context, 0, Message, offset, context.Length);
+
+			Array.Copy(context, 0, message, offset, context.Length);
 			offset += context.Length;
-			#endregion
 
 			/*
 			TODO: Our C- Version is skipping this o.o" (Why?!)
 			
 			Console.WriteLine("Offset is now: {0} | 40 | {1} (tisb) | 8", offset, tisb.Length);
-			Array.Copy(tisb, 0, Message, offset, tisb.Length);
+			Array.Copy(tisb, 0, message, offset, tisb.Length);
 			offset += tisb.Length;
 			*/
 
 			Console.WriteLine("Offset is now: {0} | 40 | {1} (tisb) | 8", offset, tisb.Length);
-			Array.Copy(tnsb, 0, Message, offset, tnsb.Length);
+			Array.Copy(tnsb, 0, message, offset, tnsb.Length);
 			offset += tnsb.Length;
 
-			#region "TargetName Data"
-
 			Console.WriteLine("Offset is now: {0} | 48 | {1} (domain) | 8", offset, domain.Length);
-			Array.Copy(domain, 0, Message, offset, domain.Length);
+			Array.Copy(domain, 0, message, offset, domain.Length);
 			offset += domain.Length;
-			Console.WriteLine("Offset is now: {0} | X Position | {1} (tib) | {2}", offset, tib.Length, TargetInfoBlockSize);
-			#endregion
+			Console.WriteLine("Offset is now: {0} | X Position | {1} (tib) | {2}", offset, tib.Length, targetInfoBlockSize);
 
 			/*
 			TODO: Our C- Version is skipping this o.o" (Why?!) 
@@ -293,7 +273,8 @@ namespace WDSServer.Providers
 			Array.Copy(tib, 0, Message, offset, tib.Length);
 			offset += tib.Length;
 			*/
-			return Message;
+
+			return message;
 		}
 
 		internal static byte[] SecBuffer(string data, int position)
@@ -394,12 +375,12 @@ namespace WDSServer.Providers
 			var ct = des.CreateEncryptor();
 			ct.TransformBlock(this.challenge, 0, this.challenge.Length, response, 0);
 
-			des.Key = PrepareDESKey(pwd, 7);
+			des.Key = this.PrepareDESKey(pwd, 7);
 
 			ct = des.CreateEncryptor();
 			ct.TransformBlock(this.challenge, 0, this.challenge.Length, response, 8);
 
-			des.Key = PrepareDESKey(pwd, 14);
+			des.Key = this.PrepareDESKey(pwd, 14);
 
 			ct = des.CreateEncryptor();
 			ct.TransformBlock(this.challenge, 0, this.challenge.Length, response, 16);
@@ -425,12 +406,11 @@ namespace WDSServer.Providers
 			des.Mode = CipherMode.ECB;
 			var ct = (ICryptoTransform)null;
 
-			#region "LM Password"
 			if ((password == null) || (password.Length < 1))
 				Buffer.BlockCopy(nullEncMagic, 0, this.lmpassword, 0, 8);
 			else
 			{
-				des.Key = PasswordToKey(password, 0);
+				des.Key = this.PasswordToKey(password, 0);
 				ct = des.CreateEncryptor();
 				ct.TransformBlock(magic, 0, 8, this.lmpassword, 0);
 			}
@@ -439,27 +419,23 @@ namespace WDSServer.Providers
 				Buffer.BlockCopy(nullEncMagic, 0, this.lmpassword, 8, 8);
 			else
 			{
-				des.Key = PasswordToKey(password, 7);
+				des.Key = this.PasswordToKey(password, 7);
 				ct = des.CreateEncryptor();
 				ct.TransformBlock(magic, 0, 8, this.lmpassword, 8);
 			}
-			#endregion
 
-			#region "NT Password"
 			var md4 = MD4.Create();
 
 			md4.Initialize();
 
-			var data = ((password == null) ? (new byte[0]) : (Encoding.Unicode.GetBytes(password)));
+			var data = (password == null) ? new byte[0] : Encoding.Unicode.GetBytes(password);
 			var hash = md4.ComputeHash(data);
 			Buffer.BlockCopy(hash, 0, this.ntpassword, 0, 16);
 
 			Array.Clear(data, 0, data.Length);
 			Array.Clear(hash, 0, hash.Length);
-			#endregion
 
 			des.Clear();
 		}
-		#endregion
 	}
 }

@@ -1,20 +1,40 @@
-﻿using System;
-using System.Collections.Specialized;
-using System.Net;
-
-namespace WDSServer
+﻿namespace WDSServer
 {
+	using System;
+	using System.Collections.Specialized;
+	using System.Net;
+
 	public delegate void DataReceivedEventHandler(object sender, DataReceivedEventArgs e);
+
 	public delegate void DataSendEventHandler(object sender, DataSendEventArgs e);
 
 	public delegate void HTTPDataReceivedEventHandler(object sender, HTTPDataReceivedEventArgs e);
+
 	public delegate void HTTPDataSendEventHandler(object sender, HTTPDataSendEventArgs e);
 
 	public class DataReceivedEventArgs : EventArgs
 	{
-		public byte[] Data;
-		public IPEndPoint RemoteEndpoint;
-		public Definitions.SocketType Type;
+		private byte[] data;
+		private IPEndPoint endpoint;
+		private Definitions.SocketType type;
+
+		public byte[] Data
+		{
+			get { return this.data; }
+			set { this.data = value; }
+		}
+
+		public IPEndPoint RemoteEndpoint
+		{
+			get { return this.endpoint; }
+			set { this.endpoint = value; }
+		}
+
+		public Definitions.SocketType Type
+		{
+			get { return this.type; }
+			set { this.type = value; }
+		}
 	}
 
 	public class DataSendEventArgs : EventArgs
@@ -34,7 +54,7 @@ namespace WDSServer
 
 	public class HTTPDataSendEventArgs : EventArgs
 	{
-		public string bytessend;
+		public string Bytessend;
 	}
 
 	public class Definitions
@@ -314,6 +334,7 @@ namespace WDSServer
 			Eight = 8,
 			Unknown = 255
 		}
+
 		/// <summary>
 		/// Definitions for Packets used by the Server
 		/// </summary>

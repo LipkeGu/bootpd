@@ -25,14 +25,14 @@ namespace WDSServer
 			for (var i = pos - 1; i > 0; i--)
 				if (data[i] == byte.MaxValue)
 				{
-					pos = (i + 1);
+					pos = i + 1;
 					break;
 				}
 
 			return pos;
 		}
 
-		public static byte[] unpack_Packet(byte[] packet)
+		public static byte[] Unpack_Packet(byte[] packet)
 		{
 			var data = new byte[(packet.Length - 8)];
 			Array.Copy(packet, 8, data, 0, data.Length);
@@ -40,7 +40,7 @@ namespace WDSServer
 			return data;
 		}
 
-		public static byte[] pack_Packet(byte[] data)
+		public static byte[] Pack_Packet(byte[] data)
 		{
 			var packet = new byte[(data.Length + 8)];
 			Array.Copy(data, 0, packet, 8, data.Length);
@@ -54,7 +54,7 @@ namespace WDSServer
 			for (var i = 0; i < packet.Data.Length; i++)
 				if (packet.Data[i] == (int)option)
 				{
-					pos = (i + 1);
+					pos = i + 1;
 					break;
 				}
 
@@ -79,9 +79,9 @@ namespace WDSServer
 			return dst.Length;
 		}
 
-		public static void SelectBootFile(ref DHCPClient client, bool isWDSClient)
+		public static void SelectBootFile(ref DHCPClient client, bool wdsclient)
 		{
-			if (isWDSClient)
+			if (wdsclient)
 				switch (client.Arch)
 				{
 					case Definitions.Architecture.INTEL_X86:

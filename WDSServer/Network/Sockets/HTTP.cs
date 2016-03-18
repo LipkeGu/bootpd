@@ -3,36 +3,32 @@ using System.Net;
 
 namespace WDSServer.Network
 {
-	sealed public class HTTPSocket : IDisposable
+	public sealed class HTTPSocket : IDisposable
 	{
 		HttpListener socket;
+
 		HttpListenerContext context;
 
-		public event HTTPDataReceivedEventHandler HTTPDataReceived;
-		public event HTTPDataSendEventHandler HTTPDataSend;
-
-		string hostname;
 		int port;
 
-		public HTTPSocket(string hostname, int port)
+		public HTTPSocket(int port)
 		{
-			if (!Settings.enableHTTP)
+			if (!Settings.EnableHTTP)
 				return;
 
 			try
 			{
-				this.hostname = hostname;
 				this.port = port;
 
 				this.socket = new HttpListener();
-				var endpoint = "http://{0}:{1}/".F(this.hostname, this.port);
+				var endpoint = "http://{0}:{1}/".F(Environment.MachineName, this.port);
 				this.socket.Prefixes.Add(endpoint);
 
 				this.socket.Start();
 
 				if (this.socket.IsListening)
 				{
-					this.socket.BeginGetContext(new AsyncCallback(GetContext), null);
+					this.socket.BeginGetContext(new AsyncCallback(this.GetContext), null);
 					Errorhandler.Report(Definitions.LogTypes.Info, "Website is available at: {0}".F(endpoint));
 				}
 				else
@@ -45,20 +41,26 @@ namespace WDSServer.Network
 			}
 		}
 
-		private void GetContext(IAsyncResult ar)
+		~HTTPSocket()
 		{
-			this.context = this.socket.EndGetContext(ar);
-			OnHTTPDataReceived(this.context);
+			this.Close();
+		}
 
-			this.socket.BeginGetContext(new AsyncCallback(GetContext), null);
+		public event HTTPDataReceivedEventHandler HTTPDataReceived;
+
+		public event HTTPDataSendEventHandler HTTPDataSend;
+
+		public void Dispose()
+		{
+			this.Close();
 		}
 
 		internal void OnHTTPDataSend(HttpListenerContext context)
 		{
 			var evtargs = new HTTPDataSendEventArgs();
 
-			if (HTTPDataSend != null)
-				HTTPDataSend(this, evtargs);
+			if (this.HTTPDataSend != null)
+				this.HTTPDataSend(this, evtargs);
 		}
 
 		internal void OnHTTPDataReceived(HttpListenerContext context)
@@ -70,8 +72,8 @@ namespace WDSServer.Network
 			evtargs.ContentType = this.context.Request.ContentType;
 			evtargs.Headers = this.context.Request.Headers;
 
-			if (HTTPDataReceived != null)
-				HTTPDataReceived(this, evtargs);
+			if (this.HTTPDataReceived != null)
+				this.HTTPDataReceived(this, evtargs);
 		}
 
 		internal void Send(byte[] buffer, int statuscode, string description)
@@ -86,12 +88,11 @@ namespace WDSServer.Network
 					{
 						s.Write(buffer, 0, buffer.Length);
 
-						OnHTTPDataSend(this.context);
+						this.OnHTTPDataSend(this.context);
 					}
 				}
 				catch (Exception)
 				{
-
 				}
 		}
 
@@ -101,17 +102,12 @@ namespace WDSServer.Network
 				this.socket.Close();
 		}
 
-
-		public void Dispose()
+		private void GetContext(IAsyncResult ar)
 		{
-			Close();
-		}
+			this.context = this.socket.EndGetContext(ar);
+			this.OnHTTPDataReceived(this.context);
 
-		public string Hostname => this.hostname;
-
-		~HTTPSocket()
-		{
-			Close();
+			this.socket.BeginGetContext(new AsyncCallback(this.GetContext), null);
 		}
 	}
 }

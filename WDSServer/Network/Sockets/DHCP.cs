@@ -5,26 +5,13 @@ using WDSServer.Providers;
 
 namespace WDSServer.Network
 {
-	sealed public class DHCPSocket : SocketProvider
+	public sealed class DHCPSocket : SocketProvider
 	{
-		public override SocketType Type
-		{
-			get
-			{
-				return this.type;
-			}
-
-			set
-			{
-				this.type = value;
-			}
-		}
-
 		public DHCPSocket(IPEndPoint endpoint, bool broadcast = false, int buffersize = 1024, SocketType type = SocketType.DHCP)
 		{
 			try
 			{
-				if (!Settings.enableDHCP)
+				if (!Settings.EnableDHCP)
 					return;
 
 				this.localEndPoint = endpoint;
@@ -46,7 +33,7 @@ namespace WDSServer.Network
 				this.socket.Bind(this.localEndPoint);
 
 				this.socket.BeginReceiveFrom(this.state.Buffer, 0, this.state.Buffersize, 0,
-					ref this.localEndPoint, new AsyncCallback(received), this.state);
+					ref this.localEndPoint, new AsyncCallback(this.Received), this.state);
 			}
 			catch (SocketException ex)
 			{
@@ -54,7 +41,32 @@ namespace WDSServer.Network
 			}
 		}
 
-		internal override void received(IAsyncResult ar)
+		public override SocketType Type
+		{
+			get
+			{
+				return this.type;
+			}
+
+			set
+			{
+				this.type = value;
+			}
+		}
+
+		public void Send(IPEndPoint target, byte[] packet, int length)
+		{
+			if (this.broadcast && this.type == SocketType.DHCP && target.Address.ToString() == "0.0.0.0")
+				target.Address = IPAddress.Broadcast;
+
+			var bytessend = this.socket.SendTo(packet, length, SocketFlags.None, target);
+			if (bytessend < 1)
+				Errorhandler.Report(LogTypes.Error, "[DHCP] Send(): Error!");
+			else
+				this.OnDataSend(bytessend, target, this.type);
+		}
+
+		internal override void Received(IAsyncResult ar)
 		{
 			if (this.socket == null)
 				return;
@@ -74,22 +86,10 @@ namespace WDSServer.Network
 
 			Array.Copy(this.state.Buffer, data, length);
 
-			OnDataReceived(data, (IPEndPoint)this.localEndPoint, this.type);
+			this.OnDataReceived(data, (IPEndPoint)this.localEndPoint, this.type);
 
 			this.socket.BeginReceiveFrom(this.state.Buffer, 0, this.state.Buffersize,
-				0, ref this.localEndPoint, new AsyncCallback(received), this.state);
-		}
-
-		public void send(IPEndPoint target, byte[] packet, int length)
-		{
-			if (this.broadcast && this.type == SocketType.DHCP && target.Address.ToString() == "0.0.0.0")
-				target.Address = IPAddress.Broadcast;
-
-			var bytessend = this.socket.SendTo(packet, length, SocketFlags.None, target);
-			if (bytessend < 1)
-				Errorhandler.Report(LogTypes.Error, "[DHCP] Send(): Error!");
-			else
-				OnDataSend(bytessend, target, this.type);
+				0, ref this.localEndPoint, new AsyncCallback(this.Received), this.state);
 		}
 	}
 }

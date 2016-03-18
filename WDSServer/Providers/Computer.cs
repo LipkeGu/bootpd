@@ -9,13 +9,11 @@ namespace WDSServer.Core.Providers
 		protected Guid guid;
 		protected SystemType type;
 		protected Architecture arch;
-		protected IPAddress ipAddress;
+		protected IPAddress ipaddress;
 
 		protected string manufacturer;
 		protected string model;
 		protected string hostname;
-
-
 
 		public abstract Guid UUID
 		{

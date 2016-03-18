@@ -4,9 +4,9 @@ namespace WDSServer
 {
 	public static class Errorhandler
 	{
-		public static void Report(Definitions.LogTypes level, string Message)
+		public static void Report(Definitions.LogTypes level, string message)
 		{
-			if (Message == string.Empty)
+			if (message == string.Empty)
 				return;
 
 			var lvl = string.Empty;
@@ -30,7 +30,7 @@ namespace WDSServer
 					break;
 			}
 
-			Console.WriteLine("[{0}]: {1}", lvl, Message);
+			Console.WriteLine("[{0}]: {1}", lvl, message);
 		}
 	}
 }

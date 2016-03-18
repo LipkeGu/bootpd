@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Text;
-
 using WDSServer.Providers;
-using static WDSServer.Functions;
 
 namespace WDSServer.Network
 {
-	sealed public class RISPacket : PacketProvider
+	public sealed class RISPacket : PacketProvider
 	{
 		RISOPCodes pktType;
 
@@ -22,12 +20,11 @@ namespace WDSServer.Network
 				this.length = length;
 		}
 
-
 		public override byte[] Add
 		{
 			set
 			{
-				CopyTo(ref value, 0, ref this.data, this.data.Length, value.Length);
+				Functions.CopyTo(ref value, 0, ref this.data, this.data.Length, value.Length);
 			}
 		}
 
@@ -50,12 +47,14 @@ namespace WDSServer.Network
 			{
 				return Convert.ToInt32(this.data[4]);
 			}
+
 			set
 			{
 				var bytes = BitConverter.GetBytes(value);
-				CopyTo(ref bytes, 0, ref this.data, 4, bytes.Length);
+				Functions.CopyTo(ref bytes, 0, ref this.data, 4, bytes.Length);
 			}
 		}
+
 		public override int Offset
 		{
 			get
@@ -89,11 +88,11 @@ namespace WDSServer.Network
 			{
 				return this.data[0];
 			}
+
 			set
 			{
 				this.data[0] = value;
 			}
-
 		}
 
 		public string FileName
@@ -131,7 +130,6 @@ namespace WDSServer.Network
 		{
 			get
 			{
-
 				return this.pktType;
 			}
 
@@ -140,8 +138,6 @@ namespace WDSServer.Network
 				this.pktType = value;
 			}
 		}
-
-
 		#endregion
 	}
 }

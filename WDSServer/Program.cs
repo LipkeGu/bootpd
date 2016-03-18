@@ -1,27 +1,28 @@
 ﻿using System;
 using System.Net;
+using WDSServer.Network;
 
-namespace WDSServer.Network
+namespace WDSServer
 {
 	public class Server : Definitions
 	{
 		[STAThread]
 		static void Main()
 		{
-			if (!Settings.enableHTTP)
+			if (!Settings.EnableHTTP)
 				Settings.Servermode = ServerMode.AllowAll;
 
-			var DHCPServer = new DHCP(new IPEndPoint(Settings.ServerIP, Settings.DHCPPort), Settings.BINLPort, Settings.Servermode);
-			var TFTPServer = new TFTP(new IPEndPoint(Settings.ServerIP, Settings.TFTPPort));
-			var HTTPServer = new HTTP(Settings.HTTPPort);
+			var dhcp = new DHCP(new IPEndPoint(Settings.ServerIP, Settings.DHCPPort), Settings.BINLPort, Settings.Servermode);
+			var tftp = new TFTP(new IPEndPoint(Settings.ServerIP, Settings.TFTPPort));
+			var http = new HTTP(Settings.HTTPPort);
 
 			var t = string.Empty;
 			while (t != "exit")
 				t = Console.ReadLine();
 
-			TFTPServer.Dispose();
-			DHCPServer.Dispose();
-			HTTPServer.Dispose();
+			tftp.Dispose();
+			dhcp.Dispose();
+			http.Dispose();
 		}
 	}
 }

@@ -10,7 +10,7 @@
 		protected string location;
 
 		protected bool active;
-		protected bool AutoLogon;
+		protected bool autoLogon;
 
 		public abstract string UserName
 		{
