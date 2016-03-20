@@ -12,6 +12,9 @@
 
 		public HTTP(int port)
 		{
+			if (!Settings.EnableHTTP)
+				return;
+
 			this.socket = new HTTPSocket(port);
 			this.socket.HTTPDataReceived += this.DataReceived;
 			this.socket.HTTPDataSend += this.DataSend;
@@ -38,11 +41,21 @@
 				var retval = url;
 
 				if (arguments.HasKeys() && url == "/approve.html")
-					if (arguments["cid"] != null)
+					if (arguments["cid"] != null && arguments["action"] != null)
 					{
 						var client = Exts.FromBase64(arguments["cid"]);
 						if (DHCP.Clients.ContainsKey(client) && !DHCP.Clients[client].ActionDone)
-							DHCP.Clients[client].ActionDone = true;
+						{
+							if (arguments["action"] == "0")
+							{
+								DHCP.Clients[client].ActionDone = true;
+							}
+							else
+							{
+								DHCP.Clients[client].NextAction = NextActionOptionValues.Abort;
+								DHCP.Clients[client].ActionDone = true;
+							}
+						}
 					}
 
 				if (retval == "/approve.html")
@@ -239,22 +252,23 @@
 
 			if (pending_clients.Count > 0)
 			{
-				var size = "width: 25%;";
+				var link = string.Empty;
 				if (DHCP.Mode != ServerMode.AllowAll)
 					output += "<div id=\"th\">ID</div><div id=\"th\">GUID (UUID)</div><div id=\"th\">IP-Addresse</div><div id=\"th\">Approval</div>";
-
-				var link_approval = string.Empty;
 
 				foreach (var client in pending_clients)
 				{
 					if (DHCP.Mode != ServerMode.AllowAll)
-						link_approval = "<a onclick=\"LoadDocument('approve.html?cid={1}', 'main', 'GET')\" href=\"#\">{0}</a>\n"
+					{
+						link += "<a onclick=\"LoadDocument('approve.html?cid={1}&action=0', 'main', 'BOOTP Übersicht')\" href=\"/#\">Annehmen</a>\n"
 							.F(client.Value.ActionDone, Exts.ToBase64(client.Value.ID));
-					else
-						link_approval = string.Empty;
 
-					output += "<div id=\"td\">{1}</div><div id=\"td\">{2}</div><div id=\"td\">{3}</div><div id=\"td\">{4}</div>"
-					.F(size, client.Value.RequestID, client.Value.Guid, client.Value.EndPoint.Address, link_approval);
+						link += "<a onclick=\"LoadDocument('approve.html?cid={1}&action=1', 'main', 'BOOTP Übersicht')\" href=\"/#\">Ablehen</a>\n"
+							.F(client.Value.ActionDone, Exts.ToBase64(client.Value.ID));
+
+						output += "<div id=\"td\">{1}</div><div id=\"td\">{2}</div><div id=\"td\">{3}</div><div id=\"td\">{0}</div>"
+						.F(link, DHCP.RequestID, client.Value.Guid, client.Value.EndPoint.Address);
+					}
 				}
 			}
 			else

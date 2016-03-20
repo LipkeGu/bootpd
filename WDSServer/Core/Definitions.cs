@@ -157,7 +157,8 @@
 			RSP = 7,
 			NCQ = 8,
 			RES = 9,
-			OFF = 10
+			OFF = 10,
+			NCR = 11
 		}
 
 		public enum DHCPMsgType

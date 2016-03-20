@@ -22,6 +22,8 @@
 			this.socket = new TFTPSocket(this.endp);
 			this.socket.DataReceived += this.DataReceived;
 			this.socket.DataSend += this.DataSend;
+
+			Directories.Create(Settings.TFTPRoot);
 		}
 
 		~TFTP()
@@ -61,17 +63,17 @@
 			this.socket.Dispose();
 		}
 
-		public void Handle_ACK_Request(object data)
+		public void Handle_ACK_Request(TFTPPacket data, IPEndPoint client)
 		{
-			if (!Clients.ContainsKey(this.remoteEndp.Address) || Clients[this.remoteEndp.Address].FileName == string.Empty)
+			if (!Clients.ContainsKey(client.Address) || Clients[client.Address].FileName == string.Empty)
 				return;
 
 			var request = (TFTPPacket)data;
-			if (request.Block == Clients[this.remoteEndp.Address].Blocks)
+			if (request.Block == Clients[client.Address].Blocks)
 			{
-				Clients[this.remoteEndp.Address].Blocks += 1;
+				Clients[client.Address].Blocks += 1;
 
-				this.Readfile();
+				this.Readfile(Clients[client.Address].EndPoint);
 			}
 		}
 
@@ -101,36 +103,36 @@
 				this.socket.Send(endpoint, packet);
 		}
 
-		public void Handle_RRQ_Request(object packet)
+		public void Handle_RRQ_Request(TFTPPacket packet, IPEndPoint client)
 		{
-			if (Clients.Count == 0)
+			if (!Clients.ContainsKey(client.Address))
 				return;
-
+			
 			var request = (TFTPPacket)packet;
 			this.ExtractOptions(request);
 
-			Clients[this.remoteEndp.Address].Stage = TFTPStage.Handshake;
-			Clients[this.remoteEndp.Address].Blocks = 0;
+			Clients[client.Address].Stage = TFTPStage.Handshake;
+			Clients[client.Address].Blocks = 0;
 
-			Clients[this.remoteEndp.Address].FileName = Filesystem.ResolvePath(Options["file"]);
-			if (!Filesystem.Exist(Clients[this.remoteEndp.Address].FileName))
+			Clients[client.Address].FileName = Filesystem.ResolvePath(Options["file"]);
+			if (!Filesystem.Exist(Clients[client.Address].FileName))
 			{
-				this.Handle_Error_Request(TFTPErrorCode.FileNotFound, Clients[this.remoteEndp.Address].FileName);
+				this.Handle_Error_Request(TFTPErrorCode.FileNotFound, Clients[client.Address].FileName);
 				return;
 			}
 			else
 			{
-				Clients[this.remoteEndp.Address].TransferSize = Filesystem.Size(Clients[this.remoteEndp.Address].FileName);
+				Clients[client.Address].TransferSize = Filesystem.Size(Clients[client.Address].FileName);
 
 				if (Options.ContainsKey("blksize"))
 				{
-					this.Handle_Option_request(Clients[this.remoteEndp.Address].TransferSize, Clients[this.remoteEndp.Address].BlockSize);
+					this.Handle_Option_request(Clients[client.Address].TransferSize, Clients[client.Address].BlockSize, Clients[client.Address].EndPoint);
 					return;
 				}
 
-				Clients[this.remoteEndp.Address].Stage = TFTPStage.Transmitting;
+				Clients[client.Address].Stage = TFTPStage.Transmitting;
 
-				this.Readfile();
+				this.Readfile(Clients[client.Address].EndPoint);
 				Options.Clear();
 			}
 		}
@@ -203,38 +205,37 @@
 			lock (this)
 			{
 				this.remoteEndp = e.RemoteEndpoint;
+
 				var request = new TFTPPacket(e.Data.Length, TFTPOPCodes.UNK);
 				request.Data = e.Data;
 
 				request.Type = SocketType.TFTP;
 
-				if (!Clients.ContainsKey(this.remoteEndp.Address))
-					Clients.Add(this.remoteEndp.Address, new TFTPClient(this.remoteEndp));
+				if (!Clients.ContainsKey(e.RemoteEndpoint.Address))
+					Clients.Add(e.RemoteEndpoint.Address, new TFTPClient(e.RemoteEndpoint));
 
 				Clients[e.RemoteEndpoint.Address].EndPoint = e.RemoteEndpoint;
 
 				switch (request.OPCode)
 				{
 					case (int)TFTPOPCodes.RRQ:
-						var rrq_thread = new Thread(new ParameterizedThreadStart(this.Handle_RRQ_Request));
-						rrq_thread.Start(request);
+						this.Handle_RRQ_Request(request, Clients[e.RemoteEndpoint.Address].EndPoint);
 						break;
 					case (int)TFTPOPCodes.ERR:
 						if (request.ErrorCode != 0)
 							this.Handle_Error_Request(request.ErrorCode, request.ErrorMessage, true);
 						else
 						{
-							if (Clients.ContainsKey(this.remoteEndp.Address))
-								Clients.Remove(this.remoteEndp.Address);
+							if (Clients.ContainsKey(e.RemoteEndpoint.Address))
+								Clients.Remove(e.RemoteEndpoint.Address);
 						}
 
 						break;
 					case (int)TFTPOPCodes.ACK:
-						if (!Clients.ContainsKey(this.remoteEndp.Address))
+						if (!Clients.ContainsKey(e.RemoteEndpoint.Address))
 							return;
 
-						var ack_thread = new Thread(new ParameterizedThreadStart(this.Handle_ACK_Request));
-						ack_thread.Start(request);
+						this.Handle_ACK_Request(request, Clients[e.RemoteEndpoint.Address].EndPoint);
 						break;
 					default:
 						this.Handle_Error_Request(TFTPErrorCode.IllegalOperation, "Unknown OPCode: {0}".F(request.OPCode));
@@ -249,11 +250,14 @@
 				Clients.Remove(e.RemoteEndpoint.Address);
 		}
 
-		internal void Handle_Option_request(long tsize, int blksize)
+		internal void Handle_Option_request(long tsize, int blksize, IPEndPoint client)
 		{
-			Clients[this.remoteEndp.Address].Stage = TFTPStage.Handshake;
+			if (!Clients.ContainsKey(client.Address))
+				return;
 
-			var tmpbuffer = new byte[512];
+			Clients[client.Address].Stage = TFTPStage.Handshake;
+
+			var tmpbuffer = new byte[100];
 			var offset = 0;
 
 			var blksizeopt = Encoding.ASCII.GetBytes("blksize".ToCharArray());
@@ -278,44 +282,47 @@
 
 			Array.Clear(tmpbuffer, 0, tmpbuffer.Length);
 
-			this.Send(ref packet, Clients[this.remoteEndp.Address].EndPoint);
+			this.Send(ref packet, Clients[client.Address].EndPoint);
 		}
 
-		internal void Readfile()
+		internal void Readfile(IPEndPoint client)
 		{
+			if (!Clients.ContainsKey(client.Address))
+				return;
+
 			var readedBytes = 0;
 			var done = false;
 
 			// Align the last Block
-			if (Clients[this.remoteEndp.Address].TransferSize <= Clients[this.remoteEndp.Address].BlockSize)
+			if (Clients[client.Address].TransferSize <= Clients[client.Address].BlockSize)
 			{
-				Clients[this.remoteEndp.Address].BlockSize = (int)Clients[this.remoteEndp.Address].TransferSize;
+				Clients[client.Address].BlockSize = (int)Clients[client.Address].TransferSize;
 				done = true;
 			}
 
-			var chunk = new byte[Clients[this.remoteEndp.Address].BlockSize];
+			var chunk = new byte[Clients[client.Address].BlockSize];
 
-			Files.Read(Clients[this.remoteEndp.Address].FileName, ref chunk, out readedBytes,
-				chunk.Length, (int)Clients[this.remoteEndp.Address].BytesRead);
+			Files.Read(Clients[client.Address].FileName, ref chunk, out readedBytes,
+				chunk.Length, (int)Clients[client.Address].BytesRead);
 
-			Clients[this.remoteEndp.Address].BytesRead += readedBytes;
-			Clients[this.remoteEndp.Address].TransferSize -= readedBytes;
+			Clients[client.Address].BytesRead += readedBytes;
+			Clients[client.Address].TransferSize -= readedBytes;
 
 			var response = new TFTPPacket(4 + chunk.Length, TFTPOPCodes.DAT);
 
-			if (Clients[this.remoteEndp.Address].Blocks == 0)
-				Clients[this.remoteEndp.Address].Blocks += 1;
+			if (Clients[client.Address].Blocks == 0)
+				Clients[client.Address].Blocks += 1;
 
-			response.Block = Clients[this.remoteEndp.Address].Blocks;
+			response.Block = Clients[client.Address].Blocks;
 			Array.Copy(chunk, 0, response.Data, response.Offset, chunk.Length);
 			response.Offset += chunk.Length;
 
 			Array.Clear(chunk, 0, chunk.Length);
 
-			this.Send(ref response, Clients[this.remoteEndp.Address].EndPoint);
+			this.Send(ref response, Clients[client.Address].EndPoint);
 
-			if (Clients.ContainsKey(this.remoteEndp.Address) && done)
-				Clients[this.remoteEndp.Address].Stage = TFTPStage.Done;
+			if (Clients.ContainsKey(client.Address) && done)
+				Clients[client.Address].Stage = TFTPStage.Done;
 		}
 	}
 }

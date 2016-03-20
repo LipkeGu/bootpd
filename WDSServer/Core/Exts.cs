@@ -42,7 +42,7 @@
 			return fmt.ToUpperInvariant();
 		}
 
-		public static string GetGuidAsString(byte[] guidBytes, int index, int length)
+		public static string GetGuidAsString(byte[] guidBytes, int index, int length, bool patch)
 		{
 			var guid = new byte[length];
 			var fmt = string.Empty;
@@ -65,7 +65,10 @@
 					fmt += F("{0:x2}", guid[i]);
 			}
 
-			return fmt.Remove(0, 2);
+			if (patch)
+				return fmt.Remove(0, 2);
+			else
+				return fmt;
 		}
 
 		public static byte[] GetOptionValue(byte[] data, Definitions.DHCPOptionEnum option)

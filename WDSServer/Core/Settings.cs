@@ -1,6 +1,7 @@
 ﻿namespace WDSServer
 {
 	using System;
+	using System.IO;
 	using System.Net;
 	using System.Xml.Serialization;
 
@@ -28,7 +29,8 @@
 		public static IPAddress ServerIP = Exts.GetServerIP();
 		public static Definitions.ServerMode Servermode = Definitions.ServerMode.KnownOnly;
 
-		public static string TFTPRoot = Filesystem.ReplaceSlashes(Environment.CurrentDirectory);
+		public static string TFTPRoot = Path.Combine(Filesystem.ReplaceSlashes(Environment.CurrentDirectory), "TFTPRoot");
+		public static string DriverFile = Path.Combine(Filesystem.ReplaceSlashes(Environment.CurrentDirectory), "drivers.xml");
 		public static string OSC_DEFAULT_FILE = "welcome.osc";
 		public static string WDS_BCD_FileName = "default.bcd";
 		public static string WDS_BOOT_PREFIX_X86 = "Boot/x86/";
@@ -40,6 +42,8 @@
 		public static string WDS_BOOTFILE_X64 = "pxeboot.n12";
 		public static string WDS_BOOTFILE_IA64 = "Bootmgfw.efi";
 		public static string WDS_BOOTFILE_EFI = "Bootmgfw.efi";
+
+		public static string WDS_BOOTFILE_ABORT = "abortpxe.com";
 
 		public static string DHCP_DEFAULT_BOOTFILE = "wdsnbp.0";
 

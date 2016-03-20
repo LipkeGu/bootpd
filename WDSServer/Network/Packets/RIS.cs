@@ -67,7 +67,49 @@
 				this.offset = value;
 			}
 		}
+		
+		public int ServiceName_Offset
+		{
+			set
+			{
+				if (this.pktType == RISOPCodes.NCR)
+				{
+					var bytes = BitConverter.GetBytes(value);
+					Array.Reverse(bytes);
 
+					Functions.CopyTo(ref bytes, 0, ref this.data, 18, bytes.Length);
+				}
+			}
+		}
+
+		public int Drivername_Offset
+		{
+			set
+			{
+				if (this.pktType == RISOPCodes.NCR)
+				{
+					var bytes = BitConverter.GetBytes(value);
+					Array.Reverse(bytes);
+
+					Functions.CopyTo(ref bytes, 0, ref this.data, 14, bytes.Length);
+				}
+			}
+		}
+
+		public int ParameterList_Offset
+		{
+			set
+			{
+				if (this.pktType == RISOPCodes.NCR)
+				{
+					var bytes = BitConverter.GetBytes(value);
+					Array.Reverse(bytes);
+
+					Functions.CopyTo(ref bytes, 0, ref this.data, 20, bytes.Length);
+				}
+			}
+		}
+		
 		public override SocketType Type
 		{
 			get

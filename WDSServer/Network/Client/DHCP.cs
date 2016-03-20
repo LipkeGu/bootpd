@@ -11,10 +11,10 @@
 		string id;
 		string adminMessage;
 		string mac;
+		NextActionOptionValues nextAction;
 
 		int retrycount;
 		int pollInterval;
-		int requestID;
 
 		bool wdsclient;
 		bool actionDone;
@@ -31,14 +31,12 @@
 			this.pollInterval = Settings.PollInterval;
 			this.retrycount = Settings.RetryCount;
 
-			this.requestID = 0;
-
 			this.actionDone = false;
 			this.guid = guid;
 			this.mac = mac;
 			this.id = string.Format("{0}-{1}", this.guid, this.mac);
 			this.adminMessage = "Client ID: {0}".F(this.id);
-
+			this.nextAction = NextActionOptionValues.Approval;
 			this.msgType = DHCPMsgType.Offer;
 			this.arch = Architecture.INTEL_X86;
 			this.bootfile = string.Empty;
@@ -72,6 +70,19 @@
 			}
 		}
 
+		public NextActionOptionValues NextAction
+		{
+			get
+			{
+				return this.nextAction;
+			}
+
+			set
+			{
+				this.nextAction = value;
+			}
+		}
+
 		public bool IsWDSClient
 		{
 			get
@@ -95,19 +106,6 @@
 			set
 			{
 				this.pollInterval = value;
-			}
-		}
-
-		public int RequestID
-		{
-			get
-			{
-				return this.requestID;
-			}
-
-			set
-			{
-				this.requestID = value;
 			}
 		}
 

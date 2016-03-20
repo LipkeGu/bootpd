@@ -107,9 +107,7 @@
 		public static XmlDocument ReadXML(string path)
 		{
 			var file = new XmlDocument();
-
-			if (Filesystem.Exist(path))
-				file.Load(path);
+			file.Load(path);
 
 			return file;
 		}

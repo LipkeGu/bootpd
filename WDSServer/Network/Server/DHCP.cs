@@ -6,7 +6,6 @@
 	using System.Text;
 	using WDSServer.Providers;
 
-	#region "Allgemeine DHCP Funktionen"
 	public sealed class DHCP : ServerProvider, IDHCPServer_Provider, IDisposable
 	{
 		public static Dictionary<string, DHCPClient> Clients =
@@ -18,6 +17,8 @@
 
 		public BINLSocket BINLsocket;
 
+		static int requestid;
+
 		DHCPMsgType msgType;
 
 		byte[] ntlmkey;
@@ -26,7 +27,7 @@
 		{
 			Mode = mode;
 			this.ntlmkey = new byte[24];
-
+			requestid = 0;
 			this.BINLsocket = new BINLSocket(new IPEndPoint(socket.Address, port));
 			this.BINLsocket.Type = SocketType.BINL;
 			this.BINLsocket.DataReceived += this.DataReceived;
@@ -37,6 +38,19 @@
 			this.DHCPsocket.Type = SocketType.DHCP;
 			this.DHCPsocket.DataReceived += this.DataReceived;
 			this.DHCPsocket.DataSend += this.DataSend;
+		}
+
+		public static int RequestID
+		{
+			get
+			{
+				return requestid;
+			}
+
+			set
+			{
+				requestid = value;
+			}
 		}
 
 		public override IPEndPoint LocalEndPoint
@@ -107,7 +121,7 @@
 					return;
 			}
 
-			Functions.SelectBootFile(ref client, client.IsWDSClient);
+			Functions.SelectBootFile(ref client, client.IsWDSClient, client.NextAction);
 
 			// Bootfile
 			response.Bootfile = client.BootFile;
@@ -169,6 +183,7 @@
 							this.Send(ref response, client.EndPoint);
 							Clients.Remove(client.ID);
 							client = null;
+							requestid += 1;
 						}
 						else
 							break;
@@ -191,12 +206,12 @@
 			var ntlmssp = new NTLMSSP("root", challenge);
 			var flags = ntlmssp.Flags;
 
-			Errorhandler.Report(LogTypes.Info, "Message Type: {0}".F(packet.OPCode));
 			switch (packet.OPCode)
 			{
 				case RISOPCodes.REQ:
 					return;
 				case RISOPCodes.RQU:
+					#region "OSC File Request"
 					var data = this.ReadOSCFile(packet.FileName, encrypted, encrypted ? this.ntlmkey : null);
 					var rquResponse = new RISPacket(new byte[(data.Length + 40)]);
 
@@ -214,39 +229,123 @@
 
 					rquResponse.Offset += data.Length;
 					rquResponse.Length = data.Length + 36;
-					#endregion
 
 					this.Send(ref rquResponse, client.Endpoint);
+					#endregion
 					break;
 				case RISOPCodes.NCQ:
+					#region "Driver Query"
+					var ncq_packet = Functions.Unpack_Packet(packet.Data);
+					var sysfile = string.Empty;
+					var service = string.Empty;
+
+					var bus = string.Empty;
+					var characs = string.Empty;
+
+					var vendorid = new byte[2];
+					Array.Copy(ncq_packet, 28, vendorid, 0, vendorid.Length);
+					Array.Reverse(vendorid);
+
+					var deviceid = new byte[2];
+					Array.Copy(ncq_packet, 30, deviceid, 0, deviceid.Length);
+					Array.Reverse(deviceid);
+
+					var vid = Exts.GetDataAsString(vendorid, 0, vendorid.Length);
+					var pid = Exts.GetDataAsString(deviceid, 0, deviceid.Length);
+
+					Functions.FindDrv(Settings.DriverFile, vid, pid,
+					out sysfile, out service, out bus, out characs);
+
+					if (sysfile != string.Empty && service != string.Empty)
+					{
+						var drv = Encoding.Unicode.GetBytes(sysfile);
+						var svc = Encoding.Unicode.GetBytes(service);
+						var pciid = Encoding.Unicode.GetBytes("PCI\\VEN_{0}&DEV_{1}".F(vid, pid));
+
+						var ncr_packet = new RISPacket(new byte[512]);
+						ncr_packet.RequestType = "NCR";
+						ncr_packet.Orign = 130;
+						ncr_packet.Offset = 8;
+
+						/* Result */
+						var ncr_res = BitConverter.GetBytes((int)0x00000000);
+						Array.Reverse(ncr_res);
+
+						Array.Copy(ncr_res, 0, ncr_packet.Data, ncr_packet.Offset, ncr_res.Length);
+						ncr_packet.Offset += ncr_res.Length;
+
+						/* Type */
+						var type = BitConverter.GetBytes((int)0x02000000);
+						Array.Reverse(type);
+						Array.Copy(type, 0, ncr_packet.Data, ncr_packet.Offset, type.Length);
+						ncr_packet.Offset += type.Length;
+
+						/* Offset of PCI ID*/
+						var pciid_offset = BitConverter.GetBytes(0x24000000);
+						Array.Reverse(pciid_offset);
+						Array.Copy(pciid_offset, 0, ncr_packet.Data, ncr_packet.Offset, pciid_offset.Length);
+						ncr_packet.Offset += pciid_offset.Length;
+
+						/* Offset of FileName*/
+						var driver_offset = BitConverter.GetBytes(0x50000000);
+						Array.Reverse(driver_offset);
+						Array.Copy(driver_offset, 0, ncr_packet.Data, ncr_packet.Offset, driver_offset.Length);
+						ncr_packet.Offset += driver_offset.Length;
+
+						/* Offset of Service */
+						var service_offset = BitConverter.GetBytes(0x68000000);
+						Array.Reverse(service_offset);
+						Array.Copy(service_offset, 0, ncr_packet.Data, ncr_packet.Offset, service_offset.Length);
+						ncr_packet.Offset += service_offset.Length;
+
+						var description = Functions.ParameterlistEntry("Description", "2", "RIS Network Card");
+						var characteristics = Functions.ParameterlistEntry("Characteristics", "1", characs);
+						var bustype = Functions.ParameterlistEntry("BusType", "1", bus);
+						var pl_length = description.Length + characteristics.Length + bustype.Length;
+						var pl_size = BitConverter.GetBytes(pl_length);
+
+						/* Length of Parameters */
+						Array.Copy(pl_size, 0, ncr_packet.Data, ncr_packet.Offset, pl_size.Length);
+						ncr_packet.Offset += pl_size.Length;
+
+						/* Offset of Parameters */
+						var pl_offset = BitConverter.GetBytes(0x74000000);
+						Array.Reverse(pl_offset);
+						Array.Copy(pl_offset, 0, ncr_packet.Data, ncr_packet.Offset, pl_offset.Length);
+						ncr_packet.Offset += pl_offset.Length;
+
+						/* PCI ID */
+						Array.Copy(pciid, 0, ncr_packet.Data, ncr_packet.Offset, 41);
+						ncr_packet.Offset = 80;
+
+						/* FileName */
+						Array.Copy(drv, 0, ncr_packet.Data, ncr_packet.Offset, drv.Length);
+						ncr_packet.Offset += drv.Length + 2;
+
+						/* Service */
+						Array.Copy(svc, 0, ncr_packet.Data, ncr_packet.Offset, svc.Length);
+						ncr_packet.Offset += svc.Length + 2;
+
+						Array.Copy(description, 0, ncr_packet.Data, ncr_packet.Offset, description.Length);
+						ncr_packet.Offset += description.Length + 1;
+
+						Array.Copy(characteristics, 0, ncr_packet.Data, ncr_packet.Offset, characteristics.Length);
+						ncr_packet.Offset += characteristics.Length + 1;
+
+						Array.Copy(bustype, 0, ncr_packet.Data, ncr_packet.Offset, bustype.Length);
+						ncr_packet.Offset += bustype.Length;
+
+						ncr_packet.Length = ncr_packet.Offset + 2;
+
+						Send(ref ncr_packet, client.Endpoint);
+					}
+					#endregion
 					break;
 				case RISOPCodes.AUT:
+					#region "NTLM Authenticate"
 					var ntlmssp_packet = Functions.Unpack_Packet(packet.Data);
 					if (packet.Length >= 28)
 					{
-						Console.WriteLine("Domain Info: ");
-						Console.WriteLine("Length: {0}", ntlmssp_packet[28]);
-						Console.WriteLine("Allocated: {0}", ntlmssp_packet[30]);
-						Console.WriteLine("Value: {0}", Encoding.ASCII.GetString(ntlmssp_packet, ntlmssp_packet[32], ntlmssp_packet[28]));
-
-						Console.WriteLine(string.Empty);
-						Console.WriteLine("User Info: ");
-						Console.WriteLine("Length: {0}", ntlmssp_packet[36]);
-						Console.WriteLine("Allocated: {0}", ntlmssp_packet[38]);
-						Console.WriteLine("Value: {0}", Encoding.ASCII.GetString(ntlmssp_packet, ntlmssp_packet[40], ntlmssp_packet[36]));
-
-						Console.WriteLine(string.Empty);
-						Console.WriteLine("Session Key: ");
-						Console.WriteLine("Length: {0}", ntlmssp_packet[20]);
-						Console.WriteLine("Allocated: {0}", ntlmssp_packet[22]);
-						Console.WriteLine("Value: {0}", Exts.GetDataAsString(ntlmssp_packet, ntlmssp_packet[24], ntlmssp_packet[20]));
-
-						Console.WriteLine(string.Empty);
-						Console.WriteLine("Workstation info: ");
-						Console.WriteLine("Length: {0}", ntlmssp_packet[44]);
-						Console.WriteLine("Allocated: {0}", ntlmssp_packet[46]);
-						Console.WriteLine("Value: {0}", Encoding.ASCII.GetString(ntlmssp_packet, ntlmssp_packet[48], ntlmssp_packet[44]));
-
 						Array.Copy(ntlmssp_packet, ntlmssp_packet[48], this.ntlmkey, 0, ntlmssp_packet[44]);
 
 						var resPacket = new RISPacket(new byte[10]);
@@ -262,11 +361,12 @@
 						resPacket.Offset += res.Length;
 						this.Send(ref resPacket, client.Endpoint);
 					}
-
+					#endregion
 					break;
 				case RISOPCodes.CHL:
 					break;
 				case RISOPCodes.NEG:
+					#region "NTLM Negotiate"
 					var msg = NTLMSSP.CreateMessage(NTLMSSP.NTLMMessageType.Challenge, flags, challenge);
 					var negResponse = new RISPacket(new byte[(8 + msg.Length)]);
 
@@ -281,6 +381,7 @@
 					negResponse.Length = negResponse.Offset;
 
 					this.Send(ref negResponse, client.Endpoint);
+					#endregion
 					break;
 				default:
 					break;
@@ -294,6 +395,7 @@
 			switch (type)
 			{
 				case (int)BootMessageType.Request:
+					#region "BOTP - Request"
 					using (var request = new DHCPPacket(e.Data))
 					{
 						request.Type = e.Type;
@@ -307,7 +409,7 @@
 
 						try
 						{
-							guid = Guid.Parse(Exts.GetGuidAsString(cguid, 0, cguid.Length));
+							guid = Guid.Parse(Exts.GetGuidAsString(cguid, 0, cguid.Length, true));
 						}
 						catch (Exception)
 						{
@@ -325,8 +427,6 @@
 							Clients[clientTag].EndPoint = e.RemoteEndpoint;
 						}
 
-						Clients[clientTag].RequestID = Settings.RequestID;
-
 						var c = Clients[clientTag];
 						switch (request.MessageType)
 						{
@@ -337,8 +437,6 @@
 								this.Handle_DHCP_Request(request, ref c);
 								break;
 							case DHCPMsgType.Discover:
-								Clients[clientTag].RequestID = 1;
-
 								this.Handle_DHCP_Request(request, ref c);
 								break;
 							case DHCPMsgType.Release:
@@ -349,9 +447,10 @@
 								return;
 						}
 					}
-
+					#endregion
 					break;
 				case (int)BootMessageType.RISRequest:
+					#region "RIS - Request"
 					var packet = new RISPacket(e.Data);
 					var client = new RISClient(e.RemoteEndpoint);
 
@@ -359,32 +458,28 @@
 					{
 						case "RQU":
 						case "REQ":
-							Errorhandler.Report(LogTypes.Info, "====== RIS (OSChooser) ======");
 							packet.OPCode = packet.RequestType == "REQ" ? RISOPCodes.REQ : RISOPCodes.RQU;
-
 							this.Handle_RIS_Request(packet, ref client, packet.RequestType == "REQ" ? true : false);
 							break;
 						case "NEG":
 						case "AUT":
-							Errorhandler.Report(LogTypes.Info, "======= RIS (NTLMSSP) =======");
 							packet.OPCode = packet.RequestType == "NEG" ? RISOPCodes.NEG : RISOPCodes.AUT;
-
+							this.Handle_RIS_Request(packet, ref client);
+							break;
+						case "NCQ":
+							packet.OPCode = RISOPCodes.NCQ;
 							this.Handle_RIS_Request(packet, ref client);
 							break;
 						default:
 							Errorhandler.Report(LogTypes.Info, "Got Unknown RIS Packet ({0})".F(packet.RequestType));
 							break;
 					}
-
-					Errorhandler.Report(LogTypes.Info, "=============================");
-
+					#endregion
 					break;
 				case (int)BootMessageType.RISReply:
 				default:
 					break;
 			}
-
-			GC.Collect();
 		}
 
 		internal override void DataSend(object sender, DataSendEventArgs e)
@@ -443,7 +538,7 @@
 			block[offset] = 1;
 			offset += 1;
 
-			block[offset] = (byte)NextActionOptionValues.Approval;
+			block[offset] = (byte)client.NextAction;
 			offset += 1;
 
 			// TODO: Align this!
@@ -455,7 +550,7 @@
 			block[offset] = 4;
 			offset += 4;
 
-			block[offset] = Convert.ToByte(client.RequestID);
+			block[offset] = Convert.ToByte(requestid);
 			offset += 1;
 
 			// Pollintervall
