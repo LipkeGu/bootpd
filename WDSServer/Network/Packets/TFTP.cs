@@ -16,11 +16,6 @@
 				this.OPCode = (sbyte)opcode;
 		}
 
-		~TFTPPacket()
-		{
-			Array.Clear(this.data, 0, this.data.Length);
-		}
-
 		#region "generic methods"
 		public override byte[] Add
 		{

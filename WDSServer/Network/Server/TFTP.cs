@@ -4,7 +4,6 @@
 	using System.Collections.Generic;
 	using System.Net;
 	using System.Text;
-	using System.Threading;
 	using WDSServer.Providers;
 
 	public sealed class TFTP : ServerProvider, ITFTPServer_Provider, IDisposable
@@ -68,8 +67,7 @@
 			if (!Clients.ContainsKey(client.Address) || Clients[client.Address].FileName == string.Empty)
 				return;
 
-			var request = (TFTPPacket)data;
-			if (request.Block == Clients[client.Address].Blocks)
+			if (data.Block == Clients[client.Address].Blocks)
 			{
 				Clients[client.Address].Blocks += 1;
 
@@ -80,21 +78,22 @@
 		public void Handle_Error_Request(TFTPErrorCode error, string message, bool clientError = false)
 		{
 			if (Clients.ContainsKey(this.remoteEndp.Address))
+			{
 				Clients[this.remoteEndp.Address].Stage = TFTPStage.Error;
 
-			if (!clientError)
-			{
-				var response = new TFTPPacket(5 + message.Length, TFTPOPCodes.ERR);
-				response.ErrorCode = error;
-				response.ErrorMessage = message;
+				if (!clientError)
+				{
+					var response = new TFTPPacket(5 + message.Length, TFTPOPCodes.ERR);
+					response.ErrorCode = error;
+					response.ErrorMessage = message;
 
-				this.Send(ref response, Clients[this.remoteEndp.Address].EndPoint);
-			}
+					this.Send(ref response, Clients[this.remoteEndp.Address].EndPoint);
+				}
 
-			Errorhandler.Report(LogTypes.Error, "[TFTP] Error {0}: {1}".F(error, message));
+				Errorhandler.Report(LogTypes.Error, "[TFTP] {0}: {1}".F(error, message));
 
-			if (Clients.ContainsKey(this.remoteEndp.Address))
 				Clients.Remove(this.remoteEndp.Address);
+			}
 		}
 
 		public void Send(ref TFTPPacket packet, IPEndPoint endpoint)
@@ -105,28 +104,20 @@
 
 		public void Handle_RRQ_Request(TFTPPacket packet, IPEndPoint client)
 		{
-			if (!Clients.ContainsKey(client.Address))
-				return;
-			
-			var request = (TFTPPacket)packet;
-			this.ExtractOptions(request);
+			this.ExtractOptions(packet);
 
 			Clients[client.Address].Stage = TFTPStage.Handshake;
 			Clients[client.Address].Blocks = 0;
 
-			Clients[client.Address].FileName = Filesystem.ResolvePath(Options["file"]);
-			if (!Filesystem.Exist(Clients[client.Address].FileName))
+			var file = Filesystem.ResolvePath(Options["file"]);
+			if (Filesystem.Exist(file))
 			{
-				this.Handle_Error_Request(TFTPErrorCode.FileNotFound, Clients[client.Address].FileName);
-				return;
-			}
-			else
-			{
-				Clients[client.Address].TransferSize = Filesystem.Size(Clients[client.Address].FileName);
+				Clients[client.Address].FileName = file;
 
 				if (Options.ContainsKey("blksize"))
 				{
-					this.Handle_Option_request(Clients[client.Address].TransferSize, Clients[client.Address].BlockSize, Clients[client.Address].EndPoint);
+					this.Handle_Option_request(Clients[client.Address].TransferSize,
+					Clients[client.Address].BlockSize, Clients[client.Address].EndPoint);
 					return;
 				}
 
@@ -135,6 +126,12 @@
 				this.Readfile(Clients[client.Address].EndPoint);
 				Options.Clear();
 			}
+			else
+			{
+				this.Handle_Error_Request(TFTPErrorCode.FileNotFound, file);
+				return;
+			}
+
 		}
 
 		public void SetMode(TFTPMode mode)
@@ -213,8 +210,8 @@
 
 				if (!Clients.ContainsKey(e.RemoteEndpoint.Address))
 					Clients.Add(e.RemoteEndpoint.Address, new TFTPClient(e.RemoteEndpoint));
-
-				Clients[e.RemoteEndpoint.Address].EndPoint = e.RemoteEndpoint;
+				else
+					Clients[e.RemoteEndpoint.Address].EndPoint = e.RemoteEndpoint;
 
 				switch (request.OPCode)
 				{
@@ -287,9 +284,6 @@
 
 		internal void Readfile(IPEndPoint client)
 		{
-			if (!Clients.ContainsKey(client.Address))
-				return;
-
 			var readedBytes = 0;
 			var done = false;
 
@@ -316,8 +310,6 @@
 			response.Block = Clients[client.Address].Blocks;
 			Array.Copy(chunk, 0, response.Data, response.Offset, chunk.Length);
 			response.Offset += chunk.Length;
-
-			Array.Clear(chunk, 0, chunk.Length);
 
 			this.Send(ref response, Clients[client.Address].EndPoint);
 

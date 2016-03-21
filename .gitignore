@@ -232,3 +232,6 @@ $RECYCLE.BIN/
 
 *.exe
 *.manifest
+
+HTTP/
+TFTPRoot/

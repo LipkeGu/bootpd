@@ -137,7 +137,10 @@
 
 			set
 			{
-				this.filename = Filesystem.ResolvePath(value);
+				var file = value;
+
+				this.filename = file;
+				this.tsize = Filesystem.Size(file);
 			}
 		}
 

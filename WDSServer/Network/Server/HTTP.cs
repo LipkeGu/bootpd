@@ -2,6 +2,7 @@
 {
 	using System;
 	using System.Collections.Specialized;
+	using System.IO;
 	using System.Linq;
 	using System.Text;
 	using static WDSServer.Definitions;
@@ -73,8 +74,6 @@
 
 				if (size > Settings.MaxAllowedFileLength) // 10 MB
 					throw new Exception("Maximum allowed Size exceeded!");
-
-				length = size;
 
 				return "http{0}".F(retval);
 			}
@@ -189,7 +188,7 @@
 							if (tftp_clients == null)
 							{
 								statuscode = 800;
-								description = "Keine aktiven TFTP-Sessions";
+								description = "Keine aktiven TFTP-Sitzungen";
 							}
 							else
 								pagecontent = pagecontent.Replace("[[CLIENT_TFTP_OVERVIEW_LIST]]", tftp_clients);
@@ -258,6 +257,9 @@
 
 				foreach (var client in pending_clients)
 				{
+					if (client.Value == null)
+						continue;
+
 					if (DHCP.Mode != ServerMode.AllowAll)
 					{
 						link += "<a onclick=\"LoadDocument('approve.html?cid={1}&action=0', 'main', 'BOOTP Übersicht')\" href=\"/#\">Annehmen</a>\n"
@@ -289,6 +291,9 @@
 
 				foreach (var client in active_clients)
 				{
+					if (client.Value == null)
+						continue;
+
 					output += "<tr><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td>"
 						.F(client.Value.EndPoint.Address, Filesystem.StripRoot(client.Value.FileName),
 						Math.Round((double)(client.Value.BlockSize / 1024), 2),
@@ -307,6 +312,8 @@
 		internal string Gen_ServerInfo()
 		{
 			var output = string.Empty;
+			var serverip = Settings.ServerIP;
+
 			output += "<table>\n";
 
 			output += "<thead>\n";
@@ -314,9 +321,9 @@
 			output += "</thead>\n";
 
 			output += "<tbody id=\"overview\">\n";
-			output += "<tr><td>Servername:</td><td>{0}.{1}</td></tr>\n".F(Settings.ServerName, Settings.UserDNSDomain);
-			output += "<tr><td>Endpunkt:</td><td>{0}:{1}</td></tr>\n".F(Settings.ServerIP, Settings.BINLPort);
-			output += "<tr><td>Auf DHCP-Anfragen reagieren:</td><td>{0}</td></tr>\n".F(Settings.EnableDHCP ? "Ja" : "Nein");
+			output += "<tr><td width=\"50%\">Servername:</td><td>{0}.{1}</td></tr>\n".F(Settings.ServerName, Settings.UserDNSDomain);
+			output += "<tr><td width=\"50%\">Endpunkt:</td><td>{0}:{1}</td></tr>\n".F(serverip, Settings.BINLPort);
+			output += "<tr><td width=\"50%\">Auf DHCP-Anfragen reagieren:</td><td>{0}</td></tr>\n".F(Settings.EnableDHCP ? "Ja" : "Nein");
 
 			var mode = string.Empty;
 			switch (DHCP.Mode)
@@ -332,7 +339,7 @@
 					break;
 			}
 
-			output += "<tr><td>Regel:</td><td>{0}</td></tr>\n".F(mode);
+			output += "<tr><td width=\"50%\">Regel:</td><td>{0}</td></tr>\n".F(mode);
 			output += "</tbody>\n";
 			output += "</table><br />\n";
 
@@ -343,8 +350,23 @@
 				output += "<tr><th colspan=\"2\">TFTP-Server</th></tr>\n";
 				output += "</thead>\n";
 				output += "<tbody id=\"overview\">\n";
-				output += "<tr><td>Endpunkt: </td><td>{0}:{1}</td></tr>\n".F(Settings.ServerIP, Settings.TFTPPort);
-				output += "<tr><td>Directory: </td><td>{0}</td></tr>\n".F(Settings.TFTPRoot);
+				output += "<tr><td width=\"50%\">Endpunkt:</td><td>{0}:{1}</td></tr>\n".F(serverip, Settings.TFTPPort);
+				output += "<tr><td width=\"50%\">Directory:</td><td>{0}</td></tr>\n".F(Settings.TFTPRoot);
+				output += "</tbody>\n";
+
+				output += "</table><br />\n";
+			}
+
+			if (Settings.EnableDHCP)
+			{
+				var bootfile = Filesystem.ReplaceSlashes(Path.Combine(Settings.WDS_BOOT_PREFIX_X86, Settings.DHCP_DEFAULT_BOOTFILE));
+				output += "<table>\n";
+				output += "<thead>\n";
+				output += "<tr><th colspan=\"2\">DHCP-Proxy</th></tr>\n";
+				output += "</thead>\n";
+				output += "<tbody id=\"overview\">\n";
+				output += "<tr><td width=\"50%\">Bootfile:</td><td>{0}</td></tr>\n".F(bootfile);
+				output += "<tr><td width=\"50%\">Requests:</td><td>{0}</td></tr>\n".F(DHCP.RequestID);
 				output += "</tbody>\n";
 
 				output += "</table><br />\n";
