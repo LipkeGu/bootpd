@@ -255,7 +255,7 @@
 			{
 				var link = string.Empty;
 				if (DHCP.Mode != ServerMode.AllowAll)
-					output += "<div id=\"th\">ID</div><div id=\"th\">GUID (UUID)</div><div id=\"th\">IP-Addresse</div><div id=\"th\">Approval</div>";
+					output += "<div id=\"th\" style=\"width: 25%\">ID</div><div id=\"th\" style=\"width: 25%\">GUID (UUID)</div><div id=\"th\" style=\"width: 25%\">IP-Addresse</div><div id=\"th\" style=\"width: 25%\">Approval</div>";
 
 				foreach (var client in pending_clients)
 				{
@@ -270,7 +270,7 @@
 						link += "<a onclick=\"LoadDocument('approve.html?cid={1}&action=1', 'main', 'BOOTP Übersicht')\" href=\"/#\">Ablehen</a>\n"
 							.F(client.Value.ActionDone, Exts.ToBase64(client.Value.ID));
 
-						output += "<div id=\"td\">{1}</div><div id=\"td\">{2}</div><div id=\"td\">{3}</div><div id=\"td\">{0}</div>"
+						output += "<div id=\"td\" style=\"width: 25%\">{1}</div><div id=\"td\" style=\"width: 25%\">{2}</div><div id=\"td\" style=\"width: 25%\">{3}</div><div id=\"td\" style=\"width: 25%\">{0}</div>"
 						.F(link, DHCP.RequestID, client.Value.Guid, client.Value.EndPoint.Address);
 					}
 				}
@@ -316,16 +316,11 @@
 			var output = string.Empty;
 			var serverip = Settings.ServerIP;
 
-			output += "<table>\n";
+			output += "<div id=\"th\">BINL-Server</div>";
 
-			output += "<thead>\n";
-			output += "<tr><th colspan=\"2\">BINL-Server</th></tr>\n";
-			output += "</thead>\n";
-
-			output += "<tbody id=\"overview\">\n";
-			output += "<tr><td width=\"50%\">Servername:</td><td>{0}.{1}</td></tr>\n".F(Settings.ServerName, Settings.UserDNSDomain);
-			output += "<tr><td width=\"50%\">Endpunkt:</td><td>{0}:{1}</td></tr>\n".F(serverip, Settings.BINLPort);
-			output += "<tr><td width=\"50%\">Auf DHCP-Anfragen reagieren:</td><td>{0}</td></tr>\n".F(Settings.EnableDHCP ? "Ja" : "Nein");
+			output += "<div id=\"td\" style=\"width: 50%\">Servername:</div><div id=\"td\" style=\"width: 50%\">{0}.{1}</div>".F(Settings.ServerName, Settings.UserDNSDomain);
+			output += "<div id=\"td\" style=\"width: 50%\">EndPunkt:</div><div id=\"td\" style=\"width: 50%\">{0}:{1}</div>".F(serverip, Settings.BINLPort);
+			output += "<div id=\"td\" style=\"width: 50%\">Auf DHCP-Anfragen reagieren:</div><div id=\"td\" style=\"width: 50%\">{0}</div>".F(Settings.EnableDHCP ? "Ja" : "Nein");
 
 			var mode = string.Empty;
 			switch (DHCP.Mode)
@@ -340,49 +335,23 @@
 					mode = "Unbekannt";
 					break;
 			}
-
-			output += "<tr><td width=\"50%\">Regel:</td><td>{0}</td></tr>\n".F(mode);
-			output += "</tbody>\n";
-			output += "</table><br />\n";
+			output += "<div id=\"td\" style=\"width: 50%\">Regel:</div><div id=\"td\" style=\"width: 50%\">{0}</div>".F(mode);
 
 			if (Settings.EnableTFTP)
 			{
-				output += "<table>\n";
-				output += "<thead>\n";
-				output += "<tr><th colspan=\"2\">TFTP-Server</th></tr>\n";
-				output += "</thead>\n";
-				output += "<tbody id=\"overview\">\n";
-				output += "<tr><td width=\"50%\">Endpunkt:</td><td>{0}:{1}</td></tr>\n".F(serverip, Settings.TFTPPort);
-				output += "<tr><td width=\"50%\">Directory:</td><td>{0}</td></tr>\n".F(Settings.TFTPRoot);
-				output += "</tbody>\n";
-
+				output += "<div id=\"th\">TFTP-Server</div>";
+				output += "<div id=\"td\" style=\"width: 50%\">EndPunkt:</div><div id=\"td\" style=\"width: 50%\">{0}:{1}</div>".F(serverip, Settings.BINLPort);
+				output += "<div id=\"td\" style=\"width: 50%\">Path:</div><div id=\"td\" style=\"width: 50%\">{0}</div>".F(Settings.TFTPRoot);
 				output += "</table><br />\n";
 			}
 
 			if (Settings.EnableDHCP)
 			{
 				var bootfile = Filesystem.ReplaceSlashes(Path.Combine(Settings.WDS_BOOT_PREFIX_X86, Settings.DHCP_DEFAULT_BOOTFILE));
-				output += "<table>\n";
-				output += "<thead>\n";
-				output += "<tr><th colspan=\"2\">DHCP-Proxy</th></tr>\n";
-				output += "</thead>\n";
-				output += "<tbody id=\"overview\">\n";
-				output += "<tr><td width=\"50%\">Bootfile:</td><td>{0}</td></tr>\n".F(bootfile);
-				output += "<tr><td width=\"50%\">Requests:</td><td>{0}</td></tr>\n".F(DHCP.RequestID);
-				output += "</tbody>\n";
-				output += "</table><br />\n";
-			}
 
-			if (Settings.AdvertPXEServerList)
-			{
-				output += "<table>\n";
-				output += "<thead>\n";
-				output += "<tr><th colspan=\"2\">PXE-Relay Router</th></tr>\n";
-				output += "</thead>\n";
-				output += "<tbody id=\"overview\">\n";
-				output += "<tr><td width=\"50%\">Bekannte Server:</td><td>{0}</td></tr>\n".F(DHCP.Servers.Count);
-				output += "<tr><td width=\"50%\">Status:</td><td>Serverliste mittels DHCP Option 43 übertragen.</td></tr>\n";
-				output += "</tbody>\n";
+				output += "<div id=\"th\">DHCP-Listener</div>";
+				output += "<div id=\"td\" style=\"width: 50%\">Bootfile:</div><div id=\"td\" style=\"width: 50%\">[TFTP-Root]{0}</div>".F(bootfile);
+				output += "<div id=\"td\" style=\"width: 50%\">Requests:</div><div id=\"td\" style=\"width: 50%\">{0}</div>".F(DHCP.RequestID);
 				output += "</table><br />\n";
 			}
 

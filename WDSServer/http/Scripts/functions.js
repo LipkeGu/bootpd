@@ -39,7 +39,7 @@ function MsgBox(type, title, message)
 	if (type == 'error')
 		t = 'error';
 
-	var x = "<table><tr><th>" + title + "</th></tr><tr id=\"" + t + "\"><td>" + message + "</td></tr></table>";
+	var x = "<div id=\"th\" style=\"width: 40%;\"> " + title + "</div>\n<div id=\"" + t + "\">" + message + "</div>";
 
 	return x;
 }
@@ -57,4 +57,12 @@ function genFrame(content, title, target)
 		$("h2").fadeIn();
 		$("table, div").fadeIn(1000);
 	});
+}
+
+function refresh(url, target, title, needs, interval)
+{
+	var refreshId = setInterval(function()
+	{
+		LoadDocument(url, target, title, needs);
+	}, interval * 1000);
 }
