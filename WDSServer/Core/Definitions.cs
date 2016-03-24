@@ -278,7 +278,8 @@
 		{
 			Desktop,
 			Mobile,
-			ThinClient
+			ThinClient,
+			Virtual
 		}
 
 		/// <summary>
@@ -353,6 +354,37 @@
 		{
 			AllowAll,
 			KnownOnly
+		}
+
+		public enum BootServerTypes : sbyte
+		{
+			PXEBootstrapServer,
+			MicrosoftWindowsNTBootServer,
+			IntelLCMBootServer,
+			DOSUNDIBootServer,
+			NECESMPROBootServer,
+			IBMWSoDBootServer,
+			IBMLCCMBootServer,
+			CAUnicenterTNGBootServer,
+			HPOpenViewBootServer
+		}
+
+		public enum PXEVendorEncOptions
+		{
+			MultiCastIPAddress = 1,
+			MulticastClientPort = 2,
+			MulticastServerPort = 3,
+			MulticastTFTPTimeout = 4,
+			MulticastTFTPDelay = 5,
+			DiscoveryControl = 6,
+			DiscoveryMulticastAddress = 7,
+			BootServers = 8,
+			BootMenue = 9,
+			MenuPrompt = 10,
+			MulticastAddressAllocation = 11,
+			CredentialTypes = 12,
+			BootItem = 71,
+			End = 255
 		}
 	}
 }

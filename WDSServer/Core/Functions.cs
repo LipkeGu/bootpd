@@ -1,7 +1,9 @@
 ﻿namespace WDSServer
 {
 	using System;
+	using System.Collections.Generic;
 	using System.IO;
+	using System.Net;
 	using System.Text;
 	using WDSServer.Network;
 
@@ -14,10 +16,8 @@
 		public static bool IsTFTPOPCode(sbyte opcode, byte[] packet)
 		{
 			var code = GetTFTPOPCode(packet);
-			if (code != opcode)
-				return false;
-			else
-				return true;
+
+			return code != opcode ? false : true;
 		}
 
 		public static int FindEndOption(ref byte[] data)
@@ -55,7 +55,7 @@
 			for (var i = 0; i < packet.Data.Length; i++)
 				if (packet.Data[i] == (int)option)
 				{
-					pos = i + 1;
+					pos = i;
 					break;
 				}
 
@@ -78,6 +78,150 @@
 			Array.Copy(src, srcoffset, dst, dstoffset, length);
 
 			return dst.Length;
+		}
+
+		public static void ReadServerList(string filename, ref Dictionary<string, Serverentry> servers)
+		{
+			var serverlist = Files.ReadXML(filename.ToLowerInvariant());
+			var list = serverlist.GetElementsByTagName("Server");
+			servers.Add(Settings.ServerName, new Serverentry(254, Settings.ServerName, Settings.DHCP_DEFAULT_BOOTFILE, Exts.GetServerIP(), Definitions.BootServerTypes.MicrosoftWindowsNTBootServer));
+
+			for (var i = 0; i < list.Count; i++)
+			{
+				var addr = IPAddress.Parse(list[i].Attributes["address"].InnerText);
+				var hostname = list[i].Attributes["hostname"].InnerText;
+				var type = (Definitions.BootServerTypes)int.Parse(list[i].Attributes["type"].InnerText);
+
+				var bootfile = list[i].Attributes["bootfile"].InnerText;
+				var ident = (short)(servers.Count + 1);
+				var e = new Serverentry(ident, hostname, bootfile, addr, type);
+				servers.Add(hostname, e);
+			}
+		}
+
+		public static byte[] GenerateServerList(ref Dictionary<string, Serverentry> servers, short item)
+		{
+			if (item == 0)
+			{
+				var discover = new byte[3];
+				discover[0] = (byte)Definitions.PXEVendorEncOptions.DiscoveryControl;
+				discover[1] = 1;
+				discover[2] = 3;
+
+				#region "Menu Prompt"
+				var message = Encoding.ASCII.GetBytes("This server includes a list in its response. Choose the desired one!");
+				var timeout = byte.MaxValue;
+
+				var prompt = new byte[(message.Length + 3)];
+				prompt[0] = (byte)Definitions.PXEVendorEncOptions.MenuPrompt;
+				prompt[1] = Convert.ToByte(message.Length + 1);
+				prompt[2] = timeout;
+
+				Array.Copy(message, 0, prompt, 3, message.Length);
+				#endregion
+
+				#region "Menu"
+				var menu = new byte[(servers.Count * 32)];
+				var menulength = 0;
+				var moffset = 0;
+
+				foreach (var server in servers)
+				{
+					var name = Encoding.ASCII.GetBytes(server.Value.Hostname);
+					var ident = BitConverter.GetBytes(server.Value.Ident);
+
+					var nlen = name.Length;
+
+					if (nlen > 32)
+						nlen = 32;
+
+					var menuentry = new byte[(ident.Length + nlen + 3)];
+					moffset = 0;
+					Array.Copy(ident, 0, menuentry, moffset, ident.Length);
+					moffset += ident.Length;
+
+					menuentry[2] = Convert.ToByte(nlen);
+					moffset += 1;
+
+					Array.Copy(name, 0, menuentry, moffset, nlen);
+					moffset += nlen;
+
+					if (menulength == 0)
+						menulength = 2;
+
+					Array.Copy(menuentry, 0, menu, menulength, moffset);
+					menulength += moffset;
+				}
+
+				menu[0] = (byte)Definitions.PXEVendorEncOptions.BootMenue;
+				menu[1] += Convert.ToByte(menulength - 2);
+				#endregion
+
+				#region "Serverlist"
+				var entry = new byte[7];
+				var srvlist = new byte[((servers.Count * entry.Length) + 2)];
+
+				var resultoffset = 2;
+
+				foreach (var server in servers)
+				{
+					var entryoffset = 0;
+					#region "Server entry"
+					var ident = BitConverter.GetBytes(server.Value.Ident);
+					var type = BitConverter.GetBytes((byte)server.Value.Type);
+					var addr = Exts.GetServerIP().GetAddressBytes();
+
+					Array.Copy(ident, 0, entry, entryoffset, ident.Length);
+					entryoffset += ident.Length;
+
+					Array.Copy(type, 0, entry, entryoffset, 1);
+					entryoffset += 1;
+
+					Array.Copy(addr, 0, entry, entryoffset, addr.Length);
+					entryoffset += addr.Length;
+					#endregion
+
+					Array.Copy(entry, 0, srvlist, resultoffset, entry.Length);
+					resultoffset += entry.Length;
+
+					srvlist[0] = (byte)Definitions.PXEVendorEncOptions.BootServers;
+					srvlist[1] += Convert.ToByte(entry.Length);
+					#endregion
+				}
+
+				var result = new byte[(discover.Length + menu.Length + prompt.Length + srvlist.Length)];
+				var optoffset = 0;
+
+				Array.Copy(discover, 0, result, optoffset, discover.Length);
+				optoffset += discover.Length;
+
+				Array.Copy(srvlist, 0, result, optoffset, srvlist.Length);
+				optoffset += srvlist.Length;
+
+				Array.Copy(prompt, 0, result, optoffset, prompt.Length);
+				optoffset += prompt.Length;
+
+				Array.Copy(menu, 0, result, optoffset, menulength);
+				optoffset += menulength;
+
+				var block = new byte[optoffset];
+
+				Array.Copy(result, 0, block, 0, block.Length);
+
+				return block;
+			}
+			else
+			{
+				var bootitem = new byte[8];
+
+				bootitem[0] = (byte)Definitions.PXEVendorEncOptions.BootItem;
+				bootitem[1] = 7;
+
+				var itm = BitConverter.GetBytes(item);
+				Array.Copy(itm, 0, bootitem, 2, itm.Length);
+
+				return bootitem;
+			}
 		}
 
 		public static int FindDrv(string filename, string vid, string pid, out string sysfile, out string service,
@@ -145,7 +289,7 @@
 
 			return data;
 		}
-		
+
 		public static void SelectBootFile(ref DHCPClient client, bool wdsclient, Definitions.NextActionOptionValues nextaction)
 		{
 			if (wdsclient)
@@ -161,7 +305,7 @@
 						{
 							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_X86, Settings.WDS_BOOTFILE_ABORT);
 						}
-						
+
 						break;
 					case Definitions.Architecture.INTEL_IA64:
 						if (nextaction == Definitions.NextActionOptionValues.Approval)
@@ -173,7 +317,7 @@
 						{
 							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_IA64, Settings.WDS_BOOTFILE_ABORT);
 						}
-						
+
 						break;
 					case Definitions.Architecture.INTEL_X64:
 						if (nextaction == Definitions.NextActionOptionValues.Approval)
@@ -185,7 +329,7 @@
 						{
 							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_X64, Settings.WDS_BOOTFILE_ABORT);
 						}
-						
+
 						break;
 					case Definitions.Architecture.INTEL_EFI:
 						if (nextaction == Definitions.NextActionOptionValues.Approval)
@@ -197,7 +341,7 @@
 						{
 							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_EFI, Settings.WDS_BOOTFILE_ABORT);
 						}
-						
+
 						break;
 					default:
 						client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_X86, Settings.WDS_BOOTFILE_X86);

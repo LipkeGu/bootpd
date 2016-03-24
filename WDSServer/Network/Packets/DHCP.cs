@@ -283,6 +283,8 @@
 				if (value.ToCharArray().Length > 64)
 					throw new Exception("Server name length is larger than 64 bytes!");
 
+				Array.Clear(this.data, 44, 64);
+
 				var bytes = new byte[64];
 				bytes = Encoding.ASCII.GetBytes(value.ToCharArray());
 				Functions.CopyTo(ref bytes, 0, ref this.data, 44, bytes.Length);
@@ -302,6 +304,7 @@
 					throw new Exception("Boot file length is larger than 128 bytes!");
 
 				var bytes = new byte[128];
+				Array.Clear(this.data, 108, 128);
 				bytes = Encoding.ASCII.GetBytes(value.ToCharArray());
 				Functions.CopyTo(ref bytes, 0, ref this.data, 108, bytes.Length);
 			}

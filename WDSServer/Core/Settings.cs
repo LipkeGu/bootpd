@@ -9,9 +9,10 @@
 	{
 		public static bool EnableDHCP = true;
 		public static bool EnableTFTP = true;
-
-		[XmlIgnore]
 		public static bool EnableHTTP = true;
+
+		public static bool AdvertPXEServerList = true;
+
 		public static bool ReUseAddress = false;
 
 		public static int DHCPPort = 67;
@@ -53,6 +54,7 @@
 		public static string UserDNSDomain = "Localdomain.local";
 		[XmlIgnore]
 		public static string Charset = "utf-8";
+		public static string Design = "Default";
 
 		public static long MaxAllowedFileLength = 10485760;
 	}

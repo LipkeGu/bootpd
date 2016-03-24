@@ -2,14 +2,16 @@
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Linq;
 	using System.Net;
 	using System.Text;
 	using WDSServer.Providers;
 
 	public sealed class DHCP : ServerProvider, IDHCPServer_Provider, IDisposable
 	{
-		public static Dictionary<string, DHCPClient> Clients =
-			new Dictionary<string, DHCPClient>();
+		public static Dictionary<string, DHCPClient> Clients = new Dictionary<string, DHCPClient>();
+
+		public static Dictionary<string, Serverentry> Servers = new Dictionary<string, Serverentry>();
 
 		public static ServerMode Mode;
 
@@ -28,16 +30,19 @@
 			Mode = mode;
 			this.ntlmkey = new byte[24];
 			requestid = 0;
-			this.BINLsocket = new BINLSocket(new IPEndPoint(socket.Address, port));
+
+			this.BINLsocket = new BINLSocket(new IPEndPoint(IPAddress.Any, port));
 			this.BINLsocket.Type = SocketType.BINL;
 			this.BINLsocket.DataReceived += this.DataReceived;
 			this.BINLsocket.DataSend += this.DataSend;
-			this.endp = socket;
 
-			this.DHCPsocket = new DHCPSocket(this.endp, true);
+			this.DHCPsocket = new DHCPSocket(new IPEndPoint(IPAddress.Any, 67), true);
 			this.DHCPsocket.Type = SocketType.DHCP;
 			this.DHCPsocket.DataReceived += this.DataReceived;
 			this.DHCPsocket.DataSend += this.DataSend;
+
+			if (Settings.AdvertPXEServerList)
+				Functions.ReadServerList("serverlist.xml", ref Servers);
 		}
 
 		public static int RequestID
@@ -94,14 +99,28 @@
 
 		public void Handle_DHCP_Request(DHCPPacket packet, ref DHCPClient client)
 		{
+			var parameterlist_offset = Functions.GetOptionOffset(ref packet, DHCPOptionEnum.ParameterRequestList);
+			var parameterlistLength = packet.Data[(parameterlist_offset + 1)];
+			var bootitem = (short)0;
+
+			if (parameterlist_offset != 0)
+			{
+				Array.Clear(packet.Data, parameterlist_offset, parameterlistLength);
+			}
+
 			var response = new DHCPPacket(new byte[1024]);
 			Array.Copy(packet.Data, 0, response.Data, 0, 242);
 
 			response.BootpType = BootMessageType.Reply;
 			response.ServerName = Settings.ServerName;
-			response.NextServer = this.LocalEndPoint.Address;
+			response.NextServer = Exts.GetServerIP();
 			response.Type = client.Type;
 			response.Offset += 243;
+
+			if (Functions.GetOptionOffset(ref packet, DHCPOptionEnum.WDSNBP) != 0)
+				client.IsWDSClient = true;
+			else
+				client.IsWDSClient = false;
 
 			switch (packet.Type)
 			{
@@ -109,10 +128,6 @@
 					client.MsgType = DHCPMsgType.Offer;
 					break;
 				case SocketType.BINL:
-					if (Functions.GetOptionOffset(ref packet, DHCPOptionEnum.WDSNBP) != 0)
-						client.IsWDSClient = true;
-					else
-						client.IsWDSClient = false;
 
 					client.MsgType = DHCPMsgType.Ack;
 					break;
@@ -120,11 +135,6 @@
 					Clients.Remove(client.ID);
 					return;
 			}
-
-			Functions.SelectBootFile(ref client, client.IsWDSClient, client.NextAction);
-
-			// Bootfile
-			response.Bootfile = client.BootFile;
 
 			// Option 53
 			response.MessageType = client.MsgType;
@@ -147,6 +157,20 @@
 			Array.Copy(guidopt, 0, response.Data, response.Offset, guidopt.Length);
 			response.Offset += guidopt.Length;
 
+			// Bootfile
+			response.Bootfile = client.BootFile;
+
+			Functions.SelectBootFile(ref client, client.IsWDSClient, client.NextAction);
+
+			// Bootfile
+			response.Bootfile = client.BootFile;
+
+			// Option 53
+			response.MessageType = client.MsgType;
+
+			if (Mode == ServerMode.AllowAll)
+				client.ActionDone = true;
+
 			// Option 252 - BCDStore
 			if (client.BCDPath != null)
 			{
@@ -156,8 +180,49 @@
 				response.Offset += bcdstore.Length;
 			}
 
-			if (Mode == ServerMode.AllowAll)
-				client.ActionDone = true;
+			if (Settings.AdvertPXEServerList && Servers.Count > 0)
+			{
+				var optionoffset = Functions.GetOptionOffset(ref packet, DHCPOptionEnum.VendorSpecificInformation);
+				if (optionoffset != 0)
+				{
+					var data = new byte[packet.Data[optionoffset + 1]];
+					Array.Copy(packet.Data, optionoffset + 2, data, 0, 6);
+
+					switch (data[0])
+					{
+						case (byte)Definitions.PXEVendorEncOptions.BootItem:
+							bootitem = BitConverter.ToInt16(data, 2);
+							break;
+						default:
+							break;
+					}
+				}
+
+				// Option 43:8
+				var pxeservers = Functions.GenerateServerList(ref Servers, bootitem);
+
+				if (pxeservers != null)
+				{
+					var vendoropt = Exts.SetDHCPOption(DHCPOptionEnum.VendorSpecificInformation, pxeservers);
+					Array.Copy(vendoropt, 0, response.Data, response.Offset, vendoropt.Length);
+					response.Offset += vendoropt.Length;
+
+					response.Data[response.Offset] = 255;
+					response.Offset += 1;
+				}
+			}
+
+			if (Settings.AdvertPXEServerList && bootitem != 254 && bootitem != 0 && Servers.Count > 0)
+			{
+				var server = (from s in Servers where s.Value.Ident == bootitem select s.Value.Hostname).FirstOrDefault();
+
+				if (Clients.ContainsKey(client.ID))
+					Clients.Remove(client.ID);
+
+				response.NextServer = Servers[server].IPAddress;
+				response.Bootfile = Servers[server].Bootfile;
+				response.ServerName = Servers[server].Hostname;
+			}
 
 			this.Handle_WDS_Options(ref response, client.AdminMessage, ref client);
 
@@ -167,9 +232,6 @@
 
 			Array.Copy(endopt, 0, response.Data, response.Offset + 1, endopt.Length);
 			response.Offset += endopt.Length;
-
-			if (client == null)
-				throw new Exception("Stop no client!");
 
 			switch (packet.Type)
 			{
@@ -431,10 +493,8 @@
 						switch (request.MessageType)
 						{
 							case DHCPMsgType.Request:
-								if (e.RemoteEndpoint.Address == IPAddress.None)
-									return;
-
-								this.Handle_DHCP_Request(request, ref c);
+								if (e.RemoteEndpoint.Address != IPAddress.None)
+									this.Handle_DHCP_Request(request, ref c);
 								break;
 							case DHCPMsgType.Discover:
 								this.Handle_DHCP_Request(request, ref c);
@@ -526,6 +586,8 @@
 			var bytes = Encoding.ASCII.GetBytes(adminMessage.ToCharArray());
 			var block = new byte[26 + bytes.Length];
 			block[0] = (byte)DHCPOptionEnum.WDSNBP;
+
+			Console.WriteLine("Called WDS Block");
 
 			var offset = 1;
 			block[offset] = (byte)(block.Length - 3);

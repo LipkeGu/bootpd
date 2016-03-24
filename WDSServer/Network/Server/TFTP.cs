@@ -131,7 +131,6 @@
 				this.Handle_Error_Request(TFTPErrorCode.FileNotFound, file);
 				return;
 			}
-
 		}
 
 		public void SetMode(TFTPMode mode)

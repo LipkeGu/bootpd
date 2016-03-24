@@ -61,11 +61,11 @@
   <ItemGroup>
     <Compile Include="Core\Errorhandler.cs" />
     <Compile Include="Core\Filesystem\Directories.cs" />
-    <Compile Include="Core\DistributionShare.cs" />
     <Compile Include="Core\Filesystem\Drive.cs" />
     <Compile Include="Core\Filesystem\Files.cs" />
     <Compile Include="Core\Filesystem\Parsers\Xml.cs" />
     <Compile Include="Core\Functions.cs" />
+    <Compile Include="Core\Serverentry.cs" />
     <Compile Include="Network\Client\RIS.cs" />
     <Compile Include="Network\Packets\RIS.cs" />
     <Compile Include="Providers\Computer.cs" />
@@ -109,7 +109,7 @@
     <None Include="HTTP\index.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="HTTP\style.css">
+    <None Include="HTTP\Designs\Default\style.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
@@ -172,6 +172,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="drivers.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="serverlist.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

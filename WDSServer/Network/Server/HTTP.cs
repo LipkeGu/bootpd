@@ -95,7 +95,7 @@
 			pagecontent += "\t\t<meta charset=\"{0}\" />\n".F(Settings.Charset);
 			pagecontent += "\t\t<meta http-equiv=\"expires\" content=\"0\" />\n";
 			pagecontent += "\t\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
-			pagecontent += "\t\t<link href=\"style.css\" rel=\"stylesheet\" type=\"text/css\" />\n";
+			pagecontent += "\t\t<link href=\"/Designs/[[Design]]/style.css\" rel=\"stylesheet\" type=\"text/css\" />\n";
 
 			var xmldoc = Files.ReadXML("http/DataSets/index.xml");
 			if (xmldoc != null && xmldoc.HasChildNodes)
@@ -167,6 +167,8 @@
 
 					if (url.EndsWith(".htm") || url.EndsWith(".html"))
 					{
+						pagecontent = pagecontent.Replace("[[Design]]", Settings.Design);
+
 						pagecontent = pagecontent.Replace("[[SERVER_INFO_BLOCK]]", this.Gen_ServerInfo());
 						pagecontent = pagecontent.Replace("[[SERVERNAME]]", Settings.ServerName);
 
@@ -368,7 +370,19 @@
 				output += "<tr><td width=\"50%\">Bootfile:</td><td>{0}</td></tr>\n".F(bootfile);
 				output += "<tr><td width=\"50%\">Requests:</td><td>{0}</td></tr>\n".F(DHCP.RequestID);
 				output += "</tbody>\n";
+				output += "</table><br />\n";
+			}
 
+			if (Settings.AdvertPXEServerList)
+			{
+				output += "<table>\n";
+				output += "<thead>\n";
+				output += "<tr><th colspan=\"2\">PXE-Relay Router</th></tr>\n";
+				output += "</thead>\n";
+				output += "<tbody id=\"overview\">\n";
+				output += "<tr><td width=\"50%\">Bekannte Server:</td><td>{0}</td></tr>\n".F(DHCP.Servers.Count);
+				output += "<tr><td width=\"50%\">Status:</td><td>Serverliste mittels DHCP Option 43 übertragen.</td></tr>\n";
+				output += "</tbody>\n";
 				output += "</table><br />\n";
 			}
 

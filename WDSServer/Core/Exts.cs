@@ -65,10 +65,7 @@
 					fmt += F("{0:x2}", guid[i]);
 			}
 
-			if (patch)
-				return fmt.Remove(0, 2);
-			else
-				return fmt;
+			return patch ? fmt.Remove(0, 2) : fmt;
 		}
 
 		public static byte[] GetOptionValue(byte[] data, Definitions.DHCPOptionEnum option)

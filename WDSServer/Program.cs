@@ -12,7 +12,7 @@
 			if (!Settings.EnableHTTP)
 				Settings.Servermode = ServerMode.AllowAll;
 
-			var dhcp = new DHCP(new IPEndPoint(Settings.ServerIP, Settings.DHCPPort), Settings.BINLPort, Settings.Servermode);
+			var dhcp = new DHCP(new IPEndPoint(IPAddress.Any, Settings.DHCPPort), Settings.BINLPort, Settings.Servermode);
 			var tftp = new TFTP(new IPEndPoint(Settings.ServerIP, Settings.TFTPPort));
 			var http = new HTTP(Settings.HTTPPort);
 
