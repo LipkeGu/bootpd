@@ -587,8 +587,6 @@
 			var block = new byte[26 + bytes.Length];
 			block[0] = (byte)DHCPOptionEnum.WDSNBP;
 
-			Console.WriteLine("Called WDS Block");
-
 			var offset = 1;
 			block[offset] = (byte)(block.Length - 3);
 			offset += 1;
