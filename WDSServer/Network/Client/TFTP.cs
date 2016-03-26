@@ -137,10 +137,7 @@
 
 			set
 			{
-				var file = value;
-
-				this.filename = file;
-				this.tsize = Filesystem.Size(file);
+				this.filename = value;
 			}
 		}
 

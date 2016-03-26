@@ -2,6 +2,7 @@
 {
 	using System;
 	using System.Collections.Generic;
+	using System.IO;
 	using System.Net;
 	using System.Text;
 	using WDSServer.Providers;
@@ -13,6 +14,8 @@
 		public static Dictionary<string, string> Options = new Dictionary<string, string>();
 
 		TFTPSocket socket;
+		FileStream fs;
+		BufferedStream bs;
 
 		public TFTP(IPEndPoint endpoint)
 		{
@@ -92,6 +95,12 @@
 
 				Errorhandler.Report(LogTypes.Error, "[TFTP] {0}: {1}".F(error, message));
 
+				if (this.fs != null)
+					this.fs.Close();
+
+				if (this.bs != null)
+					this.bs.Close();
+
 				Clients.Remove(this.remoteEndp.Address);
 			}
 		}
@@ -113,6 +122,10 @@
 			if (Filesystem.Exist(file))
 			{
 				Clients[client.Address].FileName = file;
+				this.fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 2 << 64);
+				this.bs = new BufferedStream(this.fs, 2 << 64);
+
+				Clients[client.Address].TransferSize = fs.Length;
 
 				if (Options.ContainsKey("blksize"))
 				{
@@ -243,7 +256,11 @@
 		internal override void DataSend(object sender, DataSendEventArgs e)
 		{
 			if (Clients.ContainsKey(e.RemoteEndpoint.Address) && Clients[e.RemoteEndpoint.Address].Stage == TFTPStage.Done)
+			{
 				Clients.Remove(e.RemoteEndpoint.Address);
+				this.fs.Close();
+				this.bs.Close();
+			}
 		}
 
 		internal void Handle_Option_request(long tsize, int blksize, IPEndPoint client)
@@ -286,6 +303,12 @@
 			var readedBytes = 0;
 			var done = false;
 
+			if (this.fs == null)
+				this.fs = new FileStream(Clients[client.Address].FileName, FileMode.Open, FileAccess.Read, FileShare.Read, 2 << 64);
+
+			if (this.bs == null)
+				this.bs = new BufferedStream(this.fs, 2 << 64);
+
 			// Align the last Block
 			if (Clients[client.Address].TransferSize <= Clients[client.Address].BlockSize)
 			{
@@ -295,8 +318,12 @@
 
 			var chunk = new byte[Clients[client.Address].BlockSize];
 
-			Files.Read(Clients[client.Address].FileName, ref chunk, out readedBytes,
-				chunk.Length, (int)Clients[client.Address].BytesRead);
+			this.bs.Seek((int)Clients[client.Address].BytesRead, SeekOrigin.Begin);
+			readedBytes = this.bs.Read(chunk, 0, chunk.Length);
+
+			/*
+			Files.Read(Clients[client.Address].FileName, ref chunk, out readedBytes, chunk.Length, (int)Clients[client.Address].BytesRead);
+			*/
 
 			Clients[client.Address].BytesRead += readedBytes;
 			Clients[client.Address].TransferSize -= readedBytes;

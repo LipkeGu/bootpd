@@ -39,7 +39,8 @@ function MsgBox(type, title, message)
 	if (type == 'error')
 		t = 'error';
 
-	var x = "<div id=\"th\" style=\"width: 40%;\"> " + title + "</div>\n<div id=\"" + t + "\">" + message + "</div>";
+	var x = "<div id=\"msgbox_title\"> " + title + "</div>\n";
+	x += "<div id=\"" + t + "\">" + message + "</div>";
 
 	return x;
 }
