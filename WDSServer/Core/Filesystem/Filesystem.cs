@@ -18,21 +18,23 @@
 
 		public static string ResolvePath(string path)
 		{
-			var givenPath = path;
-			givenPath = ReplaceSlashes(StripRoot(givenPath));
+			var givenPath = path.ToLowerInvariant();
+			var dir = Settings.TFTPRoot;
+
+			if (path.EndsWith(".html") || path.EndsWith(".htm") || path.EndsWith(".css") || path.EndsWith(".js"))
+				dir = "HTTP";
+
+			givenPath = ReplaceSlashes(StripRoot(givenPath, dir));
 
 			if (givenPath.StartsWith(Path.DirectorySeparatorChar.ToString()))
 				givenPath = givenPath.Remove(0, 1);
 
 			var newPath = Path.Combine(Settings.TFTPRoot, givenPath);
 
-			if (Exist(newPath))
-				return newPath;
-			else
-				return path;
+			return Exist(newPath) ? newPath : path;
 		}
 
-		public static string StripRoot(string path) => path.Replace(ReplaceSlashes(Settings.TFTPRoot), string.Empty);
+		public static string StripRoot(string path, string directory) => path.Replace(directory, string.Empty);
 
 		public static string ReplaceSlashes(string input)
 		{

@@ -304,7 +304,8 @@
 			var done = false;
 
 			if (this.fs == null)
-				this.fs = new FileStream(Clients[client.Address].FileName, FileMode.Open, FileAccess.Read, FileShare.Read, 2 << 64);
+				this.fs = new FileStream(Clients[client.Address].FileName,
+				 FileMode.Open, FileAccess.Read, FileShare.Read, 2 << 64);
 
 			if (this.bs == null)
 				this.bs = new BufferedStream(this.fs, 2 << 64);
@@ -318,12 +319,8 @@
 
 			var chunk = new byte[Clients[client.Address].BlockSize];
 
-			this.bs.Seek((int)Clients[client.Address].BytesRead, SeekOrigin.Begin);
+			this.bs.Seek(Clients[client.Address].BytesRead, SeekOrigin.Begin);
 			readedBytes = this.bs.Read(chunk, 0, chunk.Length);
-
-			/*
-			Files.Read(Clients[client.Address].FileName, ref chunk, out readedBytes, chunk.Length, (int)Clients[client.Address].BytesRead);
-			*/
 
 			Clients[client.Address].BytesRead += readedBytes;
 			Clients[client.Address].TransferSize -= readedBytes;

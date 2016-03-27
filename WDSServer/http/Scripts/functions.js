@@ -34,13 +34,8 @@
 
 function MsgBox(type, title, message)
 {
-	var t = 'info';
-
-	if (type == 'error')
-		t = 'error';
-
-	var x = "<div id=\"msgbox_title\"> " + title + "</div>\n";
-	x += "<div id=\"" + t + "\">" + message + "</div>";
+	var x = "<div class=\"title\"> " + title + "</div>\n";
+	x += "<div id=\"" + type + "\">" + message + "</div>\n";
 
 	return x;
 }
@@ -51,12 +46,12 @@ function genFrame(content, title, target)
 	doc += content;
 
 	document.title = title;
-	document.getElementById(target).innerHTML = doc;
+	document.getElementsByTagName(target)[0].innerHTML = doc;
 	
 	$(document).ready(function()
 	{
 		$("h2").fadeIn();
-		$("table, div").fadeIn(1000);
+		$(target).fadeIn(1000);
 	});
 }
 

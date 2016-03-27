@@ -84,7 +84,7 @@
 			}
 		}
 
-		internal string HTML_header()
+		internal string HTML_header(string charset)
 		{
 			var pagecontent = string.Empty;
 
@@ -92,19 +92,27 @@
 			pagecontent += "<html>\n";
 			pagecontent += "\t<head>\n";
 			pagecontent += "\t\t<title>[[SERVERNAME]]</title>\n";
-			pagecontent += "\t\t<meta charset=\"{0}\" />\n".F(Settings.Charset);
+			pagecontent += "\t\t<meta charset=\"{0}\" />\n".F(charset);
 			pagecontent += "\t\t<meta http-equiv=\"expires\" content=\"0\" />\n";
 			pagecontent += "\t\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
-			pagecontent += "\t\t<link href=\"/Designs/[[Design]]/style.css\" rel=\"stylesheet\" type=\"text/css\" />\n";
 
 			var xmldoc = Files.ReadXML("http/DataSets/index.xml");
 			if (xmldoc != null && xmldoc.HasChildNodes)
 			{
-				var root = xmldoc.DocumentElement.GetElementsByTagName("script");
-				for (var i = 0; i < root.Count; i++)
+				var stylessheets = xmldoc.DocumentElement.GetElementsByTagName("stylesheet");
+				for (var i = 0; i < stylessheets.Count; i++)
 				{
-					var attributes = root[i].Attributes;
-					pagecontent += "\t\t<script type=\"{0}\" src=\"scripts/{1}.js\"></script>\n".F(attributes["type"].InnerText, attributes["src"].InnerText);
+					var attributes = stylessheets[i].Attributes;
+					pagecontent += "\t\t<link href =\"/Designs/[[DESIGN]]/{0}.css\" rel=\"stylesheet\" type=\"{1}\" />\n"
+					.F(attributes["src"].InnerText, attributes["type"].InnerText);
+				}
+
+				var scripts = xmldoc.DocumentElement.GetElementsByTagName("script");
+				for (var i = 0; i < scripts.Count; i++)
+				{
+					var attributes = scripts[i].Attributes;
+					var path = "/scripts/{0}.js".F(attributes["src"].InnerText);
+					pagecontent += "\t\t<script type=\"{0}\" src=\"{1}\"></script>\n".F(attributes["type"].InnerText, path);
 				}
 			}
 
@@ -116,7 +124,6 @@
 		internal string HTML_footer()
 		{
 			var pagecontent = string.Empty;
-
 			pagecontent += "\t</body>\n";
 			pagecontent += "</html>\n";
 
@@ -147,29 +154,30 @@
 
 					if (url.EndsWith(".htm") || url.EndsWith(".html"))
 					{
-						pagecontent += this.HTML_header();
+						pagecontent += this.HTML_header(Settings.Charset);
 
 						pagecontent += "\t<body>\n";
 						if (url.EndsWith("index.html"))
 						{
-							pagecontent += "\t\t<section id=\"nav\">\n";
-
+							pagecontent += "\t\t<div id=\"page\">\n";
+							pagecontent += "\t\t\t<nav>\n";
 							pagecontent += this.Generate_head_bar("index", "link");
-
-							pagecontent += "\t\t</section>\n";
+							pagecontent += "\t\t\t</nav>\n";
 						}
 
-						pagecontent += "\t\t<section id=\"main\">\n";
-						pagecontent += "\t\t</section>\n";
+						pagecontent += "\t\t\t<main>\n";
 					}
 
 					pagecontent += Encoding.UTF8.GetString(data, 0, data.Length);
 
 					if (url.EndsWith(".htm") || url.EndsWith(".html"))
 					{
-						pagecontent = pagecontent.Replace("[[Design]]", Settings.Design);
+						pagecontent = pagecontent.Replace("[[DESIGN]]", Settings.Design);
 
 						pagecontent = pagecontent.Replace("[[SERVER_INFO_BLOCK]]", this.Gen_ServerInfo());
+
+						pagecontent = pagecontent.Replace("[[SERVER_SETTINGS_BLOCK]]", this.gen_settings_page());
+
 						pagecontent = pagecontent.Replace("[[SERVERNAME]]", Settings.ServerName);
 
 						if (pagecontent.Contains("[[CLIENT_BOOTP_OVERVIEW_LIST]]"))
@@ -196,6 +204,9 @@
 								pagecontent = pagecontent.Replace("[[CLIENT_TFTP_OVERVIEW_LIST]]", tftp_clients);
 						}
 
+						pagecontent += "\t\t\t</main>\n";
+
+						pagecontent += "\t\t</div>\n";
 						pagecontent += this.HTML_footer();
 					}
 
@@ -224,8 +235,7 @@
 		{
 			var output = string.Empty;
 
-			output += "<nav id=\"nav\">\n";
-			output += "<ul>\n";
+			output += "\t\t\t\t<ul>\n";
 
 			var xmldoc = Files.ReadXML("http/DataSets/{0}.xml".F(pagename).ToLowerInvariant());
 			if (xmldoc != null && xmldoc.HasChildNodes)
@@ -234,13 +244,12 @@
 				for (var i = 0; i < root.Count; i++)
 				{
 					var attributes = root[i].Attributes;
-					output += "<li><a href=\"/#\" onclick=\"LoadDocument('{0}', '{1}', '{2}', '{3}')\">{2}</a></li>\n"
+					output += "\t\t\t\t\t<li><a href=\"/#\" onclick=\"LoadDocument('{0}', '{1}', '{2}', '{3}')\">{2}</a></li>\n"
 						.F(attributes["url"].InnerText, attributes["target"].InnerText, attributes["value"].InnerText, attributes["needs"].InnerText);
 				}
 			}
 
-			output += "</ul>\n";
-			output += "</nav>\n";
+			output += "\t\t\t\t</ul>\n";
 
 			return output;
 		}
@@ -255,7 +264,7 @@
 			{
 				var link = string.Empty;
 				if (DHCP.Mode != ServerMode.AllowAll)
-					output += "<div id=\"th\" style=\"width: 25%\">ID</div><div id=\"th\" style=\"width: 25%\">GUID (UUID)</div><div id=\"th\" style=\"width: 25%\">IP-Addresse</div><div id=\"th\" style=\"width: 25%\">Approval</div>";
+					output += "<div id=\"nv_cbox_header\" style=\"width: 25%\">ID</div><div id=\"nv_cbox_header\" style=\"width: 25%\">GUID (UUID)</div><div id=\"nv_cbox_header\" style=\"width: 25%\">IP-Addresse</div><div id=\"nv_cbox_header\" style=\"width: 25%\">Approval</div>";
 
 				foreach (var client in pending_clients)
 				{
@@ -270,7 +279,7 @@
 						link += "<a onclick=\"LoadDocument('approve.html?cid={1}&action=1', 'main', 'BOOTP Übersicht')\" href=\"/#\">Ablehen</a>\n"
 							.F(client.Value.ActionDone, Exts.ToBase64(client.Value.ID));
 
-						output += "<div id=\"td\" style=\"width: 25%\">{1}</div><div id=\"td\" style=\"width: 25%\">{2}</div><div id=\"td\" style=\"width: 25%\">{3}</div><div id=\"td\" style=\"width: 25%\">{0}</div>"
+						output += "<div id=\"nv_cbox_content\" style=\"width: 25%\">{1}</div><div id=\"nv_cbox_content\" style=\"width: 25%\">{2}</div><div id=\"nv_cbox_content\" style=\"width: 25%\">{3}</div><div id=\"nv_cbox_content\" style=\"width: 25%\">{0}</div>"
 						.F(link, DHCP.RequestID, client.Value.Guid, client.Value.EndPoint.Address);
 					}
 				}
@@ -288,7 +297,7 @@
 
 			if (active_clients.Count > 0)
 			{
-				output += "<table id=\"overview\" cellspacing=\"0\">\n";
+				output += "<table id=\"nv_cbox_content\" cellspacing=\"0\">\n";
 				output += "<tr><th>IP-Address</th><th>File</th><th>Blocksize (KB)</th><th>Size remaining (MB)</th></tr>\n";
 
 				foreach (var client in active_clients)
@@ -297,7 +306,7 @@
 						continue;
 
 					output += "<tr><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td>"
-						.F(client.Value.EndPoint.Address, Filesystem.StripRoot(client.Value.FileName),
+						.F(client.Value.EndPoint.Address, Filesystem.ResolvePath(client.Value.FileName),
 						Math.Round((double)(client.Value.BlockSize / 1024), 2),
 						Math.Round((double)(client.Value.TransferSize / 1024) / 1024, 2));
 					output += "</tr>\n";
@@ -315,12 +324,12 @@
 		{
 			var output = string.Empty;
 			var serverip = Settings.ServerIP;
+			output += "<div id=\"nv_cbox\">";
 
-			output += "<div id=\"th\">BINL-Server</div>";
-
-			output += "<div id=\"td\" style=\"width: 50%\">Servername:</div><div id=\"td\" style=\"width: 50%\">{0}.{1}</div>".F(Settings.ServerName, Settings.UserDNSDomain);
-			output += "<div id=\"td\" style=\"width: 50%\">EndPunkt:</div><div id=\"td\" style=\"width: 50%\">{0}:{1}</div>".F(serverip, Settings.BINLPort);
-			output += "<div id=\"td\" style=\"width: 50%\">Auf DHCP-Anfragen reagieren:</div><div id=\"td\" style=\"width: 50%\">{0}</div>".F(Settings.EnableDHCP ? "Ja" : "Nein");
+			output += "<div id=\"nv_cbox_header\">BINL-Server</div>";
+			output += "<div id=\"nv_cbox_content\" style =\"width: 50%\">Servername:</div><div id=\"nv_cbox_content\" style =\"width: 50%\">{0}.{1}</div>".F(Settings.ServerName, Settings.UserDNSDomain);
+			output += "<div id=\"nv_cbox_content\" style =\"width: 50%\">EndPunkt:</div><div id=\"nv_cbox_content\" style =\"width: 50%\">{0}:{1}</div>".F(serverip, Settings.BINLPort);
+			output += "<div id=\"nv_cbox_content\" style =\"width: 50%\">Auf DHCP-Anfragen reagieren:</div><div id=\"nv_cbox_content\" style =\"width: 50%\">{0}</div>".F(Settings.EnableDHCP ? "Ja" : "Nein");
 
 			var mode = string.Empty;
 			switch (DHCP.Mode)
@@ -335,25 +344,83 @@
 					mode = "Unbekannt";
 					break;
 			}
-			output += "<div id=\"td\" style=\"width: 50%\">Regel:</div><div id=\"td\" style=\"width: 50%\">{0}</div>".F(mode);
+
+			output += "<div id=\"nv_cbox_content\" style =\"width: 50%\">Regel:</div><div id=\"nv_cbox_content\" style =\"width: 50%\">{0}</div>".F(mode);
+			output += "</div>";
 
 			if (Settings.EnableTFTP)
 			{
-				output += "<div id=\"th\">TFTP-Server</div>";
-				output += "<div id=\"td\" style=\"width: 50%\">EndPunkt:</div><div id=\"td\" style=\"width: 50%\">{0}:{1}</div>".F(serverip, Settings.BINLPort);
-				output += "<div id=\"td\" style=\"width: 50%\">Path:</div><div id=\"td\" style=\"width: 50%\">{0}</div>".F(Settings.TFTPRoot);
-				output += "</table><br />\n";
+				output += "<div id=\"nv_cbox\">";
+				output += "<div id=\"nv_cbox_header\"> TFTP-Server</div>";
+				output += "<div id=\"nv_cbox_content\" style =\"width: 50%\">EndPunkt:</div><div id=\"nv_cbox_content\" style =\"width: 50%\">{0}:{1}</div>".F(serverip, Settings.BINLPort);
+				output += "<div id=\"nv_cbox_content\" style =\"width: 50%\">Path:</div><div id=\"nv_cbox_content\" style =\"width: 50%\">{0}</div>".F(Settings.TFTPRoot);
+				output += "</div>";
+
 			}
 
 			if (Settings.EnableDHCP)
 			{
 				var bootfile = Filesystem.ReplaceSlashes(Path.Combine(Settings.WDS_BOOT_PREFIX_X86, Settings.DHCP_DEFAULT_BOOTFILE));
 
-				output += "<div id=\"th\">DHCP-Listener</div>";
-				output += "<div id=\"td\" style=\"width: 50%\">Bootfile:</div><div id=\"td\" style=\"width: 50%\">[TFTP-Root]{0}</div>".F(bootfile);
-				output += "<div id=\"td\" style=\"width: 50%\">Requests:</div><div id=\"td\" style=\"width: 50%\">{0}</div>".F(DHCP.RequestID);
-				output += "</table><br />\n";
+				output += "<div id=\"nv_cbox\">";
+				output += "<div id=\"nv_cbox_header\">DHCP-Listener</div>";
+				output += "<div id=\"nv_cbox_content\" style =\"width: 50%\">Bootfile:</div><div id=\"nv_cbox_content\" style =\"width: 50%\">[TFTP-Root]{0}</div>".F(bootfile);
+				output += "<div id=\"nv_cbox_content\" style =\"width: 50%\">Requests:</div><div id=\"nv_cbox_content\" style =\"width: 50%\">{0}</div>".F(DHCP.RequestID);
+				output += "</div>";
 			}
+
+			return output;
+		}
+
+		internal string gen_settings_page()
+		{
+			var output = string.Empty;
+
+			output += "<form action=\"settings.html\" method=\"POST\">";
+
+			#region "Server Modus"
+			output += "<div id=\"nv_cbox\">";
+			output += "<div id=\"nv_cbox_header\">Server Modus</div>";
+
+			switch (Settings.Servermode)
+			{
+				case ServerMode.AllowAll:
+					output += "<div id=\"nv_cbox_content\" style =\"width: 100%\"><input type=\"radio\" name=\"servermode\" id=\"allowall\" value=\"allowall\" checked /> <label for=\"allowall\">Unbekannten Clients antworten</label></div>";
+					output += "<div id=\"nv_cbox_content\" style =\"width: 100%\"><input type=\"radio\" name=\"servermode\" id=\"knownonly\" value=\"knownonly\" /> <label for=\"knownonly\">Unbekannten Clients nicht antworten</label></div>";
+					break;
+				case ServerMode.KnownOnly:
+					output += "<div id=\"nv_cbox_content\" style =\"width: 100%\"><input type=\"radio\" name=\"servermode\" id=\"allowall\" value=\"allowall\" /> <label for=\"allowall\">Unbekannten Clients antworten</label></div>";
+					output += "<div id=\"nv_cbox_content\" style =\"width: 100%\"><input type=\"radio\" name=\"servermode\" id=\"knownonly\" value=\"knownonly\" checked /> <label for=\"knownonly\">Unbekannten Clients nicht antworten</label></div>";
+					break;
+				default:
+					break;
+			}
+			output += "</div>";
+			#endregion
+
+			#region "RIS Settings"
+			output += "<div id=\"nv_cbox\">";
+			output += "<div id=\"nv_cbox_header\">OSChooser</div>";
+			output += "<div id=\"nv_cbox_content\" style =\"width: 50%\"><label for=\"osc_welcome_file\">OSC Welcome File:</label></div>";
+			output += "<div id=\"nv_cbox_content\" style =\"width: 50%\"><input name=\"osc_welcome_file\" id=\"osc_welcome_file\" value=\"{0}\"/></div>".F(Settings.OSC_DEFAULT_FILE);
+			output += "</div>";
+			#endregion
+
+			output += "<div id=\"nv_cbox\">";
+			output += "<div id=\"nv_cbox_header\" style=\"width: 100%\"> <input type=\"submit\" value=\"Speichern\"/></div>";
+			output += "</div>";
+
+			output += "</form>";
+
+
+
+
+
+
+
+
+
+
 
 			return output;
 		}
