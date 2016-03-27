@@ -84,7 +84,7 @@
 
 			var data = new byte[length];
 
-			Array.Copy(this.state.Buffer, data, length);
+			Functions.CopyTo(ref this.state.Buffer, 0, ref data, 0, data.Length);
 
 			this.OnDataReceived(data, (IPEndPoint)this.localEndPoint, this.type);
 

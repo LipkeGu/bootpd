@@ -2,7 +2,7 @@
 {
 	box-sizing: border-box;
 	vertical-align: top;
-	font-family: Arial, Helvetica, sans-serif;
+	font-family: Helvetica;
 	font-size: 100%;
 	border: none;
 }
@@ -10,13 +10,13 @@
 /* Generic Tags */
 
 body
- {
+{
 	background: none repeat scroll 0 0 #dcdcdc;
 	color: #2f2c2c;
 	font-size: 100%;
 }
 
-div
+div, .th
 { 
 	text-align: center; 
 }
@@ -27,11 +27,13 @@ label
 	padding-left: 1em;
 }
 
-input
+input, textarea
 {
 	margin-top: 0.375em; 
 	box-shadow: 0 0 0.375em 0 rgba(56, 56, 56, 1);
+	width: 100%;
 }
+
 
 ul, li
 {
@@ -50,9 +52,9 @@ h1
 h2
 {
 	color: #fff;
-	font-size: 1.5em;
+	font-size: 0.7em;
 	text-align: left;
-	line-height: 2.2em;
+	line-height: 1.8em;
 	padding: 1.25em;
 }
 
@@ -60,17 +62,7 @@ h3
 {
 	font-size: 0.394em;
 	text-align: center;
-	vertical-align:top;
-}
-
-textarea
-{ 
-	/* box-shadow: 0 0 0.375em 0 rgba(56, 56, 56, 1); */
-	padding: 20px;
-	text-align: justify;
-	font-weight: 100;
-	line-height: 1.125em;
-	font-size: 0.85em;
+	vertical-align: top;
 }
 
 a
@@ -88,11 +80,17 @@ a
 	background: #212f3d;
 }
 
-h1, h3, #header, #nv_cbox_header, #nv_sbox_header
+#nv_cbox_header, .th
 {
 	background: none repeat scroll 0 0 #2e4053;
 	line-height: 2.5em;
 	color: #fff;
+	font-size: 0.875em;
+	height: 2.8em;
+	width: 100%;
+	font-weight: bold;
+	text-align: center;
+	vertical-align: middle;
 }
 
 .center, #main, #nv_cbox
@@ -101,20 +99,7 @@ h1, h3, #header, #nv_cbox_header, #nv_sbox_header
 	margin-right: auto;
 }
 
-#nv_cbox_header, #nv_sbox_header
-{
-
-	font-size: 0.875em;
-	height: 1.875em;
-	width: 100%;
-	text-align: center;
-	list-style: none;
-	border: none;
-	vertical-align: middle;
-	line-height: 2.0em
-}
-
-#header
+header
 {
 	border-top-left-radius: 1em;
 	border-top-right-radius: 1em;
@@ -130,6 +115,7 @@ nav
 	text-align: center;
 	font-weight: bold;
 	transition: all 2s ease;
+	height: 3.6em;
 }
 
 #page
@@ -138,44 +124,29 @@ nav
 	border-bottom-right-radius: 0.625em;
 }
 
-#nv_cbox, #nv_sbox, #nv_sbox_content, #nv_cbox_content
+#nv_cbox, .table
 {
 	
 	font-size: 0.9em;
 	line-height: 2.6em;
 	text-align: center;
-	width: 70%;
-}
-
-#nv_cbox, #nv_sbox 
-{
+	width: 60%;
 	margin-bottom: 2em;
 	border-radius: 0.313em;
 	transition: transform 0.6s ease;
+	background: none repeat scroll 0 0 #ffffff;
 }
 
-#nv_cbox:hover, #nv_sbox:hover
-{
-	-webkit-font-smoothing: antialiased;
-} 
-
-#nv_cbox_content
+#nv_cbox_content, .td
 {
 	display: inline-block;
 	padding: 0.375em;
-	text-align: justify;
 	line-height: 1.5em;
-	width: 95%;
+	width: 100%;
 }
 
 main
 {
 	display: none;
 	overflow: hidden;
-}
-
-
-#nv_cbox, #nv_sbox, #nv_sbox_content, #nv_cbox_content, textarea
-{
-	background: none repeat scroll 0 0 #ffffff;	
 }

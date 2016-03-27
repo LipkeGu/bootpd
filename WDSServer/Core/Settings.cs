@@ -19,7 +19,9 @@
 		public static int BINLPort = 4011;
 		public static int TFTPPort = 69;
 		public static int HTTPPort = 8080;
+
 		public static int SendBuffer = 30000;
+		public static int ReadBuffer = 2 << 64;
 
 		public static int PollInterval = 4;
 		public static int RetryCount = 30;
@@ -32,6 +34,7 @@
 
 		public static string TFTPRoot = Path.Combine(Filesystem.ReplaceSlashes(Environment.CurrentDirectory), "TFTPRoot");
 		public static string DriverFile = Path.Combine(Filesystem.ReplaceSlashes(Environment.CurrentDirectory), "drivers.xml");
+		public static string ServersFile = Path.Combine(Filesystem.ReplaceSlashes(Environment.CurrentDirectory), "serverlist.xml");
 		public static string OSC_DEFAULT_FILE = "welcome.osc";
 		public static string WDS_BCD_FileName = "default.bcd";
 		public static string WDS_BOOT_PREFIX_X86 = "Boot/x86/";
@@ -46,8 +49,8 @@
 
 		public static string WDS_BOOTFILE_ABORT = "abortpxe.com";
 
-		public static string DHCP_DEFAULT_BOOTFILE = "wdsnbp.0";
-
+		public static string DHCP_DEFAULT_BOOTFILE = "pxelinux.0";
+		public static string DHCP_MENU_PROMPT = "This server includes a list in its response. Choose the desired one!";
 		[XmlIgnore]
 		public static string ServerName = Environment.MachineName;
 		public static string ServerDomain = "LOCALDOMAIN";

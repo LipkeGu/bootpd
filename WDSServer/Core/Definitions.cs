@@ -50,6 +50,7 @@
 		public NameValueCollection Arguments;
 		public NameValueCollection Headers;
 		public string ContentType;
+		public string Method;
 	}
 
 	public class HTTPDataSendEventArgs : EventArgs
@@ -254,8 +255,18 @@
 			Architecture = 93,
 			GUID = 97,
 
+			#region "PXELinux"
+			MAGICOption = 208,
+			ConfigurationFile = 209,
+			PathPrefix = 210,
+			RebootTime = 211,
+			#endregion
+
+			#region "Windows Deployment Server"
 			WDSNBP = 250,
 			BCDPath = 252,
+			#endregion
+
 			End = 255
 		}
 

@@ -37,7 +37,7 @@
 			catch (Exception ex)
 			{
 				Errorhandler.Report(Definitions.LogTypes.Error, "[HTTP] {0}".F(ex.Message));
-				DHCP.Mode = Definitions.ServerMode.AllowAll;
+				Settings.Servermode = Definitions.ServerMode.AllowAll;
 			}
 		}
 
@@ -71,6 +71,7 @@
 			evtargs.Arguments = this.context.Request.QueryString;
 			evtargs.ContentType = this.context.Request.ContentType;
 			evtargs.Headers = this.context.Request.Headers;
+			evtargs.Method = this.context.Request.HttpMethod;
 
 			if (this.HTTPDataReceived != null)
 				this.HTTPDataReceived(this, evtargs);

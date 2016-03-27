@@ -26,7 +26,7 @@ nav ul li
 	padding-right: 0.625em;
 }
 
-#header
+header
 {
 	display: block;
 	margin-bottom: 0;
@@ -39,6 +39,24 @@ main
 	height: 900px;
 	margin: 0;
 	padding: 0;
+	width: 100%;
+}
+
+.tr
+{
+	float: left;
+	display: table-row;
+	width: 100%;
+}
+
+p .td, p .th
+{
+	display: table-cell;
+}
+
+.table
+{
+	display: table;
 	width: 100%;
 }
 
@@ -65,7 +83,8 @@ main
 
 @media screen and (max-width: 64em)
 {
-	#page {
+	#page
+	{
 		left: 0px;
 		min-height: 900px;
 		position: absolute;
@@ -91,6 +110,7 @@ main
 		margin: 0 auto;
 		width: 50em;
 	}
+
 	main
 	{
 		float: left;
@@ -116,11 +136,6 @@ main
 		height: 900px;
 		width: 100%;
 	}
-	
-	#nv_cbox, textarea
-	{
-		width: 100%;
-	}
 }
 
 @media screen and (max-width: 25em)
@@ -138,11 +153,6 @@ main
 	{
 		float: left;
 		height: 900px;
-		width: 100%;
-	}
-
-	#nv_cbox, textarea
-	{
 		width: 100%;
 	}
 }

@@ -1,19 +1,23 @@
 ﻿namespace WDSServer.Network
 {
 	using System;
+	using System.Net;
 	using System.Text;
 	using WDSServer.Providers;
 
 	public sealed class TFTPPacket : PacketProvider
 	{
-		public TFTPPacket(int size, TFTPOPCodes opcode)
+		IPEndPoint src;
+
+		public TFTPPacket(int size, TFTPOPCodes opcode, IPEndPoint endpoint)
 		{
 			this.data = new byte[size];
 			this.type = SocketType.TFTP;
 			this.length = this.data.Length;
+			this.src = endpoint;
 
 			if (this.OPCode == 0)
-				this.OPCode = (sbyte)opcode;
+				this.OPCode = opcode;
 		}
 
 		#region "generic methods"
@@ -38,6 +42,19 @@
 			}
 		}
 
+		public IPEndPoint Source
+		{
+			get
+			{
+				return this.src;
+			}
+
+			set
+			{
+				this.src = value;
+			}
+		}
+
 		public override int Length
 		{
 			get
@@ -51,17 +68,19 @@
 			}
 		}
 
-		public sbyte OPCode
+		public TFTPOPCodes OPCode
 		{
 			get
 			{
-				return (sbyte)((this.data[0] * 256) + this.data[1]);
+				return (TFTPOPCodes)Convert.ToSByte((this.data[0] * 256) + this.data[1]);
 			}
 
 			set
 			{
-				this.data[0] = (byte)((value & 0xFF00) / 256);
-				this.data[1] = (byte)(value & 0x00FF);
+				var bytes = Convert.ToByte((sbyte)value);
+
+				this.data[0] = (byte)((bytes & 0xFF00) / 256);
+				this.data[1] = (byte)(bytes & 0x00FF);
 				this.offset = 2;
 			}
 		}
@@ -85,9 +104,6 @@
 		{
 			get
 			{
-				if (!Functions.IsTFTPOPCode((sbyte)TFTPOPCodes.ERR, this.Data))
-					throw new InvalidOperationException("This Packet does not contains Error Messages");
-
 				var count = this.data.Length - 5;
 				var messaage = Encoding.ASCII.GetString(this.Data, 4, count);
 
@@ -96,10 +112,7 @@
 
 			set
 			{
-				if (!Functions.IsTFTPOPCode((sbyte)TFTPOPCodes.ERR, this.Data))
-					throw new InvalidOperationException("This Packet does not contains Error Messages");
-
-				var bytes = Encoding.ASCII.GetBytes(value.ToCharArray());
+				var bytes = Exts.StringToByte(value);
 				Functions.CopyTo(ref bytes, 0, ref this.data, 4, bytes.Length);
 
 				this.offset += bytes.Length + 1;
@@ -110,16 +123,11 @@
 		{
 			get
 			{
-				if (!Functions.IsTFTPOPCode((sbyte)TFTPOPCodes.ERR, this.Data))
-					throw new InvalidOperationException("This Packet does not contains Error Code");
-
 				return (TFTPErrorCode)Convert.ToSByte(this.data[3]);
 			}
 
 			set
 			{
-				if (!Functions.IsTFTPOPCode((sbyte)TFTPOPCodes.ERR, this.Data))
-					throw new InvalidOperationException("This Packet does not contains Error Code");
 				var errcode = Convert.ToByte((sbyte)value);
 
 				this.data[2] = (byte)((errcode & 0xFF00) / 256);

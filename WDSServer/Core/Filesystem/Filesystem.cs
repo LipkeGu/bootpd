@@ -29,6 +29,15 @@
 			if (givenPath.StartsWith(Path.DirectorySeparatorChar.ToString()))
 				givenPath = givenPath.Remove(0, 1);
 
+			if (givenPath.Contains("pxelinux.cfg"))
+			{
+				givenPath = givenPath.Replace(Settings.WDS_BOOT_PREFIX_X86, string.Empty);
+				givenPath = givenPath.Replace(Settings.WDS_BOOT_PREFIX_X64, string.Empty);
+				givenPath = givenPath.Replace(Settings.WDS_BOOT_PREFIX_EFI, string.Empty);
+
+				Console.WriteLine(givenPath);
+
+			}
 			var newPath = Path.Combine(Settings.TFTPRoot, givenPath);
 
 			return Exist(newPath) ? newPath : path;

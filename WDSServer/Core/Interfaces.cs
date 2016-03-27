@@ -1,7 +1,6 @@
 ﻿namespace WDSServer.Providers
 {
 	using System;
-	using System.Net;
 	using WDSServer.Network;
 
 	interface IDHCPServer_Provider
@@ -29,8 +28,8 @@
 
 	interface ITFTPServer_Provider
 	{
-		void Handle_RRQ_Request(TFTPPacket packet, IPEndPoint client);
+		void Handle_RRQ_Request(object packet);
 
-		void Handle_ACK_Request(TFTPPacket data, IPEndPoint client);
+		void Handle_ACK_Request(object data);
 	}
 }

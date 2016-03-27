@@ -4,7 +4,6 @@
 	using System.Collections.Generic;
 	using System.IO;
 	using System.Net;
-	using System.Text;
 	using WDSServer.Network;
 
 	public static class Functions
@@ -84,10 +83,13 @@
 		{
 			var serverlist = Files.ReadXML(filename.ToLowerInvariant());
 			var list = serverlist.GetElementsByTagName("Server");
-			servers.Add(Settings.ServerName, new Serverentry(254, Settings.ServerName, Settings.DHCP_DEFAULT_BOOTFILE, Exts.GetServerIP(), Definitions.BootServerTypes.MicrosoftWindowsNTBootServer));
+			servers.Add(Settings.ServerName, new Serverentry(254, Settings.ServerName, Settings.DHCP_DEFAULT_BOOTFILE, Settings.ServerIP, Definitions.BootServerTypes.MicrosoftWindowsNTBootServer));
 
 			for (var i = 0; i < list.Count; i++)
 			{
+				if (servers.Count > 254)
+					break;
+
 				var addr = IPAddress.Parse(list[i].Attributes["address"].InnerText);
 				var hostname = list[i].Attributes["hostname"].InnerText;
 				var type = (Definitions.BootServerTypes)int.Parse(list[i].Attributes["type"].InnerText);
@@ -95,7 +97,9 @@
 				var bootfile = list[i].Attributes["bootfile"].InnerText;
 				var ident = (short)(servers.Count + 1);
 				var e = new Serverentry(ident, hostname, bootfile, addr, type);
-				servers.Add(hostname, e);
+
+				if (!servers.ContainsKey(hostname))
+					servers.Add(hostname, e);
 			}
 		}
 
@@ -109,7 +113,12 @@
 				discover[2] = 3;
 
 				#region "Menu Prompt"
-				var message = Encoding.ASCII.GetBytes("This server includes a list in its response. Choose the desired one!");
+				var msg = Settings.DHCP_MENU_PROMPT;
+
+				if (msg.Length >= byte.MaxValue)
+					msg.Remove(250);
+
+				var message = Exts.StringToByte(msg);
 				var timeout = byte.MaxValue;
 
 				var prompt = new byte[(message.Length + 3)];
@@ -117,17 +126,21 @@
 				prompt[1] = Convert.ToByte(message.Length + 1);
 				prompt[2] = timeout;
 
-				Array.Copy(message, 0, prompt, 3, message.Length);
+				Functions.CopyTo(ref message, 0, ref prompt, 3, message.Length);
 				#endregion
 
 				#region "Menu"
 				var menu = new byte[(servers.Count * 32)];
 				var menulength = 0;
 				var moffset = 0;
+				var isrv2 = 0;
 
 				foreach (var server in servers)
 				{
-					var name = Encoding.ASCII.GetBytes(server.Value.Hostname);
+					if (isrv2 > 254)
+						continue;
+
+					var name = Exts.StringToByte(server.Value.Hostname);
 					var ident = BitConverter.GetBytes(server.Value.Ident);
 
 					var nlen = name.Length;
@@ -137,13 +150,13 @@
 
 					var menuentry = new byte[(ident.Length + nlen + 3)];
 					moffset = 0;
-					Array.Copy(ident, 0, menuentry, moffset, ident.Length);
+					CopyTo(ref ident, 0, ref menuentry, moffset, ident.Length);
 					moffset += ident.Length;
 
 					menuentry[2] = Convert.ToByte(nlen);
 					moffset += 1;
 
-					Array.Copy(name, 0, menuentry, moffset, nlen);
+					CopyTo(ref name, 0, ref menuentry, moffset, nlen);
 					moffset += nlen;
 
 					if (menulength == 0)
@@ -151,6 +164,8 @@
 
 					Array.Copy(menuentry, 0, menu, menulength, moffset);
 					menulength += moffset;
+
+					isrv2++;
 				}
 
 				menu[0] = (byte)Definitions.PXEVendorEncOptions.BootMenue;
@@ -162,14 +177,17 @@
 				var srvlist = new byte[((servers.Count * entry.Length) + 2)];
 
 				var resultoffset = 2;
-
+				var isrv = 0;
 				foreach (var server in servers)
 				{
+					if (isrv > 254)
+						continue;
+
 					var entryoffset = 0;
 					#region "Server entry"
 					var ident = BitConverter.GetBytes(server.Value.Ident);
 					var type = BitConverter.GetBytes((byte)server.Value.Type);
-					var addr = Exts.GetServerIP().GetAddressBytes();
+					var addr = Settings.ServerIP.GetAddressBytes();
 
 					Array.Copy(ident, 0, entry, entryoffset, ident.Length);
 					entryoffset += ident.Length;
@@ -187,6 +205,8 @@
 					srvlist[0] = (byte)Definitions.PXEVendorEncOptions.BootServers;
 					srvlist[1] += Convert.ToByte(entry.Length);
 					#endregion
+
+					isrv++;
 				}
 
 				var result = new byte[(discover.Length + menu.Length + prompt.Length + srvlist.Length)];
@@ -271,9 +291,9 @@
 
 		public static byte[] ParameterlistEntry(string name, string type, string value)
 		{
-			var n = Encoding.ASCII.GetBytes(name);
-			var t = Encoding.ASCII.GetBytes(type);
-			var v = Encoding.ASCII.GetBytes(value);
+			var n = Exts.StringToByte(name);
+			var t = Exts.StringToByte(type);
+			var v = Exts.StringToByte(value);
 
 			var offset = 0;
 			var data = new byte[n.Length + t.Length + v.Length + 2];

@@ -67,7 +67,8 @@
 
 		public void Dispose()
 		{
-			this.socket.Dispose();
+			if (this.socket != null)
+				this.socket.Dispose();
 		}
 
 		internal override void Received(IAsyncResult ar)
@@ -80,7 +81,7 @@
 				return;
 
 			var data = new byte[bytesRead];
-			Array.Copy(this.state.Buffer, data, data.Length);
+			Functions.CopyTo(ref this.state.Buffer, 0, ref data, 0, data.Length);
 
 			this.OnDataReceived(data, (IPEndPoint)this.localEndPoint, this.type);
 

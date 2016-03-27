@@ -67,7 +67,7 @@
 				this.offset = value;
 			}
 		}
-		
+
 		public int ServiceName_Offset
 		{
 			set
@@ -109,7 +109,7 @@
 				}
 			}
 		}
-		
+
 		public override SocketType Type
 		{
 			get
@@ -163,8 +163,8 @@
 
 			set
 			{
-				var type = Encoding.ASCII.GetBytes(value.ToUpper());
-				Array.Copy(type, 0, this.data, 1, type.Length);
+				var type = Exts.StringToByte(value.ToUpper());
+				Functions.CopyTo(ref type, 0, ref this.data, 1, type.Length);
 			}
 		}
 

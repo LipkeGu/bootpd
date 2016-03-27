@@ -2,7 +2,6 @@
 {
 	using System;
 	using System.Net;
-	using System.Text;
 
 	using WDSServer.Providers;
 
@@ -56,12 +55,12 @@
 		{
 			get
 			{
-				return this.length;
+				return this.offset;
 			}
 
 			set
 			{
-				this.length = value;
+				this.offset = value;
 			}
 		}
 
@@ -255,16 +254,13 @@
 			get
 			{
 				var mac = new byte[this.data[2]];
-				Array.Copy(this.data, 28, mac, 0, mac.Length);
+				Functions.CopyTo(ref this.data, 28, ref mac, 0, mac.Length);
 				return mac;
 			}
 
 			set
 			{
 				var mac = new byte[16];
-
-				if (value.Length > mac.Length)
-					throw new Exception("Source Length to large!");
 
 				Functions.CopyTo(ref value, 0, ref mac, 0, value.Length);
 				Functions.CopyTo(ref mac, 0, ref this.data, 28, mac.Length);
@@ -280,13 +276,10 @@
 
 			set
 			{
-				if (value.ToCharArray().Length > 64)
-					throw new Exception("Server name length is larger than 64 bytes!");
-
 				Array.Clear(this.data, 44, 64);
 
 				var bytes = new byte[64];
-				bytes = Encoding.ASCII.GetBytes(value.ToCharArray());
+				bytes = Exts.StringToByte(value);
 				Functions.CopyTo(ref bytes, 0, ref this.data, 44, bytes.Length);
 			}
 		}
@@ -300,12 +293,10 @@
 
 			set
 			{
-				if (value.ToCharArray().Length > 128)
-					throw new Exception("Boot file length is larger than 128 bytes!");
-
 				var bytes = new byte[128];
+
 				Array.Clear(this.data, 108, 128);
-				bytes = Encoding.ASCII.GetBytes(value.ToCharArray());
+				bytes = Exts.StringToByte(value);
 				Functions.CopyTo(ref bytes, 0, ref this.data, 108, bytes.Length);
 			}
 		}
@@ -326,9 +317,7 @@
 
 		public void Dispose()
 		{
-			Array.Clear(this.data, 0, this.data.Length);
 		}
-
 		#endregion
 	}
 }

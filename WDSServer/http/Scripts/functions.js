@@ -24,6 +24,7 @@
 		};
 
 		xhttp.open('GET', url, true);
+		xhttp.setRequestHeader("Needs", needs); 
 		xhttp.send();
 	}	
 	else
@@ -34,19 +35,18 @@
 
 function MsgBox(type, title, message)
 {
-	var x = "<div class=\"title\"> " + title + "</div>\n";
-	x += "<div id=\"" + type + "\">" + message + "</div>\n";
+	var x = "<div id=\"nv_cbox_header\"> " + title + "</div>\n";
+	x += "<div id=\"nv_cbox_content\">" + message + "</div>\n";
 
 	return x;
 }
 
 function genFrame(content, title, target)
 {
-	var doc = "<h2>" + title + "</h2>\n";
-	doc += content;
-
 	document.title = title;
-	document.getElementsByTagName(target)[0].innerHTML = doc;
+	document.getElementsByTagName("h2")[0].innerHTML = title;
+	
+	document.getElementsByTagName(target)[0].innerHTML = content;
 	
 	$(document).ready(function()
 	{

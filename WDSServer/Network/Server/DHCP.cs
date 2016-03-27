@@ -13,8 +13,6 @@
 
 		public static Dictionary<string, Serverentry> Servers = new Dictionary<string, Serverentry>();
 
-		public static ServerMode Mode;
-
 		public DHCPSocket DHCPsocket;
 
 		public BINLSocket BINLsocket;
@@ -27,7 +25,6 @@
 
 		public DHCP(IPEndPoint socket, int port, ServerMode mode = ServerMode.KnownOnly)
 		{
-			Mode = mode;
 			this.ntlmkey = new byte[24];
 			requestid = 0;
 
@@ -42,7 +39,7 @@
 			this.DHCPsocket.DataSend += this.DataSend;
 
 			if (Settings.AdvertPXEServerList)
-				Functions.ReadServerList("serverlist.xml", ref Servers);
+				Functions.ReadServerList(Settings.ServersFile, ref Servers);
 		}
 
 		public static int RequestID
@@ -113,7 +110,7 @@
 
 			response.BootpType = BootMessageType.Reply;
 			response.ServerName = Settings.ServerName;
-			response.NextServer = Exts.GetServerIP();
+			response.NextServer = Settings.ServerIP;
 			response.Type = client.Type;
 			response.Offset += 243;
 
@@ -140,13 +137,13 @@
 			response.MessageType = client.MsgType;
 
 			// Option 60
-			var opt = Exts.SetDHCPOption(DHCPOptionEnum.Vendorclassidentifier, Encoding.ASCII.GetBytes("PXEClient".ToCharArray()));
+			var opt = Exts.SetDHCPOption(DHCPOptionEnum.Vendorclassidentifier, Exts.StringToByte("PXEClient"));
 
 			Array.Copy(opt, 0, response.Data, response.Offset, opt.Length);
 			response.Offset += opt.Length;
 
 			// Option 54
-			var dhcpident = Exts.SetDHCPOption(DHCPOptionEnum.ServerIdentifier, Exts.GetServerIP().GetAddressBytes());
+			var dhcpident = Exts.SetDHCPOption(DHCPOptionEnum.ServerIdentifier, Settings.ServerIP.GetAddressBytes());
 
 			Array.Copy(dhcpident, 0, response.Data, response.Offset, dhcpident.Length);
 			response.Offset += dhcpident.Length;
@@ -168,13 +165,20 @@
 			// Option 53
 			response.MessageType = client.MsgType;
 
-			if (Mode == ServerMode.AllowAll)
+			if (Settings.Servermode == ServerMode.AllowAll)
 				client.ActionDone = true;
+
+			if (Settings.DHCP_DEFAULT_BOOTFILE.ToLowerInvariant() == "pxelinux.0")
+			{
+				var magicstring = Exts.SetDHCPOption(DHCPOptionEnum.MAGICOption, BitConverter.GetBytes(0xf100747e));
+				Array.Copy(magicstring, 0, response.Data, response.Offset, magicstring.Length);
+				response.Offset += magicstring.Length;
+			}
 
 			// Option 252 - BCDStore
 			if (client.BCDPath != null)
 			{
-				var bcdstore = Exts.SetDHCPOption(DHCPOptionEnum.BCDPath, Encoding.ASCII.GetBytes(client.BCDPath.ToCharArray()));
+				var bcdstore = Exts.SetDHCPOption(DHCPOptionEnum.BCDPath, Exts.StringToByte(client.BCDPath));
 
 				Array.Copy(bcdstore, 0, response.Data, response.Offset, bcdstore.Length);
 				response.Offset += bcdstore.Length;

@@ -13,7 +13,7 @@
 
 		public static int[] ToIntArray(this string value, char separator) => Array.ConvertAll(value.Split(separator), s => int.Parse(s));
 
-		public static string ToBase64(string s) => Convert.ToBase64String(Encoding.ASCII.GetBytes(s.ToCharArray()));
+		public static string ToBase64(string s) => Convert.ToBase64String(StringToByte(s));
 
 		public static string FromBase64(string s) => Encoding.ASCII.GetString(Convert.FromBase64String(s));
 
@@ -109,7 +109,7 @@
 			return opt;
 		}
 
-		public static byte[] StringToByte(string input, int buffersize) => Encoding.ASCII.GetBytes(input.ToCharArray());
+		public static byte[] StringToByte(string input) => Encoding.ASCII.GetBytes(input.ToCharArray());
 
 		public static IPAddress GetServerIP() => (from a in Dns.GetHostEntry(Dns.GetHostName()).AddressList where a.AddressFamily == AddressFamily.InterNetwork select a).FirstOrDefault();
 
@@ -120,7 +120,7 @@
 			var tmp = Encoding.ASCII.GetString(input, 0, input.Length);
 			tmp = Replace(tmp, oldValue, newValue);
 
-			return Encoding.ASCII.GetBytes(tmp);
+			return StringToByte(tmp);
 		}
 
 		public static string[] ToParts(byte[] input, char[] seperator) => Encoding.ASCII.GetString(input, 2, input.Length - 2).Split(seperator);
