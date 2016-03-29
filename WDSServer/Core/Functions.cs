@@ -1,10 +1,9 @@
-﻿namespace WDSServer
+﻿namespace bootpd
 {
 	using System;
 	using System.Collections.Generic;
 	using System.IO;
 	using System.Net;
-	using WDSServer.Network;
 
 	public static class Functions
 	{
@@ -35,7 +34,7 @@
 		public static byte[] Unpack_Packet(byte[] packet)
 		{
 			var data = new byte[(packet.Length - 8)];
-			Array.Copy(packet, 8, data, 0, data.Length);
+			CopyTo(ref packet, 8, ref data, 0, data.Length);
 
 			return data;
 		}
@@ -43,14 +42,21 @@
 		public static byte[] Pack_Packet(byte[] data)
 		{
 			var packet = new byte[(data.Length + 8)];
-			Array.Copy(data, 0, packet, 8, data.Length);
+			CopyTo(ref data, 0, ref packet, 8, data.Length);
 
 			return data;
 		}
 
+		/// <summary>
+		/// Returns the offset of the specified DHCP option in the Packet.
+		/// </summary>
+		/// <param name="packet">The DHCP Packet</param>
+		/// <param name="option">The DHCP Option</param>
+		/// <returns>This function returns 0 if the DHCP option is not in the packet.</returns>
 		public static int GetOptionOffset(ref DHCPPacket packet, Definitions.DHCPOptionEnum option)
 		{
 			var pos = 0;
+
 			for (var i = 0; i < packet.Data.Length; i++)
 				if (packet.Data[i] == (int)option)
 				{
@@ -61,17 +67,15 @@
 			return pos;
 		}
 
-		public static bool IsTFTPOPCode(sbyte opcode, TFTPPacket packet) => IsTFTPOPCode(opcode, packet.Data);
-
 		/// <summary>
-		/// Copy an Array into another to the desired position
+		/// Copies the contents of an array to the specified position in the destination array.
 		/// </summary>
 		/// <param name="src">Source</param>
 		/// <param name="srcoffset">Source Index</param>
 		/// <param name="dst">Target</param>
 		/// <param name="dstoffset">Target Array Index</param>
 		/// <param name="length">Length to copy (formerly count)</param>
-		/// <returns>the new length of the Target Array</returns>
+		/// <returns>the new length of the target Array</returns>
 		public static int CopyTo(ref byte[] src, int srcoffset, ref byte[] dst, int dstoffset, int length)
 		{
 			Array.Copy(src, srcoffset, dst, dstoffset, length);
@@ -83,7 +87,8 @@
 		{
 			var serverlist = Files.ReadXML(filename.ToLowerInvariant());
 			var list = serverlist.GetElementsByTagName("Server");
-			servers.Add(Settings.ServerName, new Serverentry(254, Settings.ServerName, Settings.DHCP_DEFAULT_BOOTFILE, Settings.ServerIP, Definitions.BootServerTypes.MicrosoftWindowsNTBootServer));
+			servers.Add(Settings.ServerName, new Serverentry(254, Settings.ServerName, Settings.DHCP_DEFAULT_BOOTFILE,
+			Settings.ServerIP, Definitions.BootServerTypes.MicrosoftWindowsNTBootServer));
 
 			for (var i = 0; i < list.Count; i++)
 			{
@@ -108,9 +113,9 @@
 			if (item == 0)
 			{
 				var discover = new byte[3];
-				discover[0] = (byte)Definitions.PXEVendorEncOptions.DiscoveryControl;
-				discover[1] = 1;
-				discover[2] = 3;
+				discover[0] = Convert.ToByte(Definitions.PXEVendorEncOptions.DiscoveryControl);
+				discover[1] = sizeof(byte);
+				discover[2] = Convert.ToByte(Settings.DiscoveryType);
 
 				#region "Menu Prompt"
 				var msg = Settings.DHCP_MENU_PROMPT;
@@ -122,11 +127,11 @@
 				var timeout = byte.MaxValue;
 
 				var prompt = new byte[(message.Length + 3)];
-				prompt[0] = (byte)Definitions.PXEVendorEncOptions.MenuPrompt;
+				prompt[0] = Convert.ToByte(Definitions.PXEVendorEncOptions.MenuPrompt);
 				prompt[1] = Convert.ToByte(message.Length + 1);
 				prompt[2] = timeout;
 
-				Functions.CopyTo(ref message, 0, ref prompt, 3, message.Length);
+				CopyTo(ref message, 0, ref prompt, 3, message.Length);
 				#endregion
 
 				#region "Menu"
@@ -162,13 +167,13 @@
 					if (menulength == 0)
 						menulength = 2;
 
-					Array.Copy(menuentry, 0, menu, menulength, moffset);
+					CopyTo(ref menuentry, 0, ref menu, menulength, moffset);
 					menulength += moffset;
 
 					isrv2++;
 				}
 
-				menu[0] = (byte)Definitions.PXEVendorEncOptions.BootMenue;
+				menu[0] = Convert.ToByte(Definitions.PXEVendorEncOptions.BootMenue);
 				menu[1] += Convert.ToByte(menulength - 2);
 				#endregion
 
@@ -189,20 +194,20 @@
 					var type = BitConverter.GetBytes((byte)server.Value.Type);
 					var addr = Settings.ServerIP.GetAddressBytes();
 
-					Array.Copy(ident, 0, entry, entryoffset, ident.Length);
+					CopyTo(ref ident, 0, ref entry, entryoffset, ident.Length);
 					entryoffset += ident.Length;
 
-					Array.Copy(type, 0, entry, entryoffset, 1);
+					CopyTo(ref type, 0, ref entry, entryoffset, 1);
 					entryoffset += 1;
 
-					Array.Copy(addr, 0, entry, entryoffset, addr.Length);
+					CopyTo(ref addr, 0, ref entry, entryoffset, addr.Length);
 					entryoffset += addr.Length;
 					#endregion
 
-					Array.Copy(entry, 0, srvlist, resultoffset, entry.Length);
+					CopyTo(ref entry, 0, ref srvlist, resultoffset, entry.Length);
 					resultoffset += entry.Length;
 
-					srvlist[0] = (byte)Definitions.PXEVendorEncOptions.BootServers;
+					srvlist[0] = Convert.ToByte(Definitions.PXEVendorEncOptions.BootServers);
 					srvlist[1] += Convert.ToByte(entry.Length);
 					#endregion
 
@@ -212,21 +217,20 @@
 				var result = new byte[(discover.Length + menu.Length + prompt.Length + srvlist.Length)];
 				var optoffset = 0;
 
-				Array.Copy(discover, 0, result, optoffset, discover.Length);
+				CopyTo(ref discover, 0, ref result, optoffset, discover.Length);
 				optoffset += discover.Length;
 
-				Array.Copy(srvlist, 0, result, optoffset, srvlist.Length);
+				CopyTo(ref srvlist, 0, ref result, optoffset, srvlist.Length);
 				optoffset += srvlist.Length;
 
-				Array.Copy(prompt, 0, result, optoffset, prompt.Length);
+				CopyTo(ref prompt, 0, ref result, optoffset, prompt.Length);
 				optoffset += prompt.Length;
 
-				Array.Copy(menu, 0, result, optoffset, menulength);
+				CopyTo(ref menu, 0, ref result, optoffset, menulength);
 				optoffset += menulength;
 
 				var block = new byte[optoffset];
-
-				Array.Copy(result, 0, block, 0, block.Length);
+				CopyTo(ref result, 0, ref block, 0, block.Length);
 
 				return block;
 			}
@@ -234,11 +238,11 @@
 			{
 				var bootitem = new byte[8];
 
-				bootitem[0] = (byte)Definitions.PXEVendorEncOptions.BootItem;
+				bootitem[0] = Convert.ToByte(Definitions.PXEVendorEncOptions.BootItem);
 				bootitem[1] = 7;
 
 				var itm = BitConverter.GetBytes(item);
-				Array.Copy(itm, 0, bootitem, 2, itm.Length);
+				CopyTo(ref itm, 0, ref bootitem, 2, itm.Length);
 
 				return bootitem;
 			}
@@ -247,14 +251,7 @@
 		public static int FindDrv(string filename, string vid, string pid, out string sysfile, out string service,
 		out string bustype, out string characteristics)
 		{
-			/*
-			<drivers> <-- root node
-				<driver vid="100b" did="0020" file="dp83815.sys" service="dp83815" /> <--- driver entry
-				<driver vid="8086" did="100f" file="e1000b.sys" service="e1000b" /> <--- driver entry
-			</drivers>
-			*/
-
-			var drivers = Files.ReadXML(filename.ToLowerInvariant());
+			var drivers = Files.ReadXML(filename);
 			var retval = 1;
 
 			var fil = string.Empty;
@@ -298,13 +295,13 @@
 			var offset = 0;
 			var data = new byte[n.Length + t.Length + v.Length + 2];
 
-			Array.Copy(n, 0, data, offset, n.Length);
+			CopyTo(ref n, 0, ref data, offset, n.Length);
 			offset += n.Length + 1;
 
-			Array.Copy(t, 0, data, offset, t.Length);
+			CopyTo(ref t, 0, ref data, offset, t.Length);
 			offset += t.Length + 1;
 
-			Array.Copy(v, 0, data, offset, v.Length);
+			CopyTo(ref v, 0, ref data, offset, v.Length);
 			offset += v.Length + 1;
 
 			return data;
@@ -315,7 +312,7 @@
 			if (wdsclient)
 				switch (client.Arch)
 				{
-					case Definitions.Architecture.INTEL_X86:
+					case Definitions.Architecture.Intelx86PC:
 						if (nextaction == Definitions.NextActionOptionValues.Approval)
 						{
 							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_X86, Settings.WDS_BOOTFILE_X86);
@@ -327,7 +324,7 @@
 						}
 
 						break;
-					case Definitions.Architecture.INTEL_IA64:
+					case Definitions.Architecture.EFIItanium:
 						if (nextaction == Definitions.NextActionOptionValues.Approval)
 						{
 							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_IA64, Settings.WDS_BOOTFILE_IA64);
@@ -339,7 +336,7 @@
 						}
 
 						break;
-					case Definitions.Architecture.INTEL_X64:
+					case Definitions.Architecture.EFIx8664:
 						if (nextaction == Definitions.NextActionOptionValues.Approval)
 						{
 							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_X64, Settings.WDS_BOOTFILE_X64);
@@ -351,7 +348,7 @@
 						}
 
 						break;
-					case Definitions.Architecture.INTEL_EFI:
+					case Definitions.Architecture.EFIBC:
 						if (nextaction == Definitions.NextActionOptionValues.Approval)
 						{
 							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_EFI, Settings.WDS_BOOTFILE_EFI);

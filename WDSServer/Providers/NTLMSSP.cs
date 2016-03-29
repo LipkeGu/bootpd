@@ -1,4 +1,4 @@
-﻿namespace WDSServer.Providers
+﻿namespace bootpd
 {
 	using System;
 	using System.Globalization;

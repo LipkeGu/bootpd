@@ -1,46 +1,36 @@
-﻿namespace WDSServer
+﻿namespace bootpd
 {
-	using System;
 	using System.IO;
 	using System.Xml;
 
 	public class Files
 	{
-		public static bool Create<T>(string path)
+		public static void Create(string path)
 		{
-			try
-			{
-				File.Create(path);
+			File.Create(path);
+		}
 
-				return true;
-			}
-			catch (Exception ex)
+		public static void Write(string path, ref byte[] data, long offset = 0)
+		{
+			using (var fs = new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write))
 			{
-				Errorhandler.Report(Definitions.LogTypes.Error, ex.Message);
-
-				return false;
+				fs.Seek(offset, SeekOrigin.Begin);
+				fs.Write(data, 0, data.Length);
 			}
 		}
 
-		public static void Write(string path, byte[] data, long offset = 0)
+		public static void Write(string path, ref string data)
 		{
-			try
+			using (var sw = new StreamWriter(path, true))
 			{
-				using (var fs = new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write))
-				{
-					fs.Seek(offset, SeekOrigin.Begin);
-					fs.Write(data, 0, data.Length);
-				}
-			}
-			catch (Exception ex)
-			{
-				Errorhandler.Report(Definitions.LogTypes.Error, ex.Message);
+				sw.AutoFlush = true;
+				sw.WriteLine(data);
+				sw.Close();
 			}
 		}
 
 		public static void Read(string path, ref byte[] data, out int bytesRead, int count = 0, int index = 0)
 		{
-			var readedbytes = 0;
 			var length = 0;
 
 			if (count == 0 || count >= data.Length)
@@ -48,60 +38,24 @@
 			else
 				length = count;
 
-			try
+			using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read))
 			{
-				using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read))
-				{
-					fs.Seek(index, SeekOrigin.Begin);
-					readedbytes = fs.Read(data, 0, length);
-					bytesRead = readedbytes;
-				}
-			}
-			catch (Exception ex)
-			{
-				Errorhandler.Report(Definitions.LogTypes.Error, ex.Message);
-				bytesRead = 0;
+				fs.Seek(index, SeekOrigin.Begin);
+				bytesRead = fs.Read(data, 0, length);
 			}
 		}
 
-		public static bool Copy(string source, string target, bool overwrite = false)
+		public static void Copy(string source, string target, bool overwrite = false)
 		{
-			try
-			{
-				if (!overwrite && Filesystem.Exist(target))
-					return false;
-				else
-				{
-					File.Copy(source, target, overwrite);
-
-					return true;
-				}
-			}
-			catch (Exception ex)
-			{
-				Errorhandler.Report(Definitions.LogTypes.Error, ex.Message);
-
-				return false;
-			}
+			File.Copy(source, target, overwrite);
 		}
 
-		public static bool Move(string source, string target, bool overwrite = false)
+		public static void Move(string source, string target, bool overwrite = false)
 		{
-			try
-			{
-				if (overwrite && Filesystem.Exist(target))
-					File.Delete(target);
+			if (overwrite && Filesystem.Exist(target))
+				File.Delete(target);
 
-				File.Move(source, target);
-
-				return true;
-			}
-			catch (Exception ex)
-			{
-				Errorhandler.Report(Definitions.LogTypes.Error, ex.Message);
-
-				return false;
-			}
+			File.Move(source, target);
 		}
 
 		public static XmlDocument ReadXML(string path)

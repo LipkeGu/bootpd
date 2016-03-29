@@ -1,7 +1,6 @@
-﻿namespace WDSServer.Providers
+﻿namespace bootpd
 {
 	using System;
-	using WDSServer.Network;
 
 	interface IDHCPServer_Provider
 	{

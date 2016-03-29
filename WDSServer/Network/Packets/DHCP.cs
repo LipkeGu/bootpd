@@ -1,9 +1,7 @@
-﻿namespace WDSServer.Network
+﻿namespace bootpd
 {
 	using System;
 	using System.Net;
-
-	using WDSServer.Providers;
 
 	public sealed class DHCPPacket : PacketProvider, IDisposable
 	{
@@ -22,6 +20,7 @@
 			set
 			{
 				Functions.CopyTo(ref value, 0, ref this.data, this.data.Length, value.Length);
+				this.offset += value.Length;
 			}
 		}
 

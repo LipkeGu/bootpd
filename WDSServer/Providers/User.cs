@@ -1,4 +1,4 @@
-﻿namespace WDSServer.Core.Providers
+﻿namespace bootpd
 {
 	public abstract class User
 	{

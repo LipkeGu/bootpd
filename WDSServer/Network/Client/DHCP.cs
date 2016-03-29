@@ -1,8 +1,7 @@
-﻿namespace WDSServer.Network
+﻿namespace bootpd
 {
 	using System;
 	using System.Net;
-	using WDSServer.Providers;
 
 	public sealed class DHCPClient : ClientProvider, IDHCPClient_Provider
 	{
@@ -38,7 +37,7 @@
 			this.adminMessage = "Client ID: {0}".F(this.id);
 			this.nextAction = NextActionOptionValues.Approval;
 			this.msgType = DHCPMsgType.Offer;
-			this.arch = Architecture.INTEL_X86;
+			this.arch = Architecture.Intelx86PC;
 			this.bootfile = string.Empty;
 		}
 

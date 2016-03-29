@@ -1,11 +1,10 @@
-﻿namespace WDSServer.Network
+﻿namespace bootpd
 {
 	using System;
 	using System.Collections.Generic;
 	using System.IO;
 	using System.Net;
 	using System.Threading;
-	using WDSServer.Providers;
 
 	public sealed class TFTP : ServerProvider, ITFTPServer_Provider, IDisposable
 	{
@@ -63,7 +62,6 @@
 			Clients.Clear();
 			Options.Clear();
 
-
 			if (this.fs != null)
 			{
 				this.fs.Close();
@@ -96,7 +94,6 @@
 
 		public void Handle_Error_Request(TFTPErrorCode error, string message, IPEndPoint client, bool clientError = false)
 		{
-
 			if (!Clients.ContainsKey(client.Address))
 				return;
 
@@ -120,7 +117,6 @@
 				this.bs.Close();
 
 			Clients.Remove(client.Address);
-
 		}
 
 		public void Send(ref TFTPPacket packet)
@@ -139,6 +135,9 @@
 				Clients[packet.Source.Address].EndPoint = packet.Source;
 
 			this.ExtractOptions(packet);
+
+			if (!Clients.ContainsKey(packet.Source.Address))
+				return;
 
 			Clients[packet.Source.Address].Stage = TFTPStage.Handshake;
 			Clients[packet.Source.Address].Blocks = 0;

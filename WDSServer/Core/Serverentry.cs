@@ -1,4 +1,4 @@
-﻿namespace WDSServer
+﻿namespace bootpd
 {
 	using System.Net;
 	public class Serverentry

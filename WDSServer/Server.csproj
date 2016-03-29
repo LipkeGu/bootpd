@@ -7,8 +7,8 @@
     <ProjectGuid>{1F3F57DD-C84D-4F85-9EDD-ACCFCB55F940}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>WDSServer</RootNamespace>
-    <AssemblyName>WDSServer</AssemblyName>
+    <RootNamespace>bootpd</RootNamespace>
+    <AssemblyName>bootpd</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <PublishUrl>publish\</PublishUrl>
@@ -63,7 +63,7 @@
     <Compile Include="Core\Filesystem\Directories.cs" />
     <Compile Include="Core\Filesystem\Drive.cs" />
     <Compile Include="Core\Filesystem\Files.cs" />
-    <Compile Include="Core\Filesystem\Parsers\Xml.cs" />
+    <Compile Include="Core\Parsers\Xml.cs" />
     <Compile Include="Core\Functions.cs" />
     <Compile Include="Core\Serverentry.cs" />
     <Compile Include="Network\Client\RIS.cs" />

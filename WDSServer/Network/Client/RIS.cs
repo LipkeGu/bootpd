@@ -1,4 +1,4 @@
-﻿namespace WDSServer.Network
+﻿namespace bootpd
 {
 	using System.Net;
 

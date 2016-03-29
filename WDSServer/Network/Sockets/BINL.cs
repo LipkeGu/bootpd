@@ -1,9 +1,8 @@
-﻿namespace WDSServer.Network
+﻿namespace bootpd
 {
 	using System;
 	using System.Net;
 	using System.Net.Sockets;
-	using WDSServer.Providers;
 
 	public sealed class BINLSocket : SocketProvider
 	{

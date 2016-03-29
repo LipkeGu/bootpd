@@ -1,4 +1,4 @@
-﻿namespace WDSServer
+﻿namespace bootpd
 {
 	using System;
 	using System.IO;
@@ -14,33 +14,30 @@
 			return size;
 		}
 
-		public static bool Exist(string filename) => File.Exists(filename);
+		public static bool Exist(string filename) => File.Exists(filename.ToLowerInvariant());
 
 		public static string ResolvePath(string path)
 		{
 			var givenPath = path.ToLowerInvariant();
 			var dir = Settings.TFTPRoot;
 
-			if (path.EndsWith(".html") || path.EndsWith(".htm") || path.EndsWith(".css") || path.EndsWith(".js"))
-				dir = "HTTP";
-
 			givenPath = ReplaceSlashes(StripRoot(givenPath, dir));
+
+			if (givenPath.EndsWith(".html") || givenPath.EndsWith(".htm") ||
+			givenPath.EndsWith(".css") || givenPath.EndsWith(".js") || givenPath.EndsWith(".xml"))
+				return Path.Combine(Environment.CurrentDirectory, givenPath);
 
 			if (givenPath.StartsWith(Path.DirectorySeparatorChar.ToString()))
 				givenPath = givenPath.Remove(0, 1);
 
-			if (givenPath.Contains("pxelinux.cfg"))
+			if (givenPath.Contains("pxelinux.cfg") && Settings.FixPXELinuxConfigPath)
 			{
 				givenPath = givenPath.Replace(Settings.WDS_BOOT_PREFIX_X86, string.Empty);
 				givenPath = givenPath.Replace(Settings.WDS_BOOT_PREFIX_X64, string.Empty);
 				givenPath = givenPath.Replace(Settings.WDS_BOOT_PREFIX_EFI, string.Empty);
-
-				Console.WriteLine(givenPath);
-
 			}
-			var newPath = Path.Combine(Settings.TFTPRoot, givenPath);
 
-			return Exist(newPath) ? newPath : path;
+			return Path.Combine(Settings.TFTPRoot, givenPath);
 		}
 
 		public static string StripRoot(string path, string directory) => path.Replace(directory, string.Empty);

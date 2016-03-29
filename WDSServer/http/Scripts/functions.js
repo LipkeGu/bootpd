@@ -35,7 +35,7 @@
 
 function MsgBox(type, title, message)
 {
-	var x = "<div id=\"nv_cbox_header\"> " + title + "</div>\n";
+	var x = "<div id=\"nv_cbox_header\">" + title + "</div>\n";
 	x += "<div id=\"nv_cbox_content\">" + message + "</div>\n";
 
 	return x;
@@ -50,7 +50,7 @@ function genFrame(content, title, target)
 	
 	$(document).ready(function()
 	{
-		$("h2").fadeIn();
+		$("h2").fadeIn(1000);
 		$(target).fadeIn(1000);
 	});
 }

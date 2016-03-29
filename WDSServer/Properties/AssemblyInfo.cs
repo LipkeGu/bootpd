@@ -4,11 +4,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Mini BINL-Server")]
-[assembly: AssemblyDescription("Mini BINL Server")]
+[assembly: AssemblyTitle("Bootpd")]
+[assembly: AssemblyDescription("Mini Bootp Server")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Privat")]
-[assembly: AssemblyProduct("Mini BINL Server")]
+[assembly: AssemblyProduct("Bootpd")]
 [assembly: AssemblyCopyright("Copyright ©  2016 Guido L.")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

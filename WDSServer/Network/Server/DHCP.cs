@@ -1,11 +1,10 @@
-﻿namespace WDSServer.Network
+﻿namespace bootpd
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Net;
 	using System.Text;
-	using WDSServer.Providers;
 
 	public sealed class DHCP : ServerProvider, IDHCPServer_Provider, IDisposable
 	{
@@ -264,6 +263,7 @@
 		public void Dispose()
 		{
 			Clients.Clear();
+			Servers.Clear();
 		}
 
 		public void Handle_RIS_Request(RISPacket packet, ref RISClient client, bool encrypted = false)
@@ -671,27 +671,44 @@
 
 		private byte[] ReadOSCFile(string filename, bool encrypted, byte[] key = null)
 		{
-			if (encrypted)
-				return new byte[0];
-
-			var oscfile = "OSChooser/English/{0}".F(filename);
-
-			var buffer = new byte[Filesystem.Size(oscfile)];
-			var bytesRead = 0;
-
-			Files.Read(oscfile, ref buffer, out bytesRead);
-
-			var oscContent = Exts.Replace(buffer, "%SERVERNAME%", Settings.ServerName);
-			oscContent = Exts.Replace(oscContent, "%SERVERDOMAIN%", Settings.ServerDomain);
-			oscContent = Exts.Replace(oscContent, "%NTLMV2Enabled%", "0");
-
-			if (encrypted)
+			try
 			{
-				var rsp = RC4.Encrypt(key, oscContent);
-				return rsp;
+				if (encrypted)
+					return new byte[0];
+
+				var file = Filesystem.ResolvePath("OSChooser/English/{0}".F(filename));
+				var length = Filesystem.Size(file);
+				var buffer = new byte[length];
+				var bytesRead = 0;
+
+				Files.Read(file, ref buffer, out bytesRead);
+
+				var oscContent = Exts.Replace(buffer, "%SERVERNAME%", Settings.ServerName);
+				oscContent = Exts.Replace(oscContent, "%SERVERDOMAIN%", Settings.ServerDomain);
+				oscContent = Exts.Replace(oscContent, "%NTLMV2Enabled%", "0");
+
+				if (encrypted)
+				{
+					var rsp = RC4.Encrypt(key, oscContent);
+					return rsp;
+				}
+				else
+					return oscContent;
 			}
-			else
-				return oscContent;
+			catch
+			{
+				var oscfile = string.Empty;
+
+				oscfile += "<OSCML>";
+				oscfile += "<META KEY=\"F3\" ACTION=\"REBOOT\">";
+				oscfile += "<TITLE>  Client Installation Wizard</TITLE>";
+				oscfile += "<FOOTER>[F3] restart computer [ENTER] Continue</FOOTER>";
+				oscfile += "<BODY left=5 right=75><BR><BR>";
+				oscfile += "The requested file \"{0}\" was not found on the server.".F(filename);
+				oscfile += "</BODY></OSCML>";
+
+				return Exts.StringToByte(oscfile);
+			}
 		}
 	}
 }

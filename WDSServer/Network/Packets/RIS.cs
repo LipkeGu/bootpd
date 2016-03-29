@@ -1,8 +1,7 @@
-﻿namespace WDSServer.Network
+﻿namespace bootpd
 {
 	using System;
 	using System.Text;
-	using WDSServer.Providers;
 
 	public sealed class RISPacket : PacketProvider
 	{

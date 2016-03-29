@@ -1,14 +1,13 @@
-﻿namespace WDSServer.Core.Providers
+﻿namespace bootpd
 {
 	using System;
 	using System.Net;
-	using static WDSServer.Definitions;
 
 	public abstract class Computer
 	{
 		protected Guid guid;
-		protected SystemType type;
-		protected Architecture arch;
+		protected Definitions.SystemType type;
+		protected Definitions.Architecture arch;
 		protected IPAddress ipaddress;
 
 		protected string manufacturer;
@@ -35,12 +34,12 @@
 			get; set;
 		}
 
-		public abstract SystemType Type
+		public abstract Definitions.SystemType Type
 		{
 			get; set;
 		}
 
-		public abstract Architecture Architecture
+		public abstract Definitions.Architecture Architecture
 		{
 			get; set;
 		}

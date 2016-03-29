@@ -1,4 +1,4 @@
-﻿namespace WDSServer
+﻿namespace bootpd
 {
 	using System;
 	using System.Globalization;
@@ -10,8 +10,6 @@
 	public static class Exts
 	{
 		public static string F(this string fmt, params object[] objs) => string.Format(fmt, objs);
-
-		public static int[] ToIntArray(this string value, char separator) => Array.ConvertAll(value.Split(separator), s => int.Parse(s));
 
 		public static string ToBase64(string s) => Convert.ToBase64String(StringToByte(s));
 
@@ -32,10 +30,9 @@
 		public static string GetDataAsString(byte[] input, int index, int length, string delimeter = "")
 		{
 			var value = new byte[length];
+			Functions.CopyTo(ref input, index, ref value, 0, length);
+
 			var fmt = string.Empty;
-
-			Array.Copy(input, index, value, 0, length);
-
 			for (var i = 0; i < length; i++)
 				fmt += F("{0:x2}{1}", value[i], delimeter);
 
@@ -47,7 +44,7 @@
 			var guid = new byte[length];
 			var fmt = string.Empty;
 
-			Array.Copy(guidBytes, index, guid, 0, length);
+			Functions.CopyTo(ref guidBytes, index, ref guid, 0, length);
 
 			for (var i = 0; i < length; i++)
 			{
@@ -82,8 +79,7 @@
 						value = new byte[length];
 
 						if (value.Length <= length && data.Length > length)
-							Array.Copy(data, i + 2, value, 0, value.Length);
-
+							Functions.CopyTo(ref data, i + 2, ref value, 0, value.Length);
 						break;
 					}
 

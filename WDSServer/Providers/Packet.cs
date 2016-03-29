@@ -1,4 +1,4 @@
-﻿namespace WDSServer.Providers
+﻿namespace bootpd
 {
 	public abstract class PacketProvider : Definitions
 	{
