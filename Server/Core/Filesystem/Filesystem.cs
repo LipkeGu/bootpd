@@ -8,7 +8,7 @@
 		public static long Size(string filename)
 		{
 			var size = 0L;
-			using (var fs = new FileStream(filename, FileMode.Open))
+			using (var fs = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read))
 				size = fs.Length;
 
 			return size;

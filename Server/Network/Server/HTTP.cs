@@ -71,7 +71,7 @@
 				length = size;
 
 				if (size > Settings.MaxAllowedFileLength) // 10 MB
-					throw new Exception("Maximum allowed Size exceeded!");
+					return null;
 
 				return "http{0}".F(retval);
 			}
@@ -134,7 +134,10 @@
 			var length = 0L;
 			var statuscode = 200;
 			var description = "OK";
-			var url = this.ParseRequest(e.Filename != null ? e.Filename : "/" , e.Arguments, out length);
+			var url = this.ParseRequest(e.Filename != null ? e.Filename : "/", e.Arguments, out length);
+
+			if (string.IsNullOrEmpty(url))
+				return;
 
 			if (!Filesystem.Exist(url) && e.Method == "GET")
 			{
