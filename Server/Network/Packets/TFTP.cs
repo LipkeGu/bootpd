@@ -71,30 +71,41 @@
 		{
 			get
 			{
-				return (TFTPOPCodes)Convert.ToSByte((this.data[0] * 256) + this.data[1]);
+
+				var bytes = new byte[sizeof(short)];
+				Functions.CopyTo(ref this.data, 0, ref bytes, 0, bytes.Length);
+				Array.Reverse(bytes);
+
+				return (TFTPOPCodes)BitConverter.ToInt16(bytes, 0);
 			}
 
 			set
 			{
-				var bytes = Convert.ToByte((sbyte)value);
+				var bytes = BitConverter.GetBytes(Convert.ToInt16(value));
+				Array.Reverse(bytes);
 
-				this.data[0] = (byte)((bytes & 0xFF00) / 256);
-				this.data[1] = (byte)(bytes & 0x00FF);
+				Functions.CopyTo(ref bytes, 0, ref this.data, 0, bytes.Length);
 				this.offset = 2;
 			}
 		}
 
-		public int Block
+		public short Block
 		{
 			get
 			{
-				return (this.data[2] * 256) + this.data[3];
+				var bytes = new byte[sizeof(short)];
+				Functions.CopyTo(ref this.data, 2, ref bytes, 0, bytes.Length);
+				Array.Reverse(bytes);
+
+				return BitConverter.ToInt16(bytes, 0);
 			}
 
 			set
 			{
-				this.data[2] = (byte)((value & 0xFF00) / 256);
-				this.data[3] = (byte)(value & 0x00FF);
+				var bytes = BitConverter.GetBytes(Convert.ToInt16(value));
+				Array.Reverse(bytes);
+
+				Functions.CopyTo(ref bytes, 0, ref this.data, 2, bytes.Length);
 				this.offset += 2;
 			}
 		}
@@ -122,15 +133,15 @@
 		{
 			get
 			{
-				return (TFTPErrorCode)Convert.ToSByte(this.data[3]);
+				return (TFTPErrorCode)BitConverter.ToInt16(this.data, 2);
 			}
 
 			set
 			{
-				var errcode = Convert.ToByte((sbyte)value);
+				var errcode = BitConverter.GetBytes(Convert.ToInt16(value));
+				Array.Reverse(errcode);
 
-				this.data[2] = (byte)((errcode & 0xFF00) / 256);
-				this.data[3] = (byte)(errcode & 0x00FF);
+				Functions.CopyTo(ref errcode, 0, ref this.data, 2, errcode.Length);
 				this.offset = 4;
 			}
 		}

@@ -32,13 +32,6 @@
 
 			var line = "[{0}]: {1}".F(lvl, message);
 			Console.WriteLine(line);
-
-			WriteLogLine("console_log.txt", line);
-		}
-
-		public static void WriteLogLine(string file, string message)
-		{
-			Files.Write(file, ref message);
 		}
 	}
 }

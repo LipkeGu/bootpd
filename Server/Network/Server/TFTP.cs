@@ -81,7 +81,7 @@
 		{
 			var packet = (TFTPPacket)data;
 
-			if (!Clients.ContainsKey(packet.Source.Address) || Clients[packet.Source.Address].FileName == string.Empty)
+			if (!Clients.ContainsKey(packet.Source.Address) || string.IsNullOrEmpty(Clients[packet.Source.Address].FileName))
 				return;
 
 			if (packet.Block == Clients[packet.Source.Address].Blocks)
@@ -143,7 +143,7 @@
 			Clients[packet.Source.Address].Blocks = 0;
 
 			var file = Filesystem.ResolvePath(Options["file"]);
-			if (Filesystem.Exist(file))
+			if (Filesystem.Exist(file) && !string.IsNullOrEmpty(file))
 			{
 				Clients[packet.Source.Address].FileName = file;
 				this.fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, Settings.ReadBuffer);
@@ -349,7 +349,7 @@
 			if (Clients[client.Address].Blocks == 0)
 				Clients[client.Address].Blocks += 1;
 
-			response.Block = Clients[client.Address].Blocks;
+			response.Block = Convert.ToInt16(Clients[client.Address].Blocks);
 			Array.Copy(chunk, 0, response.Data, response.Offset, chunk.Length);
 			response.Offset += chunk.Length;
 

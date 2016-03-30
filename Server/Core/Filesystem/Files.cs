@@ -19,16 +19,6 @@
 			}
 		}
 
-		public static void Write(string path, ref string data)
-		{
-			using (var sw = new StreamWriter(path, true))
-			{
-				sw.AutoFlush = true;
-				sw.WriteLine(data);
-				sw.Close();
-			}
-		}
-
 		public static void Read(string path, ref byte[] data, out int bytesRead, int count = 0, int index = 0)
 		{
 			var length = 0;
