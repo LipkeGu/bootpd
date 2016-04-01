@@ -4,6 +4,7 @@
 	using System.Collections.Generic;
 	using System.IO;
 	using System.Net;
+	using System.Threading.Tasks;
 
 	public static class Functions
 	{
@@ -20,15 +21,11 @@
 
 		public static int FindEndOption(ref byte[] data)
 		{
-			var pos = data.Length;
-			for (var i = pos - 1; i > 0; i--)
+			for (var i = data.Length - 1; i > 0; i--)
 				if (data[i] == byte.MaxValue)
-				{
-					pos = i + 1;
-					break;
-				}
+					return i;
 
-			return pos;
+			return 0;
 		}
 
 		public static byte[] Unpack_Packet(byte[] packet)
@@ -55,16 +52,11 @@
 		/// <returns>This function returns 0 if the DHCP option is not in the packet.</returns>
 		public static int GetOptionOffset(ref DHCPPacket packet, Definitions.DHCPOptionEnum option)
 		{
-			var pos = 0;
-
 			for (var i = 0; i < packet.Data.Length; i++)
-				if (packet.Data[i] == (int)option)
-				{
-					pos = i;
-					break;
-				}
+				if (packet.Data[i] == Convert.ToInt32(option))
+					return i;
 
-			return pos;
+			return 0;
 		}
 
 		/// <summary>
@@ -76,11 +68,9 @@
 		/// <param name="dstoffset">Target Array Index</param>
 		/// <param name="length">Length to copy (formerly count)</param>
 		/// <returns>the new length of the target Array</returns>
-		public static int CopyTo(ref byte[] src, int srcoffset, ref byte[] dst, int dstoffset, int length)
+		public static void CopyTo(ref byte[] src, int srcoffset, ref byte[] dst, int dstoffset, int length)
 		{
 			Array.Copy(src, srcoffset, dst, dstoffset, length);
-
-			return dst.Length;
 		}
 
 		public static void ReadServerList(string filename, ref Dictionary<string, Serverentry> servers)
@@ -92,7 +82,7 @@
 
 			for (var i = 0; i < list.Count; i++)
 			{
-				if (servers.Count > 254)
+				if (servers.Count > byte.MaxValue)
 					break;
 
 				var addr = IPAddress.Parse(list[i].Attributes["address"].InnerText);
@@ -116,13 +106,13 @@
 			var offset = 0;
 			var result = new byte[(2 + data.Length)];
 
-			Array.Copy(o, 0, result, 0, 1);
+			CopyTo(ref o, 0, ref result, 0, 1);
 			offset += 1;
 
-			Array.Copy(l, 0, result, 1, 1);
+			CopyTo(ref l, 0, ref result, 1, 1);
 			offset += 1;
 
-			Array.Copy(data, 0, result, 2, data.Length);
+			CopyTo(ref data, 0, ref result, 2, data.Length);
 
 			return result;
 		}
@@ -154,23 +144,24 @@
 				#endregion
 
 				#region "Menu"
-				var menu = new byte[(servers.Count * 32)];
+				var menu = new byte[(servers.Count * 64)];
 				var menulength = 0;
 				var moffset = 0;
 				var isrv2 = 0;
 
 				foreach (var server in servers)
 				{
-					if (isrv2 > 254)
-						continue;
+					if (isrv2 > byte.MaxValue)
+						break;
 
-					var name = Exts.StringToByte(server.Value.Hostname);
+					var name = Exts.StringToByte("{0} ({1})".F(server.Value.Hostname, server.Value.IPAddress));
+
 					var ident = BitConverter.GetBytes(server.Value.Ident);
 
 					var nlen = name.Length;
 
-					if (nlen > 32)
-						nlen = 32;
+					if (nlen > 64)
+						nlen = 64;
 
 					var menuentry = new byte[(ident.Length + nlen + 3)];
 					moffset = 0;
@@ -202,15 +193,16 @@
 
 				var resultoffset = 2;
 				var isrv = 0;
+
 				foreach (var server in servers)
 				{
-					if (isrv > 254)
-						continue;
+					if (isrv > byte.MaxValue)
+						break;
 
 					var entryoffset = 0;
 					#region "Server entry"
 					var ident = BitConverter.GetBytes(server.Value.Ident);
-					var type = BitConverter.GetBytes((byte)server.Value.Type);
+					var type = BitConverter.GetBytes(Convert.ToByte(server.Value.Type));
 					var addr = Settings.ServerIP.GetAddressBytes();
 
 					CopyTo(ref ident, 0, ref entry, entryoffset, ident.Length);
@@ -255,10 +247,12 @@
 			}
 			else
 			{
-				var bootitem = new byte[8];
+				var bootitem = new byte[6];
 				bootitem[0] = Convert.ToByte(Definitions.PXEVendorEncOptions.BootItem);
+
 				var itm = BitConverter.GetBytes(item);
-				bootitem[1] = Convert.ToByte(6);
+				bootitem[1] = Convert.ToByte(4);
+
 				CopyTo(ref itm, 0, ref bootitem, 2, itm.Length);
 
 				return bootitem;

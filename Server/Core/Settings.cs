@@ -28,10 +28,10 @@
 		public static string WDS_BOOTFILE_EFI = "Bootmgfw.efi";
 		public static string WDS_BOOTFILE_ABORT = "abortpxe.com";
 		public static string DHCP_DEFAULT_BOOTFILE = "wdsnbp.0";
-		public static string DHCP_MENU_PROMPT = "This server includes a list in its response. Choose the desired one!";
+		public static string DHCP_MENU_PROMPT = "Select Server...";
 
-		public static int PollInterval = 4;
-		public static int RetryCount = 30;
+		public static short PollInterval = 10;
+		public static short RetryCount = short.MaxValue;
 		public static int RequestID = 1;
 
 		public static bool EnableNTLMV2 = false;

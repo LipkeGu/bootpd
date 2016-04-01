@@ -1,7 +1,6 @@
 ﻿namespace bootpd
 {
 	using System;
-	using System.Globalization;
 	using System.Linq;
 	using System.Net;
 	using System.Net.Sockets;
@@ -15,37 +14,22 @@
 
 		public static string FromBase64(string s) => Encoding.ASCII.GetString(Convert.FromBase64String(s));
 
-		public static int HexToInt(string input) => int.Parse(input, NumberStyles.HexNumber);
-
-		public static int HexToInt(byte input) => int.Parse(F("{0:x2}", input), NumberStyles.HexNumber);
-
-		public static byte[] IntToHex(int input)
-		{
-			var result = new byte[1];
-			result[0] = byte.Parse(F("{0:x2}", input), NumberStyles.HexNumber);
-
-			return result;
-		}
-
 		public static string GetDataAsString(byte[] input, int index, int length, string delimeter = "")
 		{
 			var value = new byte[length];
 			Functions.CopyTo(ref input, index, ref value, 0, length);
 
 			var fmt = string.Empty;
+
 			for (var i = 0; i < length; i++)
 				fmt += F("{0:x2}{1}", value[i], delimeter);
 
 			return fmt.ToUpperInvariant();
 		}
 
-		public static string GetGuidAsString(byte[] guidBytes, int index, int length, bool patch)
+		public static string GetGuidAsString(byte[] guid, int length, bool patch)
 		{
-			var guid = new byte[length];
 			var fmt = string.Empty;
-
-			Functions.CopyTo(ref guidBytes, index, ref guid, 0, length);
-
 			for (var i = 0; i < length; i++)
 			{
 				if (i == 0)
@@ -67,44 +51,29 @@
 
 		public static byte[] GetOptionValue(byte[] data, Definitions.DHCPOptionEnum option)
 		{
-			var value = new byte[1];
-			value[0] = byte.MaxValue;
+			for (var i = 0; i < data.Length; i++)
+				if (Convert.ToInt32(data[i]) == Convert.ToInt32(option))
+				{
+					var value = new byte[Convert.ToInt32(data[i + 1])];
+					Functions.CopyTo(ref data, i + 2, ref value, 0, value.Length);
 
-			try
-			{
-				for (var i = 0; i < data.Length; i++)
-					if (HexToInt(data[i]) == (int)option)
-					{
-						var length = HexToInt(data[i + 1]);
-						value = new byte[length];
+					return value;
+				}
 
-						if (value.Length <= length && data.Length > length)
-							Functions.CopyTo(ref data, i + 2, ref value, 0, value.Length);
-						break;
-					}
-
-				return value;
-			}
-			catch (Exception)
-			{
-				value[0] = byte.MaxValue;
-
-				return value;
-			}
+			return new byte[1] { byte.MaxValue };
 		}
 
 		public static byte[] SetDHCPOption(Definitions.DHCPOptionEnum option, byte[] value, bool includesendoption = false)
 		{
 			var opt = new byte[(2 + value.Length)];
-			var len = IntToHex(value.Length)[0];
-			opt[0] = IntToHex((byte)option)[0];
+			var len = Convert.ToByte(value.Length);
+			opt[0] = Convert.ToByte(option);
 
 			if (includesendoption)
 				len += 1;
 
 			opt[1] = len;
-
-			Array.Copy(value, 0, opt, 2, opt.Length - 2);
+			Functions.CopyTo(ref value, 0, ref opt, 2, opt.Length - 2);
 
 			return opt;
 		}
@@ -117,10 +86,7 @@
 
 		public static byte[] Replace(byte[] input, string oldValue, string newValue)
 		{
-			var tmp = Encoding.ASCII.GetString(input, 0, input.Length);
-			tmp = Replace(tmp, oldValue, newValue);
-
-			return StringToByte(tmp);
+			return StringToByte(Replace(Encoding.ASCII.GetString(input, 0, input.Length), oldValue, newValue));
 		}
 
 		public static string[] ToParts(byte[] input, char[] seperator) => Encoding.ASCII.GetString(input, 2, input.Length - 2).Split(seperator);

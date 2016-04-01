@@ -10,9 +10,6 @@
 		{
 			try
 			{
-				if (!Settings.EnableDHCP)
-					return;
-
 				this.localEndPoint = endpoint;
 				this.broadcast = broadcast;
 				this.buffersize = buffersize;

@@ -47,6 +47,7 @@
 						{
 							if (arguments["action"] == "0")
 							{
+								DHCP.Clients[client].NextAction = Definitions.NextActionOptionValues.Referral;
 								DHCP.Clients[client].ActionDone = true;
 							}
 							else
@@ -270,6 +271,7 @@
 			var pending_clients = (from x in DHCP.Clients where !x.Value.ActionDone select x).ToList();
 			if (Settings.Servermode != Definitions.ServerMode.AllowAll && pending_clients.Count > 0)
 			{
+				output += "<div id=\"nv_cbox\">";
 				output += "<div class=\"table\">";
 				output += "<div class=\"tr\">";
 				output += "<p class=\"th\">ID</p><p class=\"th\">GUID (UUID)</p><p class=\"th\">IP-Addresse</p><p class=\"th\">Approval</p>";
@@ -289,7 +291,7 @@
 					}
 				}
 
-				output += "</div>";
+				output += "</div></div>";
 			}
 			else
 				output = null;
@@ -389,7 +391,41 @@
 						foreach (var server in servers)
 						{
 							output += "<div id=\"nv_cbox_content\" style=\"width: 50%\">{0} ({1})</div>".F(server.Value.Hostname, server.Value.IPAddress);
-							output += "<div id=\"nv_cbox_content\" style=\"width: 50%\">{0}</div>".F(server.Value.Type);
+
+							var t = string.Empty;
+
+							switch (server.Value.Type)
+							{
+								case Definitions.BootServerTypes.PXEBootstrapServer:
+								case Definitions.BootServerTypes.MicrosoftWindowsNTBootServer:
+									t = "Microsoft Windows NT / Generic PXE Bootstrap Server";
+									break;
+								case Definitions.BootServerTypes.IntelLCMBootServer:
+									t = "Intel LCM Boot Server";
+									break;
+								case Definitions.BootServerTypes.DOSUNDIBootServer:
+									t = "DOS/UNDI Boot Server";
+									break;
+								case Definitions.BootServerTypes.NECESMPROBootServer:
+									t = "NEC ESMPro Boot Server";
+									break;
+								case Definitions.BootServerTypes.IBMWSoDBootServer:
+									t = "IBM WSoD Boot Server";
+									break;
+								case Definitions.BootServerTypes.IBMLCCMBootServer:
+									t = "IBM LCCM Boot Server";
+									break;
+								case Definitions.BootServerTypes.CAUnicenterTNGBootServer:
+									t = "CA UniCenter TNG Boot Server";
+									break;
+								case Definitions.BootServerTypes.HPOpenViewBootServer:
+									t = "HP OpenView Boot Server";
+									break;
+								default:
+									break;
+							}
+
+							output += "<div id=\"nv_cbox_content\" style=\"width: 50%\">{0}</div>".F(t);
 						}
 
 						output += "</div>";
@@ -433,7 +469,7 @@
 			output += "<div id=\"nv_cbox\">";
 			output += "<div id=\"nv_cbox_header\">OSChooser</div>";
 			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><label for=\"osc_welcome_file\">Welcome File:</label></div>";
-			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><input name=\"osc_welcome_file\" id=\"osc_welcome_file\" maxlength=\"8\" value=\"{0}\"/></div>".F(Settings.OSC_DEFAULT_FILE);
+			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><input name=\"osc_welcome_file\" id=\"osc_welcome_file\" maxlength=\"12\" value=\"{0}\"/></div>".F(Settings.OSC_DEFAULT_FILE);
 			output += "</div>";
 			#endregion
 

@@ -63,7 +63,14 @@ h3
 {
 	font-size: 0.394em;
 	text-align: center;
-	vertical-align: top;
+	vertical-align: middle;
+}
+
+#nv_cbox_content a
+{
+	color: #000;
+	font-size: 1em;
+	text-decoration: none;
 }
 
 a
@@ -145,11 +152,6 @@ nav
 	padding: 0.375em;
 	line-height: 1.5em;
 	width: 100%;
-}
-
-#nv_cbox_content a
-{
-	color: #000;
 }
 
 main

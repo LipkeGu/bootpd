@@ -10,10 +10,16 @@
 		string id;
 		string adminMessage;
 		string mac;
+		string vendorClass;
+
 		NextActionOptionValues nextAction;
+		PXEFrameworks pxeframework;
 
 		short retrycount;
 		short pollInterval;
+
+		short undi_major;
+		short undi_minor;
 
 		bool wdsclient;
 		bool actionDone;
@@ -39,6 +45,9 @@
 			this.msgType = DHCPMsgType.Offer;
 			this.arch = Architecture.Intelx86PC;
 			this.bootfile = string.Empty;
+
+			this.undi_major = 2;
+			this.undi_minor = 1;
 		}
 
 		public string ID
@@ -51,6 +60,19 @@
 			set
 			{
 				this.ID = value;
+			}
+		}
+
+		public PXEFrameworks PXEFramework
+		{
+			get
+			{
+				return this.pxeframework;
+			}
+
+			set
+			{
+				this.pxeframework = value;
 			}
 		}
 
@@ -79,6 +101,19 @@
 			set
 			{
 				this.nextAction = value;
+			}
+		}
+
+		public string VendorIdent
+		{
+			get
+			{
+				return this.vendorClass;
+			}
+
+			set
+			{
+				this.vendorClass = value;
 			}
 		}
 
@@ -157,6 +192,32 @@
 			set
 			{
 				this.bcdpath = value;
+			}
+		}
+
+		public short UNDI_Major
+		{
+			get
+			{
+				return this.undi_major;
+			}
+
+			set
+			{
+				this.undi_major = value;
+			}
+		}
+
+		public short UNDI_Minor
+		{
+			get
+			{
+				return this.undi_minor;
+			}
+
+			set
+			{
+				this.undi_minor = value;
 			}
 		}
 

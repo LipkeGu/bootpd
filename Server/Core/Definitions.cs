@@ -68,6 +68,12 @@
 			NTFS,
 		}
 
+		public enum PXEFrameworks
+		{
+			Unknown,
+			UNDI
+		}
+
 		public enum BootMessageType
 		{
 			Request = 1,
@@ -253,6 +259,8 @@
 			StreetTalkServer = 75,
 			STDAServer = 76,
 			Architecture = 93,
+			ClientInterfaceIdent = 94,
+
 			GUID = 97,
 
 			#region "PXELinux"
@@ -284,7 +292,7 @@
 			EFIIA32 = 6,
 			EFIBC = 7,
 			EFIXscale = 8,
-			EFIx8664
+			EFIx8664 = 9
 		}
 
 		public enum SystemType

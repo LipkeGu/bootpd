@@ -71,7 +71,6 @@
 		{
 			get
 			{
-
 				var bytes = new byte[sizeof(short)];
 				Functions.CopyTo(ref this.data, 0, ref bytes, 0, bytes.Length);
 				Array.Reverse(bytes);
