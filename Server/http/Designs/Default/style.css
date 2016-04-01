@@ -1,0 +1,161 @@
+*
+{
+	box-sizing: border-box;
+	vertical-align: top;
+	font-family: Helvetica;
+	font-size: 100%;
+	border: none;
+}
+
+/* Generic Tags */
+
+body
+{
+	background: none repeat scroll 0 0 #dcdcdc;
+	color: #2f2c2c;
+	font-size: 100%;
+}
+
+div, .th
+{ 
+	text-align: center; 
+}
+
+label
+{
+	display: inline;
+	padding-left: 1em;
+}
+
+input, textarea
+{
+	margin-top: 0.375em; 
+	box-shadow: 0 0 0.375em 0 rgba(56, 56, 56, 1);
+	width: 100%;
+	resize: none;
+}
+
+
+ul, li
+{
+	line-height: 3.6em;
+	list-style: outside none none;
+	padding-left: 0.625em;
+	vertical-align: middle;
+}
+
+h1
+{
+	font-weight: 100;
+	line-height: 3em;
+}
+
+h2
+{
+	color: #fff;
+	font-size: 0.7em;
+	text-align: left;
+	line-height: 1.8em;
+	padding: 1.25em;
+}
+
+h3
+{
+	font-size: 0.394em;
+	text-align: center;
+	vertical-align: middle;
+}
+
+#nv_cbox_content a
+{
+	color: #000;
+	font-size: 1em;
+	text-decoration: none;
+}
+
+a
+{
+	color: #fff;
+	font-size: 1em;
+	text-decoration: none;
+}
+
+#page
+{
+	border-top-right-radius: 2.5em;
+	border-top-left-radius: 2.5em;
+	box-shadow: 0 0 2.188em 0.625em rgba(56, 56, 56, 1);
+	background: #212f3d;
+}
+
+#nv_cbox_header, .th
+{
+	background: none repeat scroll 0 0 #2e4053;
+	line-height: 2.5em;
+	color: #fff;
+	font-size: 0.875em;
+	height: 2.8em;
+	width: 100%;
+	font-weight: bold;
+	text-align: center;
+	vertical-align: middle;
+}
+
+.center, #main, #nv_cbox
+{
+	margin-left: auto;
+	margin-right: auto;
+}
+
+header
+{
+	border-top-left-radius: 1em;
+	border-top-right-radius: 1em;
+	font-size: 2.3em;
+	text-align: center;
+	vertical-align: middle;
+}
+
+nav
+{
+	font-size: 0.75em;
+	background: #000;
+	line-height: 3.6em;
+	text-align: center;
+	font-weight: bold;
+	transition: all 2s ease;
+	height: 3.6em;
+}
+
+#page
+{
+	border-bottom-left-radius: 0.625em;
+	border-bottom-right-radius: 0.625em;
+}
+
+#nv_cbox, .table
+{
+	
+	font-size: 0.9em;
+	line-height: 2.6em;
+	text-align: center;
+	width: 60%;
+	margin-bottom: 2em;
+	border-radius: 0.313em;
+	transition: transform 0.6s ease;
+	background: none repeat scroll 0 0 #fff;
+}
+
+#nv_cbox_content, .td
+{
+	display: inline-block;
+	padding: 0.375em;
+	line-height: 1.5em;
+	width: 100%;
+}
+
+main
+{
+	display: none;
+	overflow: hidden;
+}

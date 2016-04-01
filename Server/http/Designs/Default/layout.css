@@ -1,0 +1,158 @@
+﻿* {
+	margin: 0;
+	padding: 0;
+}
+
+#page
+{
+	left: 15%;
+	margin: 0 auto;
+	height: 900px;
+	position: absolute;
+	width: 100%;
+}
+
+nav
+{
+	display: block;
+	float: left;
+	height: 2.5em;
+	width: 100%;
+}
+
+nav ul li
+{
+	display: inline-block;
+	padding-right: 0.625em;
+}
+
+header
+{
+	display: block;
+	margin-bottom: 0;
+	padding: 0;
+}
+
+main
+{
+	float: left;
+	height: 900px;
+	margin: 0;
+	padding: 0;
+	width: 100%;
+}
+
+.tr
+{
+	float: left;
+	display: table-row;
+	width: 100%;
+}
+
+p .td, p .th
+{
+	display: table-cell;
+}
+
+.table
+{
+	display: table;
+	width: 100%;
+}
+
+@media screen and (min-width: 85em)
+{
+	#page
+	{
+		left: 15%;
+		margin: 0 auto;
+		min-height: 900px;
+		position: absolute;
+		width: 85em;
+	}
+
+	main
+	{
+		float: left;
+		height: 900px;
+		margin: 0;
+		padding: 0;
+		width: 100%;
+	}
+}
+
+@media screen and (max-width: 64em)
+{
+	#page
+	{
+		left: 0px;
+		min-height: 900px;
+		position: absolute;
+		margin: 0 auto;
+		width: 64em;
+	}
+
+	main
+	{
+		float: left;
+		height: 900px;
+		width: 100%;
+	}
+}
+
+@media screen and (max-width: 50em)
+{
+	#page
+	{
+		left: 0px;
+		min-height: 900px;
+		position: absolute;
+		margin: 0 auto;
+		width: 50em;
+	}
+
+	main
+	{
+		float: left;
+		height: 900px;
+		width: 100%;
+	}
+}
+
+@media screen and (max-width: 45em)
+{
+	#page
+	{
+		left: 0px;
+		min-height: 900px;
+		position: absolute;
+		margin: 0 auto;
+		width: 45em;
+	}
+
+	main
+	{
+		float: left;
+		height: 900px;
+		width: 100%;
+	}
+}
+
+@media screen and (max-width: 25em)
+{
+	#page
+	{
+		left: 0px;
+		min-height: 900px;
+		position: absolute;
+		margin: 0 auto;
+		width: 25em;
+	}
+
+	main
+	{
+		float: left;
+		height: 900px;
+		width: 100%;
+	}
+}
