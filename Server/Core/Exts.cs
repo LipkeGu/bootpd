@@ -93,12 +93,16 @@
 			}
 		}
 
-		public static byte[] SetDHCPOption(Definitions.DHCPOptionEnum option, byte[] value)
+		public static byte[] SetDHCPOption(Definitions.DHCPOptionEnum option, byte[] value, bool includesendoption = false)
 		{
 			var opt = new byte[(2 + value.Length)];
-
+			var len = IntToHex(value.Length)[0];
 			opt[0] = IntToHex((byte)option)[0];
-			opt[1] = IntToHex(value.Length)[0];
+
+			if (includesendoption)
+				len += 1;
+
+			opt[1] = len;
 
 			Array.Copy(value, 0, opt, 2, opt.Length - 2);
 

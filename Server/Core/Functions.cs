@@ -108,6 +108,25 @@
 			}
 		}
 
+		public static byte[] GenerateDHCPEncOption(byte option, int length, byte[] data)
+		{
+			var o = BitConverter.GetBytes(option);
+			var l = BitConverter.GetBytes(Convert.ToByte(length));
+
+			var offset = 0;
+			var result = new byte[(2 + data.Length)];
+
+			Array.Copy(o, 0, result, 0, 1);
+			offset += 1;
+
+			Array.Copy(l, 0, result, 1, 1);
+			offset += 1;
+
+			Array.Copy(data, 0, result, 2, data.Length);
+
+			return result;
+		}
+
 		public static byte[] GenerateServerList(ref Dictionary<string, Serverentry> servers, short item)
 		{
 			if (item == 0)
@@ -237,11 +256,9 @@
 			else
 			{
 				var bootitem = new byte[8];
-
 				bootitem[0] = Convert.ToByte(Definitions.PXEVendorEncOptions.BootItem);
-				bootitem[1] = 7;
-
 				var itm = BitConverter.GetBytes(item);
+				bootitem[1] = Convert.ToByte(6);
 				CopyTo(ref itm, 0, ref bootitem, 2, itm.Length);
 
 				return bootitem;

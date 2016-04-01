@@ -121,8 +121,7 @@
 
 		public void Send(ref TFTPPacket packet)
 		{
-			if (Clients.ContainsKey(packet.Source.Address))
-				this.socket.Send(packet.Source, packet);
+			this.socket.Send(packet.Source, packet);
 		}
 
 		public void Handle_RRQ_Request(object request)
@@ -134,7 +133,7 @@
 			else
 				Clients[packet.Source.Address].EndPoint = packet.Source;
 
-			this.ExtractOptions(packet);
+			this.ExtractOptions(ref packet);
 
 			if (!Clients.ContainsKey(packet.Source.Address))
 				return;
@@ -146,6 +145,7 @@
 			if (Filesystem.Exist(file) && !string.IsNullOrEmpty(file))
 			{
 				Clients[packet.Source.Address].FileName = file;
+
 				this.fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, Settings.ReadBuffer);
 				this.bs = new BufferedStream(this.fs, Settings.ReadBuffer);
 
@@ -183,7 +183,7 @@
 			}
 		}
 
-		internal void ExtractOptions(TFTPPacket data)
+		internal void ExtractOptions(ref TFTPPacket data)
 		{
 			var parts = Exts.ToParts(data.Data, "\0".ToCharArray());
 

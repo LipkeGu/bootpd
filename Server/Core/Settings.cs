@@ -33,6 +33,8 @@
 		public static int PollInterval = 4;
 		public static int RetryCount = 30;
 		public static int RequestID = 1;
+
+		public static bool EnableNTLMV2 = false;
 		#endregion
 
 		#region "Server Settings"

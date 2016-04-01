@@ -12,8 +12,8 @@
 		string mac;
 		NextActionOptionValues nextAction;
 
-		int retrycount;
-		int pollInterval;
+		short retrycount;
+		short pollInterval;
 
 		bool wdsclient;
 		bool actionDone;
@@ -27,8 +27,8 @@
 			this.type = type;
 			this.endp = endpoint;
 			this.wdsclient = false;
-			this.pollInterval = Settings.PollInterval;
-			this.retrycount = Settings.RetryCount;
+			this.pollInterval = Convert.ToInt16(Settings.PollInterval);
+			this.retrycount = Convert.ToInt16(Settings.RetryCount);
 
 			this.actionDone = false;
 			this.guid = guid;
@@ -95,7 +95,7 @@
 			}
 		}
 
-		public int PollIntervall
+		public short PollInterval
 		{
 			get
 			{
@@ -108,7 +108,7 @@
 			}
 		}
 
-		public int RetryCount
+		public short RetryCount
 		{
 			get
 			{

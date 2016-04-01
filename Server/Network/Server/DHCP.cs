@@ -98,11 +98,8 @@
 			var parameterlist_offset = Functions.GetOptionOffset(ref packet, DHCPOptionEnum.ParameterRequestList);
 			var parameterlistLength = packet.Data[(parameterlist_offset + 1)];
 			var bootitem = (short)0;
-
 			if (parameterlist_offset != 0)
-			{
 				Array.Clear(packet.Data, parameterlist_offset, parameterlistLength);
-			}
 
 			var response = new DHCPPacket(new byte[1024]);
 			Array.Copy(packet.Data, 0, response.Data, 0, 242);
@@ -167,7 +164,7 @@
 			if (Settings.Servermode == ServerMode.AllowAll)
 				client.ActionDone = true;
 
-			if (Settings.DHCP_DEFAULT_BOOTFILE.ToLowerInvariant() == "pxelinux.0")
+			if (Settings.DHCP_DEFAULT_BOOTFILE.ToLowerInvariant().Contains("pxelinux"))
 			{
 				var magicstring = Exts.SetDHCPOption(DHCPOptionEnum.MAGICOption, BitConverter.GetBytes(0xf100747e));
 				Array.Copy(magicstring, 0, response.Data, response.Offset, magicstring.Length);
@@ -189,6 +186,7 @@
 				if (optionoffset != 0)
 				{
 					var data = new byte[packet.Data[optionoffset + 1]];
+
 					Array.Copy(packet.Data, optionoffset + 2, data, 0, 6);
 
 					switch (data[0])
@@ -206,7 +204,7 @@
 
 				if (pxeservers != null)
 				{
-					var vendoropt = Exts.SetDHCPOption(DHCPOptionEnum.VendorSpecificInformation, pxeservers);
+					var vendoropt = Exts.SetDHCPOption(DHCPOptionEnum.VendorSpecificInformation, pxeservers, true);
 					Array.Copy(vendoropt, 0, response.Data, response.Offset, vendoropt.Length);
 					response.Offset += vendoropt.Length;
 
@@ -227,13 +225,16 @@
 				response.ServerName = Servers[server].Hostname;
 			}
 
-			this.Handle_WDS_Options(ref response, client.AdminMessage, ref client);
+			// Windows Deployment Server (WDSNBP)
+			var wdsnbp = Exts.SetDHCPOption(DHCPOptionEnum.WDSNBP, this.Handle_WDS_Options(client.AdminMessage, ref client));
+			Array.Copy(wdsnbp, 0, response.Data, response.Offset, wdsnbp.Length);
+			response.Offset += wdsnbp.Length;
 
 			// End of Packet (255)
 			var endopt = new byte[1];
 			endopt[0] = (byte)DHCPOptionEnum.End;
 
-			Array.Copy(endopt, 0, response.Data, response.Offset + 1, endopt.Length);
+			Array.Copy(endopt, 0, response.Data, response.Offset, endopt.Length);
 			response.Offset += endopt.Length;
 
 			switch (packet.Type)
@@ -548,21 +549,6 @@
 
 		internal override void DataSend(object sender, DataSendEventArgs e)
 		{
-			var flag = string.Empty;
-
-			switch (this.Type)
-			{
-				case SocketType.DHCP:
-					flag = "DHCP";
-					break;
-				case SocketType.BINL:
-					flag = "BINL";
-					break;
-				default:
-					return;
-			}
-
-			Errorhandler.Report(LogTypes.Info, "[{0}] Sent {1} bytes to: {2}".F(flag, e.BytesSend, e.RemoteEndpoint));
 		}
 
 		internal void Send(ref RISPacket packet, IPEndPoint endpoint)
@@ -585,88 +571,67 @@
 			}
 		}
 
-		internal void Handle_WDS_Options(ref DHCPPacket packet, string adminMessage, ref DHCPClient client)
+		internal byte[] Handle_WDS_Options(string adminMessage, ref DHCPClient client)
 		{
-			var bytes = Encoding.ASCII.GetBytes(adminMessage.ToCharArray());
-			var block = new byte[26 + bytes.Length];
-			block[0] = (byte)DHCPOptionEnum.WDSNBP;
+			var offset = 0;
 
-			var offset = 1;
-			block[offset] = (byte)(block.Length - 3);
-			offset += 1;
+			#region "Create Response Options"
+			var nextaction = Functions.GenerateDHCPEncOption(Convert.ToByte(WDSNBPOptions.NextAction),
+			sizeof(byte), BitConverter.GetBytes(Convert.ToByte(client.NextAction)));
 
-			// NextAction;
-			block[offset] = (byte)WDSNBPOptions.NextAction;
-			offset += 1;
+			var val = BitConverter.GetBytes(Convert.ToInt32(requestid));
+			Array.Reverse(val);
+			var reqid = Functions.GenerateDHCPEncOption(Convert.ToByte(WDSNBPOptions.RequestID), 4, val);
 
-			block[offset] = 1;
-			offset += 1;
+			val = BitConverter.GetBytes(client.PollInterval);
+			Array.Reverse(val);
+			var pollintervall = Functions.GenerateDHCPEncOption(Convert.ToByte(WDSNBPOptions.PollInterval), 2, val);
 
-			block[offset] = (byte)client.NextAction;
-			offset += 1;
+			val = BitConverter.GetBytes(client.RetryCount);
+			Array.Reverse(val);
+			var retrycount = Functions.GenerateDHCPEncOption(Convert.ToByte(WDSNBPOptions.PollRetryCount), 2, val);
 
-			// TODO: Align this!
+			val = Exts.StringToByte(adminMessage);
+			var message = Functions.GenerateDHCPEncOption(Convert.ToByte(WDSNBPOptions.Message), val.Length, val);
 
-			// RequestID
-			block[offset] = (byte)WDSNBPOptions.RequestID;
-			offset += 1;
+			val = BitConverter.GetBytes(Convert.ToByte(client.BootFile != string.Empty && client.ActionDone && client.IsWDSClient ? 1 : 0));
+			var actionDone = Functions.GenerateDHCPEncOption(Convert.ToByte(WDSNBPOptions.ActionDone), 1, val);
 
-			block[offset] = 4;
-			offset += 4;
+			var wdsend = BitConverter.GetBytes(Convert.ToByte(255));
 
-			block[offset] = Convert.ToByte(requestid);
-			offset += 1;
 
-			// Pollintervall
-			block[offset] = (byte)WDSNBPOptions.PollInterval;
-			offset += 1;
+			var length = nextaction.Length;
+			length += reqid.Length;
+			length += pollintervall.Length;
+			length += retrycount.Length;
+			length += message.Length;
+			length += actionDone.Length;
+			length += 1;
 
-			block[offset] = 2;
-			offset += 2;
+			var wdsBlock = new byte[length];
 
-			block[offset] = Convert.ToByte(client.PollIntervall);
-			offset += 1;
+			Functions.CopyTo(ref actionDone, 0, ref wdsBlock, offset, actionDone.Length);
+			offset += actionDone.Length;
 
-			// PollRetryCount
-			block[offset] = (byte)WDSNBPOptions.PollRetryCount;
-			offset += 1;
+			Functions.CopyTo(ref nextaction, 0, ref wdsBlock, 3, nextaction.Length);
+			offset += nextaction.Length;
 
-			block[offset] = 2;
-			offset += 2;
+			Functions.CopyTo(ref pollintervall, 0, ref wdsBlock, 6, pollintervall.Length);
+			offset += pollintervall.Length;
 
-			block[offset] = Convert.ToByte(client.RetryCount);
-			offset += 1;
+			Functions.CopyTo(ref retrycount, 0, ref wdsBlock, 10, retrycount.Length);
+			offset += retrycount.Length;
 
-			// Message
-			block[offset] = (byte)WDSNBPOptions.Message;
-			offset += 1;
+			Functions.CopyTo(ref reqid, 0, ref wdsBlock, 14, reqid.Length);
+			offset += reqid.Length;
 
-			block[offset] = Convert.ToByte(bytes.Length);
-			offset += 1;
+			Functions.CopyTo(ref message, 0, ref wdsBlock, 20, message.Length);
+			offset += message.Length;
 
-			Array.Copy(bytes, 0, block, offset, bytes.Length);
-			offset += bytes.Length + 1;
+			Functions.CopyTo(ref wdsend, 0, ref wdsBlock, offset, 1);
+			#endregion
 
-			// ActionDone
-			block[offset] = (byte)WDSNBPOptions.ActionDone;
-			offset += 1;
-
-			if (client.BootFile != string.Empty && client.ActionDone && client.IsWDSClient)
-				block[offset] = 1;
-			else
-				block[offset] = 0;
-			offset += 1;
-
-			block[offset] = 0;
-			offset += 1;
-
-			block[offset] = 255;
-			offset += 1;
-
-			var wdsBlock = new byte[(2 + offset + bytes.Length)];
-			Array.Copy(block, 0, wdsBlock, 0, offset);
-			Array.Copy(wdsBlock, 0, packet.Data, packet.Offset, wdsBlock.Length);
-			packet.Offset += wdsBlock.Length;
+			return wdsBlock;
 		}
 
 		private byte[] ReadOSCFile(string filename, bool encrypted, byte[] key = null)
@@ -685,7 +650,7 @@
 
 				var oscContent = Exts.Replace(buffer, "%SERVERNAME%", Settings.ServerName);
 				oscContent = Exts.Replace(oscContent, "%SERVERDOMAIN%", Settings.ServerDomain);
-				oscContent = Exts.Replace(oscContent, "%NTLMV2Enabled%", "0");
+				oscContent = Exts.Replace(oscContent, "%NTLMV2Enabled%", Settings.EnableNTLMV2 ? "1" : "0");
 
 				if (encrypted)
 				{
