@@ -30,7 +30,7 @@
 		public static string DHCP_DEFAULT_BOOTFILE = "wdsnbp.0";
 		public static string DHCP_MENU_PROMPT = "Select Server...";
 
-		public static short PollInterval = 10;
+		public static short PollInterval = 5;
 		public static short RetryCount = short.MaxValue;
 		public static int RequestID = 1;
 
@@ -52,7 +52,7 @@
 		public static IPAddress ServerIP = Exts.GetServerIP();
 
 		public static bool ReUseAddress = false;
-		public static bool AdvertPXEServerList = true;
+		public static bool AdvertPXEServerList = false;
 		public static bool FixPXELinuxConfigPath = true;
 
 		public static int DHCPPort = 67;
