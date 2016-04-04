@@ -58,6 +58,9 @@
 
 		public void Dispose()
 		{
+			foreach (var client in Clients)
+				client.Value.Dispose();
+
 			Clients.Clear();
 			Options.Clear();
 
@@ -67,8 +70,7 @@
 		public void Handle_ACK_Request(object data)
 		{
 			var packet = (TFTPPacket)data;
-
-			if (!Clients.ContainsKey(packet.Source.Address) || string.IsNullOrEmpty(Clients[packet.Source.Address].FileName))
+			if (!Clients.ContainsKey(packet.Source.Address))
 				return;
 
 			if (packet.Block == Clients[packet.Source.Address].Blocks)
@@ -100,6 +102,9 @@
 			if (Clients[client.Address].FileStream != null)
 				Clients[client.Address].FileStream.Close();
 
+			if (Clients[client.Address].BufferedStream != null)
+				Clients[client.Address].BufferedStream.Close();
+
 			Clients.Remove(client.Address);
 		}
 
@@ -126,6 +131,13 @@
 			Clients[packet.Source.Address].Blocks = 0;
 
 			var file = Filesystem.ResolvePath(Options["file"]);
+
+			if (file == Settings.TFTPRoot.ToLowerInvariant())
+			{
+				this.Handle_Error_Request(TFTPErrorCode.AccessViolation, "Directory are not supported!", packet.Source);
+				return;
+			}
+
 			if (Filesystem.Exist(file) && !string.IsNullOrEmpty(file))
 			{
 				Clients[packet.Source.Address].FileName = file;
@@ -150,11 +162,7 @@
 				Options.Clear();
 			}
 			else
-			{
 				this.Handle_Error_Request(TFTPErrorCode.FileNotFound, file, packet.Source);
-
-				return;
-			}
 		}
 
 		internal void ExtractOptions(ref TFTPPacket data)
