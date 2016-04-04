@@ -187,9 +187,8 @@
 			response.Offset += guidopt.Length;
 
 			// Bootfile
-			response.Bootfile = client.BootFile;
-
 			Functions.SelectBootFile(ref client, client.IsWDSClient, client.NextAction);
+			response.Bootfile = client.BootFile;
 
 			// Option 53
 			response.MessageType = client.MsgType;
