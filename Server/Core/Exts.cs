@@ -89,6 +89,6 @@
 			return StringToByte(Replace(Encoding.ASCII.GetString(input, 0, input.Length), oldValue, newValue));
 		}
 
-		public static string[] ToParts(byte[] input, char[] seperator) => Encoding.ASCII.GetString(input, 2, input.Length - 2).Split(seperator);
+		public static string[] ToParts(byte[] input, string seperator) => Encoding.ASCII.GetString(input, 2, input.Length - 2).Split(seperator.ToCharArray());
 	}
 }
