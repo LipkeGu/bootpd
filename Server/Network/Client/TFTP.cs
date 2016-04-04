@@ -1,14 +1,16 @@
 ﻿namespace bootpd
 {
 	using System;
+	using System.IO;
 	using System.Net;
 
-	public sealed class TFTPClient : ClientProvider
+	public sealed class TFTPClient : ClientProvider, IDisposable
 	{
 		string id;
 		string filename;
 
 		TFTPMode mode;
+		TFTPStage stage;
 
 		int blksize;
 		int winsize;
@@ -17,8 +19,10 @@
 		long tsize;
 		long bytesread;
 
-		TFTPStage stage;
 		Guid guid;
+
+		FileStream filestream;
+		BufferedStream bufferedstream;
 
 		public TFTPClient(IPEndPoint endpoint)
 		{
@@ -31,6 +35,32 @@
 			this.winsize = 1;
 			this.blksize = 512;
 			this.blocks = 0;
+		}
+
+		public FileStream FileStream
+		{
+			get
+			{
+				return this.filestream;
+			}
+
+			set
+			{
+				this.filestream = value;
+			}
+		}
+
+		public BufferedStream BufferedStream
+		{
+			get
+			{
+				return this.bufferedstream;
+			}
+
+			set
+			{
+				this.bufferedstream = value;
+			}
 		}
 
 		public string ID
@@ -190,6 +220,12 @@
 			{
 				this.type = value;
 			}
+		}
+
+		public void Dispose()
+		{
+			this.filestream.Dispose();
+			this.bufferedstream.Dispose();
 		}
 	}
 }

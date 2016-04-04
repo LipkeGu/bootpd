@@ -5,6 +5,7 @@
 	using System.IO;
 	using System.Net;
 	using System.Threading;
+	using System.Threading.Tasks;
 
 	public sealed class TFTP : ServerProvider, ITFTPServer_Provider, IDisposable
 	{
@@ -13,8 +14,6 @@
 		public static Dictionary<string, string> Options = new Dictionary<string, string>();
 
 		TFTPSocket socket;
-		FileStream fs;
-		BufferedStream bs;
 
 		public TFTP(IPEndPoint endpoint)
 		{
@@ -62,18 +61,6 @@
 			Clients.Clear();
 			Options.Clear();
 
-			if (this.fs != null)
-			{
-				this.fs.Close();
-				this.fs.Dispose();
-			}
-
-			if (this.bs != null)
-			{
-				this.bs.Close();
-				this.bs.Dispose();
-			}
-
 			this.socket.Dispose();
 		}
 
@@ -110,11 +97,8 @@
 
 			Errorhandler.Report(LogTypes.Error, "[TFTP] {0}: {1}".F(error, message));
 
-			if (this.fs != null)
-				this.fs.Close();
-
-			if (this.bs != null)
-				this.bs.Close();
+			if (Clients[client.Address].FileStream != null)
+				Clients[client.Address].FileStream.Close();
 
 			Clients.Remove(client.Address);
 		}
@@ -146,10 +130,11 @@
 			{
 				Clients[packet.Source.Address].FileName = file;
 
-				this.fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, Settings.ReadBuffer);
-				this.bs = new BufferedStream(this.fs, Settings.ReadBuffer);
+				Clients[packet.Source.Address].FileStream = new FileStream(Clients[packet.Source.Address].FileName,
+				 FileMode.Open, FileAccess.Read, FileShare.Read, Settings.ReadBuffer, FileOptions.SequentialScan);
+				Clients[packet.Source.Address].TransferSize = Clients[packet.Source.Address].FileStream.Length;
 
-				Clients[packet.Source.Address].TransferSize = fs.Length;
+				Clients[packet.Source.Address].BufferedStream = new BufferedStream(Clients[packet.Source.Address].FileStream, Settings.ReadBuffer);
 
 				if (Options.ContainsKey("blksize"))
 				{
@@ -172,20 +157,9 @@
 			}
 		}
 
-		public void SetMode(TFTPMode mode, IPEndPoint client)
-		{
-			if (mode != TFTPMode.Octet)
-				this.Handle_Error_Request(TFTPErrorCode.InvalidOption, "Invalid Option", client);
-			else
-			{
-				if (Clients.ContainsKey(client.Address))
-					Clients[client.Address].Mode = mode;
-			}
-		}
-
 		internal void ExtractOptions(ref TFTPPacket data)
 		{
-			var parts = Exts.ToParts(data.Data, "\0".ToCharArray());
+			var parts = Exts.ToParts(data.Data, "\0");
 
 			for (var i = 0; i < parts.Length; i++)
 			{
@@ -204,7 +178,8 @@
 					else
 						Options["mode"] = parts[i];
 
-					this.SetMode(TFTPMode.Octet, data.Source);
+					if (Clients.ContainsKey(data.Source.Address))
+						Clients[data.Source.Address].Mode = TFTPMode.Octet;
 				}
 
 				if (parts[i] == "blksize")
@@ -238,48 +213,44 @@
 
 		internal override void DataReceived(object sender, DataReceivedEventArgs e)
 		{
-			lock (this)
+			var request = new TFTPPacket(e.Data.Length, TFTPOPCodes.UNK, e.RemoteEndpoint);
+			request.Data = e.Data;
+			request.Type = SocketType.TFTP;
+
+			switch (request.OPCode)
 			{
-				var request = new TFTPPacket(e.Data.Length, TFTPOPCodes.UNK, e.RemoteEndpoint);
-				request.Data = e.Data;
-
-				request.Type = SocketType.TFTP;
-
-				switch (request.OPCode)
-				{
-					case TFTPOPCodes.RRQ:
-						var rrq_thread = new Thread(new ParameterizedThreadStart(Handle_RRQ_Request));
-						rrq_thread.Start(request);
-						break;
-					case TFTPOPCodes.ERR:
-						this.Handle_Error_Request(request.ErrorCode, request.ErrorMessage, request.Source, true);
-						break;
-					case TFTPOPCodes.ACK:
-						if (!Clients.ContainsKey(request.Source.Address))
-							return;
-
-						var ack_thread = new Thread(new ParameterizedThreadStart(Handle_ACK_Request));
-						ack_thread.Start(request);
-						break;
-					default:
-						this.Handle_Error_Request(TFTPErrorCode.IllegalOperation, "Unknown OPCode: {0}".F(request.OPCode), request.Source);
-						break;
-				}
+				case TFTPOPCodes.RRQ:
+					var rrq_thread = new Thread(new ParameterizedThreadStart(Handle_RRQ_Request));
+					rrq_thread.Start(request);
+					break;
+				case TFTPOPCodes.ERR:
+					this.Handle_Error_Request(request.ErrorCode, request.ErrorMessage, request.Source, true);
+					break;
+				case TFTPOPCodes.ACK:
+					var ack_thread = new Thread(new ParameterizedThreadStart(Handle_ACK_Request));
+					ack_thread.Start(request);
+					break;
+				default:
+					this.Handle_Error_Request(TFTPErrorCode.IllegalOperation, "Unknown OPCode: {0}".F(request.OPCode), request.Source);
+					break;
 			}
 		}
 
 		internal override void DataSend(object sender, DataSendEventArgs e)
 		{
-			if (Clients.ContainsKey(e.RemoteEndpoint.Address) && Clients[e.RemoteEndpoint.Address].Stage == TFTPStage.Done)
-			{
-				Clients.Remove(e.RemoteEndpoint.Address);
+			if (!Clients.ContainsKey(e.RemoteEndpoint.Address))
+				return;
 
-				if (this.fs != null)
-					this.fs.Close();
+			if (Clients[e.RemoteEndpoint.Address].Stage != TFTPStage.Done)
+				return;
 
-				if (this.bs != null)
-					this.bs.Close();
-			}
+			if (Clients[e.RemoteEndpoint.Address].FileStream != null)
+				Clients[e.RemoteEndpoint.Address].FileStream.Close();
+
+			if (Clients[e.RemoteEndpoint.Address].BufferedStream != null)
+				Clients[e.RemoteEndpoint.Address].BufferedStream.Close();
+
+			Clients.Remove(e.RemoteEndpoint.Address);
 		}
 
 		internal void Handle_Option_request(long tsize, int blksize, IPEndPoint client)
@@ -322,24 +293,29 @@
 			var readedBytes = 0L;
 			var done = false;
 
-			if (this.fs == null)
-				this.fs = new FileStream(Clients[client.Address].FileName,
-				 FileMode.Open, FileAccess.Read, FileShare.Read, Settings.ReadBuffer);
+			if (!Clients.ContainsKey(client.Address))
+				return;
 
-			if (this.bs == null)
-				this.bs = new BufferedStream(this.fs, Settings.ReadBuffer);
+			if (Clients[client.Address].FileStream == null)
+			{
+				Clients[client.Address].FileStream = new FileStream(Clients[client.Address].FileName,
+				FileMode.Open, FileAccess.Read, FileShare.Read, Settings.ReadBuffer, FileOptions.SequentialScan);
+
+				if (Clients[client.Address].BufferedStream == null)
+					Clients[client.Address].BufferedStream = new BufferedStream(Clients[client.Address].FileStream, Settings.ReadBuffer);
+			}
 
 			// Align the last Block
 			if (Clients[client.Address].TransferSize <= Clients[client.Address].BlockSize)
 			{
-				Clients[client.Address].BlockSize = (int)Clients[client.Address].TransferSize;
+				Clients[client.Address].BlockSize = Convert.ToInt32(Clients[client.Address].TransferSize);
 				done = true;
 			}
 
 			var chunk = new byte[Clients[client.Address].BlockSize];
 
-			this.bs.Seek(Clients[client.Address].BytesRead, SeekOrigin.Begin);
-			readedBytes = this.bs.Read(chunk, 0, chunk.Length);
+			Clients[client.Address].BufferedStream.Seek(Clients[client.Address].BytesRead, SeekOrigin.Begin);
+			readedBytes = Clients[client.Address].BufferedStream.Read(chunk, 0, chunk.Length);
 
 			Clients[client.Address].BytesRead += readedBytes;
 			Clients[client.Address].TransferSize -= readedBytes;
