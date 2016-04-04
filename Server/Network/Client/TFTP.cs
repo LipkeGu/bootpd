@@ -37,6 +37,11 @@
 			this.blocks = 0;
 		}
 
+		~TFTPClient()
+		{
+			this.Dispose();
+		}
+
 		public FileStream FileStream
 		{
 			get
@@ -224,8 +229,11 @@
 
 		public void Dispose()
 		{
-			this.filestream.Dispose();
-			this.bufferedstream.Dispose();
+			if (this.filestream != null)
+				this.filestream.Dispose();
+
+			if (this.bufferedstream != null)
+				this.bufferedstream.Dispose();
 		}
 	}
 }

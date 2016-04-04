@@ -201,18 +201,6 @@
 							pagecontent = pagecontent.Replace("[[CLIENT_BOOTP_OVERVIEW_LIST]]", bootp_clients);
 					}
 
-					if (pagecontent.Contains("[[CLIENT_TFTP_OVERVIEW_LIST]]") && e.Headers.HasKeys() && e.Headers["Needs"] == "tftp")
-					{
-						var tftp_clients = this.Gen_TFTP_client_list();
-						if (tftp_clients == null)
-						{
-							statuscode = 800;
-							description = "Keine aktiven TFTP-Sitzungen";
-						}
-						else
-							pagecontent = pagecontent.Replace("[[CLIENT_TFTP_OVERVIEW_LIST]]", tftp_clients);
-					}
-
 					pagecontent += "\t\t\t</main>\n";
 					pagecontent += "\t\t</div>\n";
 					pagecontent += this.HTML_footer();
@@ -292,36 +280,6 @@
 				}
 
 				output += "</div></div>";
-			}
-			else
-				output = null;
-
-			return output;
-		}
-
-		internal string Gen_TFTP_client_list()
-		{
-			var output = string.Empty;
-			var active_clients = (from c in TFTP.Clients where c.Value.Stage == Definitions.TFTPStage.Transmitting select c).ToList();
-
-			if (active_clients.Count > 0)
-			{
-				output += "<table id=\"nv_cbox_content\" cellspacing=\"0\">\n";
-				output += "<tr><th>IP-Address</th><th>File</th><th>Blocksize (KB)</th><th>Size remaining (MB)</th></tr>\n";
-
-				foreach (var client in active_clients)
-				{
-					if (client.Value == null)
-						continue;
-
-					output += "<tr><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td>"
-						.F(client.Value.EndPoint.Address, Filesystem.ResolvePath(client.Value.FileName),
-						Math.Round((double)(client.Value.BlockSize / 1024), 2),
-						Math.Round((double)(client.Value.TransferSize / 1024) / 1024, 2));
-					output += "</tr>\n";
-				}
-
-				output += "</table>\n";
 			}
 			else
 				output = null;

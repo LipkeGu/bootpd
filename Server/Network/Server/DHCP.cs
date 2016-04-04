@@ -222,6 +222,7 @@
 				response.Offset += bcdstore.Length;
 			}
 
+			#region "Server selection"
 			if (Settings.AdvertPXEServerList && Servers.Count > 0 && client.UNDI_Major > 1)
 			{
 				var optionoffset = Functions.GetOptionOffset(ref packet, DHCPOptionEnum.VendorSpecificInformation);
@@ -257,7 +258,8 @@
 				{
 					var server = (from s in Servers where s.Value.Ident == bootitem select s.Value.Hostname).FirstOrDefault();
 
-					if (Clients.ContainsKey(client.ID))
+					// This Client will not be served by this Server...
+					if (Clients.ContainsKey(client.ID) && Settings.Servermode == ServerMode.KnownOnly)
 						Clients.Remove(client.ID);
 
 					response.NextServer = Servers[server].IPAddress;
@@ -265,6 +267,7 @@
 					response.ServerName = Servers[server].Hostname;
 				}
 			}
+			#endregion
 
 			// Windows Deployment Server (WDSNBP Options)
 			var wdsnbp = Exts.SetDHCPOption(DHCPOptionEnum.WDSNBP, this.Handle_WDS_Options(client.AdminMessage, ref client));
@@ -313,6 +316,7 @@
 			var challenge = "rootroot";
 			var ntlmssp = new NTLMSSP("root", challenge);
 			var flags = ntlmssp.Flags;
+			var retval = 1;
 
 			switch (packet.OPCode)
 			{
@@ -361,10 +365,10 @@
 					var vid = Exts.GetDataAsString(vendorid, 0, vendorid.Length);
 					var pid = Exts.GetDataAsString(deviceid, 0, deviceid.Length);
 
-					Functions.FindDrv(Settings.DriverFile, vid, pid,
+					retval = Functions.FindDrv(Settings.DriverFile, vid, pid,
 					out sysfile, out service, out bus, out characs);
 
-					if (sysfile != string.Empty && service != string.Empty)
+					if (retval == 0)
 					{
 						var drv = Encoding.Unicode.GetBytes(sysfile);
 						var svc = Encoding.Unicode.GetBytes(service);
@@ -447,6 +451,15 @@
 
 						Send(ref ncr_packet, client.Endpoint);
 					}
+					else
+					{
+						Console.WriteLine("Cant find Driver for: {0} - {1}", vid, pid);
+					}
+
+
+
+
+
 					#endregion
 					break;
 				case RISOPCodes.AUT:

@@ -1,5 +1,6 @@
 <drivers>
-  <driver vid="1022" did="2000" file="pcntpci5.sys" service="pcnet" bustype="5" characteristics="84" />
-  <driver vid="1969" did="1063" file="l1c51x86.sys" service="l1c" bustype="5" characteristics="84" />
-  <driver vid="8086" did="100f" file="e1000325.sys" service="e1000" bustype="5" characteristics="84" />
+	<driver vid="1022" did="2000" file="pcntpci5.sys" service="pcnet" bustype="5" characteristics="84" />
+	<driver vid="14e4" did="1692" file="b57xp32.sys" service="b57w2k" bustype="5" characteristics="84" />
+	<driver vid="1969" did="1063" file="l1c51x86.sys" service="l1c" bustype="5" characteristics="84" />
+	<driver vid="8086" did="100f" file="e1000325.sys" service="e1000" bustype="5" characteristics="84" />
 </drivers>
