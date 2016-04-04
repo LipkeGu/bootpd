@@ -45,7 +45,7 @@
 		public static string DriverFile = Path.Combine(Filesystem.ReplaceSlashes(Environment.CurrentDirectory), "drivers.xml");
 		public static string ServersFile = Path.Combine(Filesystem.ReplaceSlashes(Environment.CurrentDirectory), "serverlist.xml");
 
-		public static Definitions.ServerMode Servermode = Definitions.ServerMode.KnownOnly;
+		public static Definitions.ServerMode Servermode = Definitions.ServerMode.AllowAll;
 
 		public static long MaxAllowedFileLength = 10485760;
 
