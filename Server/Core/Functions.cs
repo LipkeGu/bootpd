@@ -68,9 +68,11 @@
 		/// <param name="dstoffset">Target Array Index</param>
 		/// <param name="length">Length to copy (formerly count)</param>
 		/// <returns>the new length of the target Array</returns>
-		public static void CopyTo(ref byte[] src, int srcoffset, ref byte[] dst, int dstoffset, int length)
+		public static int CopyTo(ref byte[] src, int srcoffset, ref byte[] dst, int dstoffset, int length)
 		{
 			Array.Copy(src, srcoffset, dst, dstoffset, length);
+
+			return length;
 		}
 
 		public static void ReadServerList(string filename, ref Dictionary<string, Serverentry> servers)
@@ -313,18 +315,17 @@
 			offset += t.Length + 1;
 
 			CopyTo(ref v, 0, ref data, offset, v.Length);
-			offset += v.Length + 1;
 
 			return data;
 		}
 
-		public static void SelectBootFile(ref DHCPClient client, bool wdsclient, Definitions.NextActionOptionValues nextaction)
+		public static void SelectBootFile(ref DHCPClient client)
 		{
-			if (wdsclient)
+			if (client.IsWDSClient)
 				switch (client.Arch)
 				{
 					case Definitions.Architecture.Intelx86PC:
-						if (nextaction == Definitions.NextActionOptionValues.Approval)
+						if (client.NextAction == Definitions.NextActionOptionValues.Approval)
 						{
 							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_X86, Settings.WDS_BOOTFILE_X86);
 							client.BCDPath = Path.Combine(Settings.WDS_BOOT_PREFIX_X86, Settings.WDS_BCD_FileName);
@@ -336,7 +337,7 @@
 
 						break;
 					case Definitions.Architecture.EFIItanium:
-						if (nextaction == Definitions.NextActionOptionValues.Approval)
+						if (client.NextAction == Definitions.NextActionOptionValues.Approval)
 						{
 							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_IA64, Settings.WDS_BOOTFILE_IA64);
 							client.BCDPath = Path.Combine(Settings.WDS_BOOT_PREFIX_IA64, Settings.WDS_BCD_FileName);
@@ -348,7 +349,7 @@
 
 						break;
 					case Definitions.Architecture.EFIx8664:
-						if (nextaction == Definitions.NextActionOptionValues.Approval)
+						if (client.NextAction == Definitions.NextActionOptionValues.Approval)
 						{
 							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_X64, Settings.WDS_BOOTFILE_X64);
 							client.BCDPath = Path.Combine(Settings.WDS_BOOT_PREFIX_X64, Settings.WDS_BCD_FileName);
@@ -360,7 +361,7 @@
 
 						break;
 					case Definitions.Architecture.EFIBC:
-						if (nextaction == Definitions.NextActionOptionValues.Approval)
+						if (client.NextAction == Definitions.NextActionOptionValues.Approval)
 						{
 							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_EFI, Settings.WDS_BOOTFILE_EFI);
 							client.BCDPath = Path.Combine(Settings.WDS_BOOT_PREFIX_EFI, Settings.WDS_BCD_FileName);

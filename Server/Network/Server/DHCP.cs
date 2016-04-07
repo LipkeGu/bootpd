@@ -187,7 +187,7 @@
 			response.Offset += guidopt.Length;
 
 			// Bootfile
-			Functions.SelectBootFile(ref client, client.IsWDSClient, client.NextAction);
+			Functions.SelectBootFile(ref client);
 			response.Bootfile = client.BootFile;
 
 			// Option 53
@@ -295,8 +295,6 @@
 							client = null;
 							requestid += 1;
 						}
-						else
-							break;
 					else
 						this.Send(ref response, client.EndPoint);
 					break;
@@ -325,6 +323,10 @@
 				case RISOPCodes.RQU:
 					#region "OSC File Request"
 					var data = this.ReadOSCFile(packet.FileName, encrypted, encrypted ? this.ntlmkey : null);
+
+					if (data == null)
+						return;
+
 					var rquResponse = new RISPacket(new byte[(data.Length + 40)]);
 
 					if (!encrypted)
@@ -649,12 +651,6 @@
 			var actionDone = Functions.GenerateDHCPEncOption(Convert.ToByte(WDSNBPOptions.ActionDone), 1, val);
 			length += actionDone.Length;
 
-			/*
-			val = IPAddress.Parse("192.168.1.1").GetAddressBytes();
-			var referalserver = Functions.GenerateDHCPEncOption(Convert.ToByte(WDSNBPOptions.ReferralServer), val.Length, val);
-			length += referalserver.Length;
-			*/
-
 			var wdsend = BitConverter.GetBytes(Convert.ToByte(WDSNBPOptions.End));
 			length += 1;
 
@@ -662,29 +658,11 @@
 			Functions.CopyTo(ref actionDone, 0, ref wdsBlock, 0, actionDone.Length);
 			offset = 3;
 
-			Functions.CopyTo(ref nextaction, 0, ref wdsBlock, offset, nextaction.Length);
-			offset += nextaction.Length;
-
-			Functions.CopyTo(ref pollintervall, 0, ref wdsBlock, offset, pollintervall.Length);
-			offset += pollintervall.Length;
-
-			Functions.CopyTo(ref retrycount, 0, ref wdsBlock, offset, retrycount.Length);
-			offset += retrycount.Length;
-
-			Functions.CopyTo(ref reqid, 0, ref wdsBlock, offset, reqid.Length);
-			offset += reqid.Length;
-
-			/*
-			if (client.NextAction == NextActionOptionValues.Referral)
-			{
-				Functions.CopyTo(ref referalserver, 0, ref wdsBlock, offset, referalserver.Length);
-				offset += referalserver.Length;
-			}
-			*/
-
-			Functions.CopyTo(ref message, 0, ref wdsBlock, offset, message.Length);
-			offset += message.Length;
-
+			offset += Functions.CopyTo(ref nextaction, 0, ref wdsBlock, offset, nextaction.Length);
+			offset += Functions.CopyTo(ref pollintervall, 0, ref wdsBlock, offset, pollintervall.Length);
+			offset += Functions.CopyTo(ref retrycount, 0, ref wdsBlock, offset, retrycount.Length);
+			offset += Functions.CopyTo(ref reqid, 0, ref wdsBlock, offset, reqid.Length);
+			offset += Functions.CopyTo(ref message, 0, ref wdsBlock, offset, message.Length);
 			Functions.CopyTo(ref wdsend, 0, ref wdsBlock, offset, 1);
 			#endregion
 
@@ -695,8 +673,9 @@
 		{
 			try
 			{
+				// unsupported for now...
 				if (encrypted)
-					return new byte[0];
+					return null;
 
 				var file = Filesystem.ResolvePath("OSChooser/English/{0}".F(filename));
 				var length = Filesystem.Size(file);

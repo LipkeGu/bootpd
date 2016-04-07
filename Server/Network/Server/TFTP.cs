@@ -63,7 +63,6 @@
 				client.Value.Dispose();
 
 			Clients.Clear();
-
 			Options.Clear();
 
 			this.socket.Dispose();
@@ -146,7 +145,7 @@
 
 					if (file == Settings.TFTPRoot.ToLowerInvariant())
 					{
-						this.Handle_Error_Request(TFTPErrorCode.AccessViolation, "Directory are not supported!", packet.Source);
+						this.Handle_Error_Request(TFTPErrorCode.AccessViolation, "Directories are not supported!", packet.Source);
 						return;
 					}
 
@@ -291,21 +290,17 @@
 				var offset = 0;
 
 				var blksizeopt = Exts.StringToByte("blksize");
-				Array.Copy(blksizeopt, 0, tmpbuffer, offset, blksizeopt.Length);
-				offset += blksizeopt.Length + 1;
-
+				offset += Functions.CopyTo(ref blksizeopt, 0, ref tmpbuffer, offset, blksizeopt.Length) + 1;
+				
 				var blksize_value = Exts.StringToByte(blksize.ToString());
-				Array.Copy(blksize_value, 0, tmpbuffer, offset, blksize_value.Length);
-				offset += blksize_value.Length + 1;
-
+				offset += Functions.CopyTo(ref blksize_value, 0, ref tmpbuffer, offset, blksize_value.Length) + 1;
+				
 				var tsizeOpt = Exts.StringToByte("tsize");
-				Array.Copy(tsizeOpt, 0, tmpbuffer, offset, tsizeOpt.Length);
-				offset += tsizeOpt.Length + 1;
-
+				offset += Functions.CopyTo(ref tsizeOpt, 0, ref tmpbuffer, offset, tsizeOpt.Length) + 1;
+				
 				var tsize_value = Exts.StringToByte(tsize.ToString());
-				Array.Copy(tsize_value, 0, tmpbuffer, offset, tsize_value.Length);
-				offset += tsize_value.Length + 1;
-
+				offset += Functions.CopyTo(ref tsize_value, 0, ref tmpbuffer, offset, tsize_value.Length) + 1;
+				
 				var packet = new TFTPPacket(2 + offset, TFTPOPCodes.OCK, client);
 				Array.Copy(tmpbuffer, 0, packet.Data, packet.Offset, offset);
 				packet.Offset += offset;
