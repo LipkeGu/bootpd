@@ -98,198 +98,205 @@
 
 		public void Handle_DHCP_Request(DHCPPacket packet, ref DHCPClient client)
 		{
-			var parameterlist_offset = Functions.GetOptionOffset(ref packet, DHCPOptionEnum.ParameterRequestList);
-			var parameterlistLength = packet.Data[(parameterlist_offset + 1)];
-			var bootitem = ushort.MinValue;
-			var pktlength = (short)1024;
-
-			if (parameterlist_offset != 0)
-				Array.Clear(packet.Data, parameterlist_offset, parameterlistLength);
-
-			var vendoroffset = Functions.GetOptionOffset(ref packet, DHCPOptionEnum.Vendorclassidentifier);
-			if (vendoroffset == 0)
-				return;
-
-			var vendor_str = Encoding.ASCII.GetString(packet.Data, vendoroffset + 2, packet.Data[vendoroffset + 1]);
-
-			if (vendor_str.Contains("PXEClient"))
+			try
 			{
-				client.VendorIdent = "PXEClient";
+				var parameterlist_offset = Functions.GetOptionOffset(ref packet, DHCPOptionEnum.ParameterRequestList);
+				var parameterlistLength = packet.Data[(parameterlist_offset + 1)];
+				var bootitem = ushort.MinValue;
+				var pktlength = (short)1024;
 
-				// Option contains additional Informations!
-				if (vendor_str.Contains(":"))
+				if (parameterlist_offset != 0)
+					Array.Clear(packet.Data, parameterlist_offset, parameterlistLength);
+
+				var vendoroffset = Functions.GetOptionOffset(ref packet, DHCPOptionEnum.Vendorclassidentifier);
+				if (vendoroffset == 0)
+					return;
+
+				var vendor_str = Encoding.ASCII.GetString(packet.Data, vendoroffset + 2, packet.Data[vendoroffset + 1]);
+
+				if (vendor_str.Contains("PXEClient"))
 				{
-					var vendor_parts = vendor_str.Split(':');
-					if (vendor_parts.Length > 1)
-					{
-						client.PXEFramework = PXEFrameworks.UNDI;
-						if (vendor_parts[1] == "ARCH")
-							client.Arch = (Architecture)ushort.Parse(vendor_parts[2]);
+					client.VendorIdent = "PXEClient";
 
-						if (vendor_parts[3] == "UNDI")
+					// Option contains additional Informations!
+					if (vendor_str.Contains(":"))
+					{
+						var vendor_parts = vendor_str.Split(':');
+						if (vendor_parts.Length > 1)
 						{
-							client.UNDI_Major = ushort.Parse(vendor_parts[4].Substring(0, 3).Replace("00", string.Empty));
-							client.UNDI_Minor = ushort.Parse(vendor_parts[4].Substring(3, 3).Replace("00", string.Empty));
+							client.PXEFramework = PXEFrameworks.UNDI;
+							if (vendor_parts[1] == "ARCH")
+								client.Arch = (Architecture)ushort.Parse(vendor_parts[2]);
+
+							if (vendor_parts[3] == "UNDI")
+							{
+								client.UNDI_Major = ushort.Parse(vendor_parts[4].Substring(0, 3).Replace("00", string.Empty));
+								client.UNDI_Minor = ushort.Parse(vendor_parts[4].Substring(3, 3).Replace("00", string.Empty));
+							}
 						}
 					}
 				}
-			}
-			else
-				return;
-
-			var response = new DHCPPacket(new byte[pktlength]);
-			Functions.CopyTo(packet.Data, 0, response.Data, 0, 242);
-
-			response.BootpType = BootMessageType.Reply;
-			response.ServerName = Settings.ServerName;
-			response.NextServer = Settings.ServerIP;
-			response.Type = client.Type;
-			response.Offset += 243;
-
-			if (Functions.GetOptionOffset(ref packet, DHCPOptionEnum.WDSNBP) != 0)
-				client.IsWDSClient = true;
-			else
-				client.IsWDSClient = false;
-
-			switch (packet.Type)
-			{
-				case SocketType.DHCP:
-					client.MsgType = DHCPMsgType.Offer;
-
-					break;
-				case SocketType.BINL:
-					client.MsgType = DHCPMsgType.Ack;
-
-					break;
-				default:
-					Clients.Remove(client.ID);
-
+				else
 					return;
-			}
 
-			// Option 53
-			response.MessageType = client.MsgType;
+				var response = new DHCPPacket(new byte[pktlength]);
+				Functions.CopyTo(packet.Data, 0, response.Data, 0, 242);
 
-			// Option 60
-			var opt = Exts.SetDHCPOption(DHCPOptionEnum.Vendorclassidentifier, Exts.StringToByte(client.VendorIdent));
-			response.Offset += Functions.CopyTo(opt, 0, response.Data, response.Offset, opt.Length);
-			
-			// Option 54
-			var dhcpident = Exts.SetDHCPOption(DHCPOptionEnum.ServerIdentifier, Settings.ServerIP.GetAddressBytes());
-			response.Offset += Functions.CopyTo(dhcpident, 0, response.Data, response.Offset, dhcpident.Length);
+				response.BootpType = BootMessageType.Reply;
+				response.ServerName = Settings.ServerName;
+				response.NextServer = Settings.ServerIP;
+				response.Type = client.Type;
+				response.Offset += 243;
 
-			// Option 97
-			var guidopt = Exts.SetDHCPOption(DHCPOptionEnum.GUID, Exts.GetOptionValue(packet.Data, DHCPOptionEnum.GUID));
-			response.Offset += Functions.CopyTo(guidopt, 0, response.Data, response.Offset, guidopt.Length);
+				if (Functions.GetOptionOffset(ref packet, DHCPOptionEnum.WDSNBP) != 0)
+					client.IsWDSClient = true;
+				else
+					client.IsWDSClient = false;
 
-			// Bootfile
-			Functions.SelectBootFile(ref client);
-			response.Bootfile = client.BootFile;
-
-			// Option 53
-			response.MessageType = client.MsgType;
-
-			if (Settings.Servermode == ServerMode.AllowAll)
-				client.ActionDone = true;
-
-			// Option 94
-			var cii = new byte[3];
-			cii[0] = Convert.ToByte(client.PXEFramework);
-			cii[1] = Convert.ToByte(client.UNDI_Major);
-			cii[2] = Convert.ToByte(client.UNDI_Minor);
-
-			var clientIFIdent = Exts.SetDHCPOption(DHCPOptionEnum.ClientInterfaceIdent, cii);
-			response.Offset += Functions.CopyTo(clientIFIdent, 0, response.Data, response.Offset, clientIFIdent.Length);
-
-			if (Settings.DHCP_DEFAULT_BOOTFILE.ToLowerInvariant().Contains("pxelinux"))
-			{
-				var magicstring = Exts.SetDHCPOption(DHCPOptionEnum.MAGICOption, BitConverter.GetBytes(0xf100747e));
-				response.Offset += Functions.CopyTo(magicstring, 0, response.Data, response.Offset, magicstring.Length);
-			}
-
-			// Option 252 - BCDStore
-			if (client.BCDPath != null && client.ActionDone && client.IsWDSClient)
-			{
-				var bcdstore = Exts.SetDHCPOption(DHCPOptionEnum.BCDPath, Exts.StringToByte(client.BCDPath));
-				response.Offset += Functions.CopyTo(bcdstore, 0, response.Data, response.Offset, bcdstore.Length);
-			}
-
-			#region "Server selection"
-			if (Settings.AdvertPXEServerList && Servers.Count > 0 && client.UNDI_Major > 1)
-			{
-				var optionoffset = Functions.GetOptionOffset(ref packet, DHCPOptionEnum.VendorSpecificInformation);
-				if (optionoffset != 0)
+				switch (packet.Type)
 				{
-					var data = new byte[packet.Data[optionoffset + 1]];
+					case SocketType.DHCP:
+						client.MsgType = DHCPMsgType.Offer;
 
-					Array.Copy(packet.Data, optionoffset + 2, data, 0, packet.Data[optionoffset + 1]);
+						break;
+					case SocketType.BINL:
+						client.MsgType = DHCPMsgType.Ack;
 
-					switch (data[0])
-					{
-						case (byte)Definitions.PXEVendorEncOptions.BootItem:
-							bootitem = BitConverter.ToUInt16(data, 2);
-							break;
-						default:
-							break;
-					}
-				}
-
-				// Option 43:8
-				var pxeservers = Functions.GenerateServerList(ref Servers, bootitem);
-				if (pxeservers != null)
-				{
-					var vendoropt = Exts.SetDHCPOption(DHCPOptionEnum.VendorSpecificInformation, pxeservers, true);
-					response.Offset += Functions.CopyTo(vendoropt, 0, response.Data, response.Offset, vendoropt.Length);
-					response.Data[response.Offset] = Convert.ToByte(DHCPOptionEnum.End);
-					response.Offset += 1;
-				}
-
-				if (bootitem != 254 && bootitem != 0)
-				{
-					var server = (from s in Servers where s.Value.Ident == bootitem select s.Value.Hostname).FirstOrDefault();
-
-					// This Client will not be served by this Server...
-					if (Clients.ContainsKey(client.ID) && Settings.Servermode == ServerMode.KnownOnly)
+						break;
+					default:
 						Clients.Remove(client.ID);
 
-					response.NextServer = Servers[server].IPAddress;
-					response.Bootfile = Servers[server].Bootfile;
-					response.ServerName = Servers[server].Hostname;
+						return;
+				}
+
+				// Option 53
+				response.MessageType = client.MsgType;
+
+				// Option 60
+				var opt = Exts.SetDHCPOption(DHCPOptionEnum.Vendorclassidentifier, Exts.StringToByte(client.VendorIdent));
+				response.Offset += Functions.CopyTo(opt, 0, response.Data, response.Offset, opt.Length);
+
+				// Option 54
+				var dhcpident = Exts.SetDHCPOption(DHCPOptionEnum.ServerIdentifier, Settings.ServerIP.GetAddressBytes());
+				response.Offset += Functions.CopyTo(dhcpident, 0, response.Data, response.Offset, dhcpident.Length);
+
+				// Option 97
+				var guidopt = Exts.SetDHCPOption(DHCPOptionEnum.GUID, Exts.GetOptionValue(packet.Data, DHCPOptionEnum.GUID));
+				response.Offset += Functions.CopyTo(guidopt, 0, response.Data, response.Offset, guidopt.Length);
+
+				// Bootfile
+				Functions.SelectBootFile(ref client);
+				response.Bootfile = client.BootFile;
+
+				// Option 53
+				response.MessageType = client.MsgType;
+
+				if (Settings.Servermode == ServerMode.AllowAll)
+					client.ActionDone = true;
+
+				// Option 94
+				var cii = new byte[3];
+				cii[0] = Convert.ToByte(client.PXEFramework);
+				cii[1] = Convert.ToByte(client.UNDI_Major);
+				cii[2] = Convert.ToByte(client.UNDI_Minor);
+
+				var clientIFIdent = Exts.SetDHCPOption(DHCPOptionEnum.ClientInterfaceIdent, cii);
+				response.Offset += Functions.CopyTo(clientIFIdent, 0, response.Data, response.Offset, clientIFIdent.Length);
+
+				if (Settings.DHCP_DEFAULT_BOOTFILE.ToLowerInvariant().Contains("pxelinux"))
+				{
+					var magicstring = Exts.SetDHCPOption(DHCPOptionEnum.MAGICOption, BitConverter.GetBytes(0xf100747e));
+					response.Offset += Functions.CopyTo(magicstring, 0, response.Data, response.Offset, magicstring.Length);
+				}
+
+				// Option 252 - BCDStore
+				if (client.BCDPath != null && client.ActionDone && client.IsWDSClient)
+				{
+					var bcdstore = Exts.SetDHCPOption(DHCPOptionEnum.BCDPath, Exts.StringToByte(client.BCDPath));
+					response.Offset += Functions.CopyTo(bcdstore, 0, response.Data, response.Offset, bcdstore.Length);
+				}
+
+				#region "Server selection"
+				if (Settings.AdvertPXEServerList && Servers.Count > 0 && client.UNDI_Major > 1)
+				{
+					var optionoffset = Functions.GetOptionOffset(ref packet, DHCPOptionEnum.VendorSpecificInformation);
+					if (optionoffset != 0)
+					{
+						var data = new byte[packet.Data[optionoffset + 1]];
+
+						Array.Copy(packet.Data, optionoffset + 2, data, 0, packet.Data[optionoffset + 1]);
+
+						switch (data[0])
+						{
+							case (byte)Definitions.PXEVendorEncOptions.BootItem:
+								bootitem = BitConverter.ToUInt16(data, 2);
+								break;
+							default:
+								break;
+						}
+					}
+
+					// Option 43:8
+					var pxeservers = Functions.GenerateServerList(ref Servers, bootitem);
+					if (pxeservers != null)
+					{
+						var vendoropt = Exts.SetDHCPOption(DHCPOptionEnum.VendorSpecificInformation, pxeservers, true);
+						response.Offset += Functions.CopyTo(vendoropt, 0, response.Data, response.Offset, vendoropt.Length);
+						response.Data[response.Offset] = Convert.ToByte(DHCPOptionEnum.End);
+						response.Offset += 1;
+					}
+
+					if (bootitem != 254 && bootitem != 0)
+					{
+						var server = (from s in Servers where s.Value.Ident == bootitem select s.Value.Hostname).FirstOrDefault();
+
+						// This Client will not be served by this Server...
+						if (Clients.ContainsKey(client.ID) && Settings.Servermode == ServerMode.KnownOnly)
+							Clients.Remove(client.ID);
+
+						response.NextServer = Servers[server].IPAddress;
+						response.Bootfile = Servers[server].Bootfile;
+						response.ServerName = Servers[server].Hostname;
+					}
+				}
+				#endregion
+
+				// Windows Deployment Server (WDSNBP Options)
+				var wdsnbp = Exts.SetDHCPOption(DHCPOptionEnum.WDSNBP, this.Handle_WDS_Options(client.AdminMessage, ref client));
+				response.Offset += Functions.CopyTo(wdsnbp, 0, response.Data, response.Offset, wdsnbp.Length);
+
+				// End of Packet (255)
+				var endopt = new byte[1];
+				endopt[0] = Convert.ToByte(DHCPOptionEnum.End);
+
+				response.Offset += Functions.CopyTo(endopt, 0, response.Data, response.Offset, endopt.Length);
+
+				switch (packet.Type)
+				{
+					case SocketType.DHCP:
+						this.Send(ref response, client.EndPoint);
+						break;
+					case SocketType.BINL:
+						if (client.IsWDSClient)
+							if (client.ActionDone)
+							{
+								this.Send(ref response, client.EndPoint);
+								Clients.Remove(client.ID);
+								client = null;
+								requestid += 1;
+							}
+							else
+								break;
+						else
+							this.Send(ref response, client.EndPoint);
+						break;
+					default:
+						break;
 				}
 			}
-			#endregion
-
-			// Windows Deployment Server (WDSNBP Options)
-			var wdsnbp = Exts.SetDHCPOption(DHCPOptionEnum.WDSNBP, this.Handle_WDS_Options(client.AdminMessage, ref client));
-			response.Offset += Functions.CopyTo(wdsnbp, 0, response.Data, response.Offset, wdsnbp.Length);
-
-			// End of Packet (255)
-			var endopt = new byte[1];
-			endopt[0] = Convert.ToByte(DHCPOptionEnum.End);
-
-			response.Offset +=  Functions.CopyTo(endopt, 0, response.Data, response.Offset, endopt.Length);
-
-			switch (packet.Type)
+			catch
 			{
-				case SocketType.DHCP:
-					this.Send(ref response, client.EndPoint);
-					break;
-				case SocketType.BINL:
-					if (client.IsWDSClient)
-						if (client.ActionDone)
-						{
-							this.Send(ref response, client.EndPoint);
-							Clients.Remove(client.ID);
-							client = null;
-							requestid += 1;
-						}
-						else
-							break;
-					else
-						this.Send(ref response, client.EndPoint);
-					break;
-				default:
-					break;
+
 			}
 		}
 
