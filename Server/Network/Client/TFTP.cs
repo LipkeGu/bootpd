@@ -13,11 +13,13 @@
 		TFTPStage stage;
 
 		int blksize;
-		int winsize;
+		ushort winsize;
 		int blocks;
 
 		long tsize;
 		long bytesread;
+
+		bool windowssizemode;
 
 		Guid guid;
 
@@ -34,6 +36,7 @@
 			this.bytesread = 0;
 			this.winsize = 1;
 			this.blksize = 512;
+			this.windowssizemode = false;
 			this.blocks = 0;
 		}
 
@@ -85,10 +88,7 @@
 		{
 			get
 			{
-				if (this.tsize <= this.blksize)
-					return (int)this.tsize;
-				else
-					return this.blksize;
+				return this.blksize;
 			}
 
 			set
@@ -97,7 +97,7 @@
 			}
 		}
 
-		public int WindowSize
+		public ushort WindowSize
 		{
 			get
 			{
@@ -107,6 +107,19 @@
 			set
 			{
 				this.winsize = value;
+			}
+		}
+
+		public bool WindowSizeMode
+		{
+			get
+			{
+				return this.windowssizemode;
+			}
+
+			set
+			{
+				this.windowssizemode = value;
 			}
 		}
 
