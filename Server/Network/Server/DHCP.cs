@@ -295,6 +295,8 @@
 							client = null;
 							requestid += 1;
 						}
+						else
+							break;
 					else
 						this.Send(ref response, client.EndPoint);
 					break;
@@ -519,45 +521,48 @@
 					#region "BOTP - Request"
 					using (var request = new DHCPPacket(e.Data))
 					{
-						request.Type = e.Type;
-
-						var optvalue = Exts.GetOptionValue(e.Data, DHCPOptionEnum.Vendorclassidentifier);
-						if (optvalue.Length < 1 || optvalue[0] == byte.MaxValue || e.Data[0] != (byte)BootMessageType.Request)
-							return;
-
-						var cguid = Exts.GetOptionValue(request.Data, DHCPOptionEnum.GUID);
-						if (cguid.Length == 1)
-							return;
-
-						var guid = Guid.Parse(Exts.GetGuidAsString(cguid, cguid.Length, true));
-
-						var clientMAC = Exts.GetDataAsString(request.MacAddress, 0, request.MACAddresslength);
-						var clientTag = "{0}-{1}".F(guid, clientMAC);
-
-						if (!Clients.ContainsKey(clientTag))
-							Clients.Add(clientTag, new DHCPClient(guid, clientMAC, request.Type, e.RemoteEndpoint));
-						else
+						lock (Clients)
 						{
-							Clients[clientTag].Type = request.Type;
-							Clients[clientTag].EndPoint = e.RemoteEndpoint;
-						}
+							request.Type = e.Type;
 
-						var c = Clients[clientTag];
-						switch (request.MessageType)
-						{
-							case DHCPMsgType.Request:
-								if (e.RemoteEndpoint.Address != IPAddress.None)
-									this.Handle_DHCP_Request(request, ref c);
-								break;
-							case DHCPMsgType.Discover:
-								this.Handle_DHCP_Request(request, ref c);
-								break;
-							case DHCPMsgType.Release:
-								if (Clients.ContainsKey(clientTag))
-									Clients.Remove(clientTag);
-								break;
-							default:
+							var optvalue = Exts.GetOptionValue(e.Data, DHCPOptionEnum.Vendorclassidentifier);
+							if (optvalue.Length < 1 || optvalue[0] == byte.MaxValue || e.Data[0] != (byte)BootMessageType.Request)
 								return;
+
+							var cguid = Exts.GetOptionValue(request.Data, DHCPOptionEnum.GUID);
+							if (cguid.Length == 1)
+								return;
+
+							var guid = Guid.Parse(Exts.GetGuidAsString(cguid, cguid.Length, true));
+
+							var clientMAC = Exts.GetDataAsString(request.MacAddress, 0, request.MACAddresslength);
+							var clientTag = "{0}-{1}".F(guid, clientMAC);
+
+							if (!Clients.ContainsKey(clientTag))
+								Clients.Add(clientTag, new DHCPClient(guid, clientMAC, request.Type, e.RemoteEndpoint));
+							else
+							{
+								Clients[clientTag].Type = request.Type;
+								Clients[clientTag].EndPoint = e.RemoteEndpoint;
+							}
+
+							var c = Clients[clientTag];
+							switch (request.MessageType)
+							{
+								case DHCPMsgType.Request:
+									if (e.RemoteEndpoint.Address != IPAddress.None)
+										this.Handle_DHCP_Request(request, ref c);
+									break;
+								case DHCPMsgType.Discover:
+									this.Handle_DHCP_Request(request, ref c);
+									break;
+								case DHCPMsgType.Release:
+									if (Clients.ContainsKey(clientTag))
+										Clients.Remove(clientTag);
+									break;
+								default:
+									return;
+							}
 						}
 					}
 					#endregion

@@ -27,7 +27,7 @@
 		public static string WDS_BOOTFILE_IA64 = "Bootmgfw.efi";
 		public static string WDS_BOOTFILE_EFI = "Bootmgfw.efi";
 		public static string WDS_BOOTFILE_ABORT = "abortpxe.com";
-		public static string DHCP_DEFAULT_BOOTFILE = "wdsnbp.0";
+		public static string DHCP_DEFAULT_BOOTFILE = "wdsnbp.com";
 		public static string DHCP_MENU_PROMPT = "Select Server...";
 
 		public static short PollInterval = 5;

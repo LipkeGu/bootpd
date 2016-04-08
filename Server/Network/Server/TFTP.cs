@@ -162,7 +162,7 @@
 						if (Options.ContainsKey("blksize"))
 						{
 							this.Handle_Option_request(Clients[packet.Source.Address].TransferSize,
-							Clients[packet.Source.Address].BlockSize, Clients[packet.Source.Address].EndPoint);
+							Clients[packet.Source.Address].BlockSize, Clients[packet.Source.Address].WindowSize, Clients[packet.Source.Address].EndPoint);
 
 							return;
 						}
@@ -277,7 +277,7 @@
 			}
 		}
 
-		internal void Handle_Option_request(long tsize, int blksize, IPEndPoint client)
+		internal void Handle_Option_request(long tsize, int blksize, int winsize, IPEndPoint client)
 		{
 			lock (Clients)
 			{
@@ -289,17 +289,25 @@
 				var tmpbuffer = new byte[100];
 				var offset = 0;
 
+
 				var blksizeopt = Exts.StringToByte("blksize");
 				offset += Functions.CopyTo(ref blksizeopt, 0, ref tmpbuffer, offset, blksizeopt.Length) + 1;
 				
 				var blksize_value = Exts.StringToByte(blksize.ToString());
 				offset += Functions.CopyTo(ref blksize_value, 0, ref tmpbuffer, offset, blksize_value.Length) + 1;
 				
+
 				var tsizeOpt = Exts.StringToByte("tsize");
 				offset += Functions.CopyTo(ref tsizeOpt, 0, ref tmpbuffer, offset, tsizeOpt.Length) + 1;
 				
 				var tsize_value = Exts.StringToByte(tsize.ToString());
 				offset += Functions.CopyTo(ref tsize_value, 0, ref tmpbuffer, offset, tsize_value.Length) + 1;
+
+				var winOpt = Exts.StringToByte("windowsize");
+				offset += Functions.CopyTo(ref winOpt, 0, ref tmpbuffer, offset, winOpt.Length) + 1;
+
+				var winsize_value = Exts.StringToByte(winsize.ToString());
+				offset += Functions.CopyTo(ref winsize_value, 0, ref tmpbuffer, offset, winsize_value.Length) + 1;
 				
 				var packet = new TFTPPacket(2 + offset, TFTPOPCodes.OCK, client);
 				Array.Copy(tmpbuffer, 0, packet.Data, packet.Offset, offset);
