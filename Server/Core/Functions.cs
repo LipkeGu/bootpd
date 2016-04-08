@@ -75,6 +75,13 @@
 			return length;
 		}
 
+		public static int CopyTo(byte[] src, int srcoffset, byte[] dst, int dstoffset, int length)
+		{
+			Array.Copy(src, srcoffset, dst, dstoffset, length);
+
+			return length;
+		}
+
 		public static void ReadServerList(string filename, ref Dictionary<string, Serverentry> servers)
 		{
 			var serverlist = Files.ReadXML(filename.ToLowerInvariant());
@@ -119,9 +126,9 @@
 			return result;
 		}
 
-		public static byte[] GenerateServerList(ref Dictionary<string, Serverentry> servers, short item)
+		public static byte[] GenerateServerList(ref Dictionary<string, Serverentry> servers, ushort item)
 		{
-			if (item == 0)
+			if (item == ushort.MinValue)
 			{
 				var discover = new byte[3];
 				discover[0] = Convert.ToByte(Definitions.PXEVendorEncOptions.DiscoveryControl);

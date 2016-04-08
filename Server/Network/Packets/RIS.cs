@@ -122,7 +122,6 @@
 			}
 		}
 
-		#region "RQU Functions"
 		public byte Orign
 		{
 			get
@@ -140,12 +139,7 @@
 		{
 			get
 			{
-				var offset = 36;
-				var file = Encoding.ASCII.GetString(this.data, offset, (this.data.Length - offset) - 1);
-				if (file.Length == 0)
-					return Settings.OSC_DEFAULT_FILE.ToLowerInvariant();
-				else
-					return "{0}.osc".F(file.ToLowerInvariant());
+				return Encoding.ASCII.GetString(this.data, 36, (this.data.Length - 36) - 1);
 			}
 		}
 
@@ -179,6 +173,5 @@
 				this.pktType = value;
 			}
 		}
-		#endregion
 	}
 }

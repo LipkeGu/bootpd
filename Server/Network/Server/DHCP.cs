@@ -100,8 +100,8 @@
 		{
 			var parameterlist_offset = Functions.GetOptionOffset(ref packet, DHCPOptionEnum.ParameterRequestList);
 			var parameterlistLength = packet.Data[(parameterlist_offset + 1)];
-			var bootitem = (short)0;
-			var pktlength = (ushort)1024;
+			var bootitem = ushort.MinValue;
+			var pktlength = (short)1024;
 
 			if (parameterlist_offset != 0)
 				Array.Clear(packet.Data, parameterlist_offset, parameterlistLength);
@@ -124,12 +124,12 @@
 					{
 						client.PXEFramework = PXEFrameworks.UNDI;
 						if (vendor_parts[1] == "ARCH")
-							client.Arch = (Architecture)short.Parse(vendor_parts[2]);
+							client.Arch = (Architecture)ushort.Parse(vendor_parts[2]);
 
 						if (vendor_parts[3] == "UNDI")
 						{
-							client.UNDI_Major = short.Parse(vendor_parts[4].Substring(0, 3).Replace("00", string.Empty));
-							client.UNDI_Minor = short.Parse(vendor_parts[4].Substring(3, 3).Replace("00", string.Empty));
+							client.UNDI_Major = ushort.Parse(vendor_parts[4].Substring(0, 3).Replace("00", string.Empty));
+							client.UNDI_Minor = ushort.Parse(vendor_parts[4].Substring(3, 3).Replace("00", string.Empty));
 						}
 					}
 				}
@@ -138,7 +138,7 @@
 				return;
 
 			var response = new DHCPPacket(new byte[pktlength]);
-			Array.Copy(packet.Data, 0, response.Data, 0, 242);
+			Functions.CopyTo(packet.Data, 0, response.Data, 0, 242);
 
 			response.BootpType = BootMessageType.Reply;
 			response.ServerName = Settings.ServerName;
@@ -155,13 +155,15 @@
 			{
 				case SocketType.DHCP:
 					client.MsgType = DHCPMsgType.Offer;
+
 					break;
 				case SocketType.BINL:
-
 					client.MsgType = DHCPMsgType.Ack;
+
 					break;
 				default:
 					Clients.Remove(client.ID);
+
 					return;
 			}
 
@@ -170,21 +172,15 @@
 
 			// Option 60
 			var opt = Exts.SetDHCPOption(DHCPOptionEnum.Vendorclassidentifier, Exts.StringToByte(client.VendorIdent));
-
-			Array.Copy(opt, 0, response.Data, response.Offset, opt.Length);
-			response.Offset += opt.Length;
-
+			response.Offset += Functions.CopyTo(opt, 0, response.Data, response.Offset, opt.Length);
+			
 			// Option 54
 			var dhcpident = Exts.SetDHCPOption(DHCPOptionEnum.ServerIdentifier, Settings.ServerIP.GetAddressBytes());
-
-			Array.Copy(dhcpident, 0, response.Data, response.Offset, dhcpident.Length);
-			response.Offset += dhcpident.Length;
+			response.Offset += Functions.CopyTo(dhcpident, 0, response.Data, response.Offset, dhcpident.Length);
 
 			// Option 97
 			var guidopt = Exts.SetDHCPOption(DHCPOptionEnum.GUID, Exts.GetOptionValue(packet.Data, DHCPOptionEnum.GUID));
-
-			Array.Copy(guidopt, 0, response.Data, response.Offset, guidopt.Length);
-			response.Offset += guidopt.Length;
+			response.Offset += Functions.CopyTo(guidopt, 0, response.Data, response.Offset, guidopt.Length);
 
 			// Bootfile
 			Functions.SelectBootFile(ref client);
@@ -203,23 +199,19 @@
 			cii[2] = Convert.ToByte(client.UNDI_Minor);
 
 			var clientIFIdent = Exts.SetDHCPOption(DHCPOptionEnum.ClientInterfaceIdent, cii);
-			Array.Copy(clientIFIdent, 0, response.Data, response.Offset, clientIFIdent.Length);
-			response.Offset += clientIFIdent.Length;
+			response.Offset += Functions.CopyTo(clientIFIdent, 0, response.Data, response.Offset, clientIFIdent.Length);
 
 			if (Settings.DHCP_DEFAULT_BOOTFILE.ToLowerInvariant().Contains("pxelinux"))
 			{
 				var magicstring = Exts.SetDHCPOption(DHCPOptionEnum.MAGICOption, BitConverter.GetBytes(0xf100747e));
-				Array.Copy(magicstring, 0, response.Data, response.Offset, magicstring.Length);
-				response.Offset += magicstring.Length;
+				response.Offset += Functions.CopyTo(magicstring, 0, response.Data, response.Offset, magicstring.Length);
 			}
 
 			// Option 252 - BCDStore
 			if (client.BCDPath != null && client.ActionDone && client.IsWDSClient)
 			{
 				var bcdstore = Exts.SetDHCPOption(DHCPOptionEnum.BCDPath, Exts.StringToByte(client.BCDPath));
-
-				Array.Copy(bcdstore, 0, response.Data, response.Offset, bcdstore.Length);
-				response.Offset += bcdstore.Length;
+				response.Offset += Functions.CopyTo(bcdstore, 0, response.Data, response.Offset, bcdstore.Length);
 			}
 
 			#region "Server selection"
@@ -235,7 +227,7 @@
 					switch (data[0])
 					{
 						case (byte)Definitions.PXEVendorEncOptions.BootItem:
-							bootitem = BitConverter.ToInt16(data, 2);
+							bootitem = BitConverter.ToUInt16(data, 2);
 							break;
 						default:
 							break;
@@ -247,9 +239,7 @@
 				if (pxeservers != null)
 				{
 					var vendoropt = Exts.SetDHCPOption(DHCPOptionEnum.VendorSpecificInformation, pxeservers, true);
-					Array.Copy(vendoropt, 0, response.Data, response.Offset, vendoropt.Length);
-					response.Offset += vendoropt.Length;
-
+					response.Offset += Functions.CopyTo(vendoropt, 0, response.Data, response.Offset, vendoropt.Length);
 					response.Data[response.Offset] = Convert.ToByte(DHCPOptionEnum.End);
 					response.Offset += 1;
 				}
@@ -271,15 +261,13 @@
 
 			// Windows Deployment Server (WDSNBP Options)
 			var wdsnbp = Exts.SetDHCPOption(DHCPOptionEnum.WDSNBP, this.Handle_WDS_Options(client.AdminMessage, ref client));
-			Array.Copy(wdsnbp, 0, response.Data, response.Offset, wdsnbp.Length);
-			response.Offset += wdsnbp.Length;
+			response.Offset += Functions.CopyTo(wdsnbp, 0, response.Data, response.Offset, wdsnbp.Length);
 
 			// End of Packet (255)
 			var endopt = new byte[1];
 			endopt[0] = Convert.ToByte(DHCPOptionEnum.End);
 
-			Array.Copy(endopt, 0, response.Data, response.Offset, endopt.Length);
-			response.Offset += endopt.Length;
+			response.Offset +=  Functions.CopyTo(endopt, 0, response.Data, response.Offset, endopt.Length);
 
 			switch (packet.Type)
 			{
@@ -295,6 +283,8 @@
 							client = null;
 							requestid += 1;
 						}
+						else
+							break;
 					else
 						this.Send(ref response, client.EndPoint);
 					break;
@@ -322,7 +312,14 @@
 					return;
 				case RISOPCodes.RQU:
 					#region "OSC File Request"
-					var data = this.ReadOSCFile(packet.FileName, encrypted, encrypted ? this.ntlmkey : null);
+					var file = packet.FileName;
+
+					if (file.Length == 0)
+						file = "{0}.osc".F(Settings.OSC_DEFAULT_FILE);
+					else
+						file = "{0}.osc".F(packet.FileName);
+
+					var data = this.ReadOSCFile(file.ToLowerInvariant(), encrypted, encrypted ? this.ntlmkey : null);
 
 					if (data == null)
 						return;
@@ -336,12 +333,10 @@
 
 					rquResponse.Orign = 130;
 
-					Array.Copy(packet.Data, 8, rquResponse.Data, 8, 28);
+					Functions.CopyTo(packet.Data, 8, rquResponse.Data, 8, 28);
 					rquResponse.Offset = 36;
 
-					Array.Copy(data, 0, rquResponse.Data, rquResponse.Offset, data.Length);
-
-					rquResponse.Offset += data.Length;
+					rquResponse.Offset += Functions.CopyTo(data, 0, rquResponse.Data, rquResponse.Offset, data.Length);
 					rquResponse.Length = data.Length + 36;
 
 					this.Send(ref rquResponse, client.Endpoint);
@@ -677,7 +672,7 @@
 				if (encrypted)
 					return null;
 
-				var file = Filesystem.ResolvePath("OSChooser/English/{0}".F(filename));
+				var file = Filesystem.ResolvePath("OSChooser/{0}/{1}".F(Settings.OSC_DEFAULT_LANG, filename));
 				var length = Filesystem.Size(file);
 				var buffer = new byte[length];
 				var bytesRead = 0;

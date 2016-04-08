@@ -15,11 +15,11 @@
 		NextActionOptionValues nextAction;
 		PXEFrameworks pxeframework;
 
-		short retrycount;
-		short pollInterval;
+		ushort retrycount;
+		ushort pollInterval;
 
-		short undi_major;
-		short undi_minor;
+		ushort undi_major;
+		ushort undi_minor;
 
 		bool wdsclient;
 		bool actionDone;
@@ -33,8 +33,8 @@
 			this.type = type;
 			this.endp = endpoint;
 			this.wdsclient = false;
-			this.pollInterval = Convert.ToInt16(Settings.PollInterval);
-			this.retrycount = Convert.ToInt16(Settings.RetryCount);
+			this.pollInterval = Convert.ToUInt16(Settings.PollInterval);
+			this.retrycount = Convert.ToUInt16(Settings.RetryCount);
 
 			this.actionDone = false;
 			this.guid = guid;
@@ -130,7 +130,7 @@
 			}
 		}
 
-		public short PollInterval
+		public ushort PollInterval
 		{
 			get
 			{
@@ -143,7 +143,7 @@
 			}
 		}
 
-		public short RetryCount
+		public ushort RetryCount
 		{
 			get
 			{
@@ -195,7 +195,7 @@
 			}
 		}
 
-		public short UNDI_Major
+		public ushort UNDI_Major
 		{
 			get
 			{
@@ -208,7 +208,7 @@
 			}
 		}
 
-		public short UNDI_Minor
+		public ushort UNDI_Minor
 		{
 			get
 			{

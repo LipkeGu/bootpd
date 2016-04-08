@@ -71,16 +71,16 @@
 		{
 			get
 			{
-				var bytes = new byte[sizeof(short)];
+				var bytes = new byte[sizeof(ushort)];
 				Functions.CopyTo(ref this.data, 0, ref bytes, 0, bytes.Length);
 				Array.Reverse(bytes);
 
-				return (TFTPOPCodes)BitConverter.ToInt16(bytes, 0);
+				return (TFTPOPCodes)BitConverter.ToUInt16(bytes, 0);
 			}
 
 			set
 			{
-				var bytes = BitConverter.GetBytes(Convert.ToInt16(value));
+				var bytes = BitConverter.GetBytes(Convert.ToUInt16(value));
 				Array.Reverse(bytes);
 
 				Functions.CopyTo(ref bytes, 0, ref this.data, 0, bytes.Length);
@@ -88,20 +88,20 @@
 			}
 		}
 
-		public short Block
+		public ushort Block
 		{
 			get
 			{
-				var bytes = new byte[sizeof(short)];
+				var bytes = new byte[sizeof(ushort)];
 				Functions.CopyTo(ref this.data, 2, ref bytes, 0, bytes.Length);
 				Array.Reverse(bytes);
 
-				return BitConverter.ToInt16(bytes, 0);
+				return BitConverter.ToUInt16(bytes, 0);
 			}
 
 			set
 			{
-				var bytes = BitConverter.GetBytes(Convert.ToInt16(value));
+				var bytes = BitConverter.GetBytes(Convert.ToUInt16(value));
 				Array.Reverse(bytes);
 
 				Functions.CopyTo(ref bytes, 0, ref this.data, 2, bytes.Length);
@@ -132,12 +132,12 @@
 		{
 			get
 			{
-				return (TFTPErrorCode)BitConverter.ToInt16(this.data, 2);
+				return (TFTPErrorCode)BitConverter.ToUInt16(this.data, 2);
 			}
 
 			set
 			{
-				var errcode = BitConverter.GetBytes(Convert.ToInt16(value));
+				var errcode = BitConverter.GetBytes(Convert.ToUInt16(value));
 				Array.Reverse(errcode);
 
 				Functions.CopyTo(ref errcode, 0, ref this.data, 2, errcode.Length);
@@ -170,6 +170,18 @@
 				this.offset = value;
 			}
 		}
+
+		public ushort NextWindow
+		{
+			get
+			{
+				if ((TFTPOPCodes)BitConverter.ToUInt16(this.data, 2) == TFTPOPCodes.ACK && length > 4)
+					return Convert.ToUInt16(this.data[5]);
+				else
+					return 0;
+			}
+		}
+
 		#endregion
 	}
 }

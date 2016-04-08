@@ -16,7 +16,8 @@
 		#endregion
 
 		#region "Windows Deployment Server"
-		public static string OSC_DEFAULT_FILE = "welcome.osc";
+		public static string OSC_DEFAULT_FILE = "welcome";
+		public static string OSC_DEFAULT_LANG = "English";
 		public static string WDS_BCD_FileName = "default.bcd";
 		public static string WDS_BOOT_PREFIX_X86 = "Boot/x86/";
 		public static string WDS_BOOT_PREFIX_X64 = "Boot/x64/";
@@ -27,11 +28,11 @@
 		public static string WDS_BOOTFILE_IA64 = "Bootmgfw.efi";
 		public static string WDS_BOOTFILE_EFI = "Bootmgfw.efi";
 		public static string WDS_BOOTFILE_ABORT = "abortpxe.com";
-		public static string DHCP_DEFAULT_BOOTFILE = "wdsnbp.0";
+		public static string DHCP_DEFAULT_BOOTFILE = "wdsnbp.com";
 		public static string DHCP_MENU_PROMPT = "Select Server...";
 
-		public static short PollInterval = 5;
-		public static short RetryCount = short.MaxValue;
+		public static ushort PollInterval = 5;
+		public static ushort RetryCount = ushort.MaxValue;
 		public static int RequestID = 1;
 
 		public static bool EnableNTLMV2 = false;

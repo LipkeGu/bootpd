@@ -12,13 +12,16 @@
 		TFTPMode mode;
 		TFTPStage stage;
 
-		int blksize;
-		int winsize;
-		int blocks;
+		uint blksize;
 
 		long tsize;
 		long bytesread;
 
+		ushort winsize;
+		ushort msftwindow;
+		ushort blocks;
+		ushort lastackedblock;
+			
 		Guid guid;
 
 		FileStream filestream;
@@ -31,9 +34,11 @@
 			this.id = this.endp.Address.ToString();
 			this.filename = string.Empty;
 			this.tsize = 0;
+			this.msftwindow = ushort.MaxValue / 4;
 			this.bytesread = 0;
 			this.winsize = 1;
-			this.blksize = 512;
+			this.lastackedblock = ushort.MinValue;
+			this.blksize = 1456;
 			this.blocks = 0;
 		}
 
@@ -81,14 +86,14 @@
 			}
 		}
 
-		public int BlockSize
+		public uint BlockSize
 		{
 			get
 			{
 				if (this.tsize <= this.blksize)
-					return (int)this.tsize;
+					return Convert.ToUInt32(this.tsize);
 				else
-					return this.blksize;
+					return Convert.ToUInt32(this.blksize);
 			}
 
 			set
@@ -97,7 +102,7 @@
 			}
 		}
 
-		public int WindowSize
+		public ushort WindowSize
 		{
 			get
 			{
@@ -110,7 +115,20 @@
 			}
 		}
 
-		public int Blocks
+		public ushort MSFTWindow
+		{
+			get
+			{
+				return this.msftwindow;
+			}
+
+			set
+			{
+				this.msftwindow = value;
+			}
+		}
+
+		public ushort Blocks
 		{
 			get
 			{
