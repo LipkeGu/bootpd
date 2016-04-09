@@ -70,17 +70,30 @@
 
 		public void Handle_ACK_Request(object data)
 		{
+			var packet = (TFTPPacket)data;
 			lock (Clients)
 			{
-				var packet = (TFTPPacket)data;
 				if (!Clients.ContainsKey(packet.Source.Address))
 					return;
 
-				if (packet.Block == Clients[packet.Source.Address].Blocks)
+				if (packet.Block == Clients[packet.Source.Address].Blocks || packet.Block == 0)
 				{
-					Clients[packet.Source.Address].Blocks += 1;
+					if (Clients[packet.Source.Address].WindowSize > 1)
+						for (var i = 0; i < Clients[packet.Source.Address].WindowSize; i++)
+						{
+							this.Readfile(packet.Source);
 
-					this.Readfile(packet.Source);
+							if (Clients[packet.Source.Address].Stage == TFTPStage.Done)
+								break;
+						}
+					else
+						this.Readfile(packet.Source);
+
+					if (Clients[packet.Source.Address].Stage == TFTPStage.Done)
+					{
+						Clients[packet.Source.Address].Dispose();
+						Clients.Remove(packet.Source.Address);
+					}
 				}
 			}
 		}
@@ -126,55 +139,60 @@
 			{
 				var packet = (TFTPPacket)request;
 
+				if (Clients.ContainsKey(packet.Source.Address))
+				{
+					Clients[packet.Source.Address].Dispose();
+					Clients.Remove(packet.Source.Address);
+				}
+
 				if (!Clients.ContainsKey(packet.Source.Address))
+				{
 					Clients.Add(packet.Source.Address, new TFTPClient(packet.Source));
-				else
-					Clients[packet.Source.Address].EndPoint = packet.Source;
+					Clients[packet.Source.Address].Stage = TFTPStage.Handshake;
+				}
 
 				this.ExtractOptions(ref packet);
 
-				if (!Clients.ContainsKey(packet.Source.Address))
-					return;
-
-				Clients[packet.Source.Address].Stage = TFTPStage.Handshake;
-				Clients[packet.Source.Address].Blocks = 0;
-
-				lock (Options)
+				var file = Filesystem.ResolvePath(Options["file"]);
+				if (file == Settings.TFTPRoot.ToLowerInvariant())
 				{
-					var file = Filesystem.ResolvePath(Options["file"]);
+					this.Handle_Error_Request(TFTPErrorCode.AccessViolation, "Directories are not supported!", packet.Source);
+					return;
+				}
 
-					if (file == Settings.TFTPRoot.ToLowerInvariant())
+				if (Filesystem.Exist(file) && !string.IsNullOrEmpty(file))
+				{
+					Clients[packet.Source.Address].FileName = file;
+					Clients[packet.Source.Address].FileStream = new FileStream(Clients[packet.Source.Address].FileName,
+					 FileMode.Open, FileAccess.Read, FileShare.Read, Settings.ReadBuffer, FileOptions.SequentialScan);
+					Clients[packet.Source.Address].TransferSize = Clients[packet.Source.Address].FileStream.Length;
+
+					Clients[packet.Source.Address].BufferedStream = new BufferedStream(Clients[packet.Source.Address].FileStream, Settings.ReadBuffer);
+
+					if (Options.ContainsKey("blksize"))
 					{
-						this.Handle_Error_Request(TFTPErrorCode.AccessViolation, "Directories are not supported!", packet.Source);
+						Clients[packet.Source.Address].BlockSize = Functions.CalcBlocksize(Clients[packet.Source.Address].FileStream.Length,
+							Convert.ToUInt16(Clients[packet.Source.Address].BlockSize));
+
+						Console.WriteLine("Selecting Blocksize: {0}", Clients[packet.Source.Address].BlockSize);
+
+						this.Handle_Option_request(Clients[packet.Source.Address].TransferSize,
+						Clients[packet.Source.Address].BlockSize, Clients[packet.Source.Address].WindowSize, Clients[packet.Source.Address].EndPoint);
+
 						return;
 					}
 
-					if (Filesystem.Exist(file) && !string.IsNullOrEmpty(file))
-					{
-						Clients[packet.Source.Address].FileName = file;
+					Options.Clear();
 
-						Clients[packet.Source.Address].FileStream = new FileStream(Clients[packet.Source.Address].FileName,
-						 FileMode.Open, FileAccess.Read, FileShare.Read, Settings.ReadBuffer, FileOptions.SequentialScan);
-						Clients[packet.Source.Address].TransferSize = Clients[packet.Source.Address].FileStream.Length;
-
-						Clients[packet.Source.Address].BufferedStream = new BufferedStream(Clients[packet.Source.Address].FileStream, Settings.ReadBuffer);
-
-						if (Options.ContainsKey("blksize"))
-						{
-							this.Handle_Option_request(Clients[packet.Source.Address].TransferSize,
-							Clients[packet.Source.Address].BlockSize, Clients[packet.Source.Address].WindowSize, Clients[packet.Source.Address].EndPoint);
-
-							return;
-						}
-
-						Options.Clear();
-
-						Clients[packet.Source.Address].Stage = TFTPStage.Transmitting;
-						this.Readfile(Clients[packet.Source.Address].EndPoint);
-					}
+					Clients[packet.Source.Address].Stage = TFTPStage.Transmitting;
+					if (Clients[packet.Source.Address].WindowSize > 1)
+						for (var i = 0; i < Clients[packet.Source.Address].WindowSize; i++)
+							this.Readfile(packet.Source);
 					else
-						this.Handle_Error_Request(TFTPErrorCode.FileNotFound, file, packet.Source);
+						this.Readfile(packet.Source);
 				}
+				else
+					this.Handle_Error_Request(TFTPErrorCode.FileNotFound, file, packet.Source);
 			}
 		}
 
@@ -228,6 +246,9 @@
 						Options.Add(parts[i], parts[i + 1]);
 					else
 						Options[parts[i]] = parts[i + 1];
+
+					if (Clients.ContainsKey(data.Source.Address))
+						Clients[data.Source.Address].WindowSize = ushort.Parse(Options["windowsize"]);
 				}
 			}
 		}
@@ -259,22 +280,6 @@
 
 		internal override void DataSend(object sender, DataSendEventArgs e)
 		{
-			lock (Clients)
-			{
-				if (!Clients.ContainsKey(e.RemoteEndpoint.Address))
-					return;
-
-				if (Clients[e.RemoteEndpoint.Address].Stage != TFTPStage.Done)
-					return;
-
-				if (Clients[e.RemoteEndpoint.Address].FileStream != null)
-					Clients[e.RemoteEndpoint.Address].FileStream.Close();
-
-				if (Clients[e.RemoteEndpoint.Address].BufferedStream != null)
-					Clients[e.RemoteEndpoint.Address].BufferedStream.Close();
-
-				Clients.Remove(e.RemoteEndpoint.Address);
-			}
 		}
 
 		internal void Handle_Option_request(long tsize, int blksize, int winsize, IPEndPoint client)
@@ -289,32 +294,33 @@
 				var tmpbuffer = new byte[100];
 				var offset = 0;
 
-
 				var blksizeopt = Exts.StringToByte("blksize");
 				offset += Functions.CopyTo(ref blksizeopt, 0, ref tmpbuffer, offset, blksizeopt.Length) + 1;
-				
+
 				var blksize_value = Exts.StringToByte(blksize.ToString());
 				offset += Functions.CopyTo(ref blksize_value, 0, ref tmpbuffer, offset, blksize_value.Length) + 1;
-				
+
 
 				var tsizeOpt = Exts.StringToByte("tsize");
 				offset += Functions.CopyTo(ref tsizeOpt, 0, ref tmpbuffer, offset, tsizeOpt.Length) + 1;
-				
+
 				var tsize_value = Exts.StringToByte(tsize.ToString());
 				offset += Functions.CopyTo(ref tsize_value, 0, ref tmpbuffer, offset, tsize_value.Length) + 1;
 
-				var winOpt = Exts.StringToByte("windowsize");
-				offset += Functions.CopyTo(ref winOpt, 0, ref tmpbuffer, offset, winOpt.Length) + 1;
+				if (winsize > 1)
+				{
+					var winOpt = Exts.StringToByte("windowsize");
+					offset += Functions.CopyTo(ref winOpt, 0, ref tmpbuffer, offset, winOpt.Length) + 1;
 
-				var winsize_value = Exts.StringToByte(winsize.ToString());
-				offset += Functions.CopyTo(ref winsize_value, 0, ref tmpbuffer, offset, winsize_value.Length) + 1;
-				
+					var winsize_value = Exts.StringToByte(winsize.ToString());
+					offset += Functions.CopyTo(ref winsize_value, 0, ref tmpbuffer, offset, winsize_value.Length) + 1;
+				}
+
 				var packet = new TFTPPacket(2 + offset, TFTPOPCodes.OCK, client);
 				Array.Copy(tmpbuffer, 0, packet.Data, packet.Offset, offset);
-				packet.Offset += offset;
-
 				Array.Clear(tmpbuffer, 0, tmpbuffer.Length);
 
+				packet.Offset += offset;
 				this.Send(ref packet);
 			}
 		}
@@ -325,18 +331,6 @@
 			{
 				var readedBytes = 0L;
 				var done = false;
-
-				if (!Clients.ContainsKey(client.Address))
-					return;
-
-				if (Clients[client.Address].FileStream == null)
-				{
-					Clients[client.Address].FileStream = new FileStream(Clients[client.Address].FileName,
-					FileMode.Open, FileAccess.Read, FileShare.Read, Settings.ReadBuffer, FileOptions.SequentialScan);
-
-					if (Clients[client.Address].BufferedStream == null)
-						Clients[client.Address].BufferedStream = new BufferedStream(Clients[client.Address].FileStream, Settings.ReadBuffer);
-				}
 
 				// Align the last Block
 				if (Clients[client.Address].TransferSize <= Clients[client.Address].BlockSize)
@@ -354,11 +348,8 @@
 				Clients[client.Address].TransferSize -= readedBytes;
 
 				var response = new TFTPPacket(4 + chunk.Length, TFTPOPCodes.DAT, client);
-
-				if (Clients[client.Address].Blocks == 0)
-					Clients[client.Address].Blocks += 1;
-
-				response.Block = Convert.ToInt16(Clients[client.Address].Blocks);
+				Clients[client.Address].Blocks += 1;
+				response.Block = Convert.ToUInt16(Clients[client.Address].Blocks);
 				Array.Copy(chunk, 0, response.Data, response.Offset, chunk.Length);
 				response.Offset += chunk.Length;
 

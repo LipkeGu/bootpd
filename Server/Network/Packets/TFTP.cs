@@ -71,16 +71,16 @@
 		{
 			get
 			{
-				var bytes = new byte[sizeof(short)];
+				var bytes = new byte[sizeof(ushort)];
 				Functions.CopyTo(ref this.data, 0, ref bytes, 0, bytes.Length);
 				Array.Reverse(bytes);
 
-				return (TFTPOPCodes)BitConverter.ToInt16(bytes, 0);
+				return (TFTPOPCodes)BitConverter.ToUInt16(bytes, 0);
 			}
 
 			set
 			{
-				var bytes = BitConverter.GetBytes(Convert.ToInt16(value));
+				var bytes = BitConverter.GetBytes(Convert.ToUInt16(value));
 				Array.Reverse(bytes);
 
 				Functions.CopyTo(ref bytes, 0, ref this.data, 0, bytes.Length);
@@ -88,20 +88,20 @@
 			}
 		}
 
-		public short Block
+		public ushort Block
 		{
 			get
 			{
-				var bytes = new byte[sizeof(short)];
+				var bytes = new byte[sizeof(ushort)];
 				Functions.CopyTo(ref this.data, 2, ref bytes, 0, bytes.Length);
 				Array.Reverse(bytes);
 
-				return BitConverter.ToInt16(bytes, 0);
+				return BitConverter.ToUInt16(bytes, 0);
 			}
 
 			set
 			{
-				var bytes = BitConverter.GetBytes(Convert.ToInt16(value));
+				var bytes = BitConverter.GetBytes(Convert.ToUInt16(value));
 				Array.Reverse(bytes);
 
 				Functions.CopyTo(ref bytes, 0, ref this.data, 2, bytes.Length);

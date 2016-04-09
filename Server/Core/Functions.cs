@@ -44,6 +44,20 @@
 			return data;
 		}
 
+		public static ushort CalcBlocksize(long tsize, ushort blksize)
+		{
+			var res = Convert.ToUInt16(tsize / blksize);
+			if (res < ushort.MaxValue)
+				return blksize;
+			else
+			{
+				if (res <= blksize)
+					return res;
+				else
+					return blksize;
+			}
+		}
+
 		/// <summary>
 		/// Returns the offset of the specified DHCP option in the Packet.
 		/// </summary>

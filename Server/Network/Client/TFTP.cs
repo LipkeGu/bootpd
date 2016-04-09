@@ -35,7 +35,7 @@
 			this.tsize = 0;
 			this.bytesread = 0;
 			this.winsize = 1;
-			this.blksize = 512;
+			this.blksize = Settings.MaximumAllowedBlockSize;
 			this.windowssizemode = false;
 			this.blocks = 0;
 		}
@@ -88,12 +88,18 @@
 		{
 			get
 			{
-				return this.blksize;
+				if (this.blksize <= Settings.MaximumAllowedBlockSize)
+					return this.blksize;
+				else
+					return Settings.MaximumAllowedBlockSize;
 			}
 
 			set
 			{
-				this.blksize = value;
+				if (value <= Settings.MaximumAllowedBlockSize)
+					this.blksize = value;
+				else
+					this.blksize = Settings.MaximumAllowedBlockSize;
 			}
 		}
 
@@ -101,12 +107,18 @@
 		{
 			get
 			{
-				return this.winsize;
+				if (this.winsize <= Settings.MaximumAllowedWindowSize)
+					return this.winsize;
+				else
+					return Settings.MaximumAllowedWindowSize;
 			}
 
 			set
 			{
-				this.winsize = value;
+				if (value <= Settings.MaximumAllowedWindowSize)
+					this.winsize = value;
+				else
+					this.winsize = Settings.MaximumAllowedWindowSize;
 			}
 		}
 
