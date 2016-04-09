@@ -83,13 +83,13 @@
 						{
 							this.Readfile(packet.Source);
 
-							if (Clients[packet.Source.Address].Stage == TFTPStage.Done)
+							if (Clients[packet.Source.Address].Stage == TFTPStage.Done || Clients[packet.Source.Address].Stage == TFTPStage.Error)
 								break;
 						}
 					else
 						this.Readfile(packet.Source);
 
-					if (Clients[packet.Source.Address].Stage == TFTPStage.Done)
+					if (Clients[packet.Source.Address].Stage == TFTPStage.Done || Clients[packet.Source.Address].Stage == TFTPStage.Error)
 					{
 						Clients[packet.Source.Address].Dispose();
 						Clients.Remove(packet.Source.Address);
@@ -117,14 +117,6 @@
 				}
 
 				Errorhandler.Report(LogTypes.Error, "[TFTP] {0}: {1}".F(error, message));
-
-				if (Clients[client.Address].FileStream != null)
-					Clients[client.Address].FileStream.Close();
-
-				if (Clients[client.Address].BufferedStream != null)
-					Clients[client.Address].BufferedStream.Close();
-
-				Clients.Remove(client.Address);
 			}
 		}
 
@@ -329,34 +321,41 @@
 		{
 			lock (Clients)
 			{
-				var readedBytes = 0L;
-				var done = false;
-
-				// Align the last Block
-				if (Clients[client.Address].TransferSize <= Clients[client.Address].BlockSize)
+				try
 				{
-					Clients[client.Address].BlockSize = Convert.ToInt32(Clients[client.Address].TransferSize);
-					done = true;
+					var readedBytes = 0L;
+					var done = false;
+
+					// Align the last Block
+					if (Clients[client.Address].TransferSize <= Clients[client.Address].BlockSize)
+					{
+						Clients[client.Address].BlockSize = Convert.ToInt32(Clients[client.Address].TransferSize);
+						done = true;
+					}
+
+					var chunk = new byte[Clients[client.Address].BlockSize];
+
+					Clients[client.Address].BufferedStream.Seek(Clients[client.Address].BytesRead, SeekOrigin.Begin);
+					readedBytes = Clients[client.Address].BufferedStream.Read(chunk, 0, chunk.Length);
+
+					Clients[client.Address].BytesRead += readedBytes;
+					Clients[client.Address].TransferSize -= readedBytes;
+
+					var response = new TFTPPacket(4 + chunk.Length, TFTPOPCodes.DAT, client);
+					Clients[client.Address].Blocks += 1;
+					response.Block = Convert.ToUInt16(Clients[client.Address].Blocks);
+					Array.Copy(chunk, 0, response.Data, response.Offset, chunk.Length);
+					response.Offset += chunk.Length;
+
+					this.Send(ref response);
+
+					if (done && Clients.ContainsKey(client.Address))
+						Clients[client.Address].Stage = TFTPStage.Done;
 				}
-
-				var chunk = new byte[Clients[client.Address].BlockSize];
-
-				Clients[client.Address].BufferedStream.Seek(Clients[client.Address].BytesRead, SeekOrigin.Begin);
-				readedBytes = Clients[client.Address].BufferedStream.Read(chunk, 0, chunk.Length);
-
-				Clients[client.Address].BytesRead += readedBytes;
-				Clients[client.Address].TransferSize -= readedBytes;
-
-				var response = new TFTPPacket(4 + chunk.Length, TFTPOPCodes.DAT, client);
-				Clients[client.Address].Blocks += 1;
-				response.Block = Convert.ToUInt16(Clients[client.Address].Blocks);
-				Array.Copy(chunk, 0, response.Data, response.Offset, chunk.Length);
-				response.Offset += chunk.Length;
-
-				this.Send(ref response);
-
-				if (done && Clients.ContainsKey(client.Address))
-					Clients[client.Address].Stage = TFTPStage.Done;
+				catch (OverflowException ex)
+				{
+					Handle_Error_Request(TFTPErrorCode.AccessViolation, ex.Message, client);
+				}
 			}
 		}
 	}

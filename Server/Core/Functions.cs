@@ -44,15 +44,15 @@
 			return data;
 		}
 
-		public static ushort CalcBlocksize(long tsize, ushort blksize)
+		public static int CalcBlocksize(long tsize, ushort blksize)
 		{
-			var res = Convert.ToUInt16(tsize / blksize);
+			var res = tsize / blksize;
 			if (res < ushort.MaxValue)
 				return blksize;
 			else
 			{
 				if (res <= blksize)
-					return res;
+					return Convert.ToInt32(res);
 				else
 					return blksize;
 			}

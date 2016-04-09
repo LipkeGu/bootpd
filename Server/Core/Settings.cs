@@ -55,8 +55,8 @@
 		public static bool AdvertPXEServerList = false;
 		public static bool FixPXELinuxConfigPath = true;
 
-		public static ushort MaximumAllowedWindowSize = 8;
-		public static ushort MaximumAllowedBlockSize = 17000;
+		public static ushort MaximumAllowedWindowSize = 10;
+		public static ushort MaximumAllowedBlockSize = 8192;
 
 		public static int DHCPPort = 67;
 		public static int BINLPort = 4011;
