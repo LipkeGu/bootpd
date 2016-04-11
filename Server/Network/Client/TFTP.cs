@@ -13,9 +13,11 @@
 		TFTPStage stage;
 
 		int blksize;
-		ushort winsize;
-		int blocks;
 
+		ushort blocks;
+		ushort winsize;
+		ushort msftwindow;
+		
 		long tsize;
 		long bytesread;
 
@@ -35,6 +37,7 @@
 			this.tsize = 0;
 			this.bytesread = 0;
 			this.winsize = 1;
+			this.msftwindow = Settings.SendBuffer;
 			this.blksize = Settings.MaximumAllowedBlockSize;
 			this.windowssizemode = false;
 			this.blocks = 0;
@@ -122,6 +125,20 @@
 			}
 		}
 
+		public ushort MSFTWindow
+		{
+			get
+			{
+				return this.msftwindow;
+			}
+
+			set
+			{
+				if (value <= this.msftwindow)
+					this.msftwindow = value;
+			}
+		}
+
 		public bool WindowSizeMode
 		{
 			get
@@ -135,7 +152,7 @@
 			}
 		}
 
-		public int Blocks
+		public ushort Blocks
 		{
 			get
 			{

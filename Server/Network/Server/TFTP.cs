@@ -78,18 +78,23 @@
 
 				if (packet.Block == Clients[packet.Source.Address].Blocks || packet.Block == 0)
 				{
+					if (packet.MSFTWindow != 0 && Settings.AllowVariableWindowSize)
+						Clients[packet.Source.Address].WindowSize = packet.MSFTWindow;
+
 					if (Clients[packet.Source.Address].WindowSize > 1)
 						for (var i = 0; i < Clients[packet.Source.Address].WindowSize; i++)
 						{
 							this.Readfile(packet.Source);
 
-							if (Clients[packet.Source.Address].Stage == TFTPStage.Done || Clients[packet.Source.Address].Stage == TFTPStage.Error)
+							if (Clients[packet.Source.Address].Stage == TFTPStage.Done ||
+								Clients[packet.Source.Address].Stage == TFTPStage.Error)
 								break;
 						}
 					else
 						this.Readfile(packet.Source);
 
-					if (Clients[packet.Source.Address].Stage == TFTPStage.Done || Clients[packet.Source.Address].Stage == TFTPStage.Error)
+					if (Clients[packet.Source.Address].Stage == TFTPStage.Done ||
+						Clients[packet.Source.Address].Stage == TFTPStage.Error)
 					{
 						Clients[packet.Source.Address].Dispose();
 						Clients.Remove(packet.Source.Address);
@@ -114,6 +119,8 @@
 					response.ErrorMessage = message;
 
 					this.Send(ref response);
+
+					return;
 				}
 
 				Errorhandler.Report(LogTypes.Error, "[TFTP] {0}: {1}".F(error, message));
@@ -141,14 +148,15 @@
 				{
 					Clients.Add(packet.Source.Address, new TFTPClient(packet.Source));
 					Clients[packet.Source.Address].Stage = TFTPStage.Handshake;
+
+					this.ExtractOptions(ref packet);
 				}
-
-				this.ExtractOptions(ref packet);
-
+				
 				var file = Filesystem.ResolvePath(Options["file"]);
 				if (file == Settings.TFTPRoot.ToLowerInvariant())
 				{
 					this.Handle_Error_Request(TFTPErrorCode.AccessViolation, "Directories are not supported!", packet.Source);
+
 					return;
 				}
 
@@ -166,10 +174,9 @@
 						Clients[packet.Source.Address].BlockSize = Functions.CalcBlocksize(Clients[packet.Source.Address].FileStream.Length,
 							Convert.ToUInt16(Clients[packet.Source.Address].BlockSize));
 
-						Console.WriteLine("Selecting Blocksize: {0}", Clients[packet.Source.Address].BlockSize);
-
 						this.Handle_Option_request(Clients[packet.Source.Address].TransferSize,
-						Clients[packet.Source.Address].BlockSize, Clients[packet.Source.Address].WindowSize, Clients[packet.Source.Address].EndPoint);
+						Clients[packet.Source.Address].BlockSize, Clients[packet.Source.Address].WindowSize, 
+						Clients[packet.Source.Address].MSFTWindow, Clients[packet.Source.Address].EndPoint);
 
 						return;
 					}
@@ -242,6 +249,17 @@
 					if (Clients.ContainsKey(data.Source.Address))
 						Clients[data.Source.Address].WindowSize = ushort.Parse(Options["windowsize"]);
 				}
+
+				if (parts[i] == "msftwindow" && Settings.AllowVariableWindowSize)
+				{
+					if (!Options.ContainsKey(parts[i]))
+						Options.Add(parts[i], parts[i + 1]);
+					else
+						Options[parts[i]] = parts[i + 1];
+
+					if (Clients.ContainsKey(data.Source.Address))
+						Clients[data.Source.Address].MSFTWindow = ushort.Parse(Options["msftwindow"]);
+				}
 			}
 		}
 
@@ -254,14 +272,14 @@
 			switch (request.OPCode)
 			{
 				case TFTPOPCodes.RRQ:
-					var rrq_thread = new Thread(new ParameterizedThreadStart(Handle_RRQ_Request));
+					var rrq_thread = new Thread(new ParameterizedThreadStart(this.Handle_RRQ_Request));
 					rrq_thread.Start(request);
 					break;
 				case TFTPOPCodes.ERR:
 					this.Handle_Error_Request(request.ErrorCode, request.ErrorMessage, request.Source, true);
 					break;
 				case TFTPOPCodes.ACK:
-					var ack_thread = new Thread(new ParameterizedThreadStart(Handle_ACK_Request));
+					var ack_thread = new Thread(new ParameterizedThreadStart(this.Handle_ACK_Request));
 					ack_thread.Start(request);
 					break;
 				default:
@@ -274,7 +292,7 @@
 		{
 		}
 
-		internal void Handle_Option_request(long tsize, int blksize, int winsize, IPEndPoint client)
+		internal void Handle_Option_request(long tsize, int blksize, int winsize, ushort mswinsize, IPEndPoint client)
 		{
 			lock (Clients)
 			{
@@ -306,6 +324,15 @@
 
 					var winsize_value = Exts.StringToByte(winsize.ToString());
 					offset += Functions.CopyTo(ref winsize_value, 0, ref tmpbuffer, offset, winsize_value.Length) + 1;
+
+					if (Settings.AllowVariableWindowSize)
+					{
+						var mswinOpt = Exts.StringToByte("msftwindow");
+						offset += Functions.CopyTo(ref mswinOpt, 0, ref tmpbuffer, offset, mswinOpt.Length) + 1;
+
+						var mswinsize_value = Exts.StringToByte(mswinsize.ToString());
+						offset += Functions.CopyTo(ref mswinsize_value, 0, ref tmpbuffer, offset, mswinsize_value.Length) + 1;
+					}
 				}
 
 				var packet = new TFTPPacket(2 + offset, TFTPOPCodes.OCK, client);
@@ -340,12 +367,11 @@
 
 					Clients[client.Address].BytesRead += readedBytes;
 					Clients[client.Address].TransferSize -= readedBytes;
+					Clients[client.Address].Blocks += 1;
 
 					var response = new TFTPPacket(4 + chunk.Length, TFTPOPCodes.DAT, client);
-					Clients[client.Address].Blocks += 1;
-					response.Block = Convert.ToUInt16(Clients[client.Address].Blocks);
-					Array.Copy(chunk, 0, response.Data, response.Offset, chunk.Length);
-					response.Offset += chunk.Length;
+					response.Block = Clients[client.Address].Blocks;
+					response.Offset += Functions.CopyTo(chunk, 0, response.Data, response.Offset, chunk.Length);
 
 					this.Send(ref response);
 
@@ -354,7 +380,7 @@
 				}
 				catch (OverflowException ex)
 				{
-					Handle_Error_Request(TFTPErrorCode.AccessViolation, ex.Message, client);
+					this.Handle_Error_Request(TFTPErrorCode.AccessViolation, ex.Message, client);
 				}
 			}
 		}
