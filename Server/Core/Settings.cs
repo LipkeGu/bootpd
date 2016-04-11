@@ -35,6 +35,7 @@
 		public static int RequestID = 1;
 
 		public static bool EnableNTLMV2 = false;
+		public static bool AllowVariableWindowSize = true;
 		#endregion
 
 		#region "Server Settings"
@@ -54,15 +55,15 @@
 		public static bool ReUseAddress = false;
 		public static bool AdvertPXEServerList = false;
 		public static bool FixPXELinuxConfigPath = true;
-
-		public static ushort MaximumAllowedWindowSize = 10;
+		
+		public static ushort MaximumAllowedWindowSize = byte.MaxValue;
 		public static ushort MaximumAllowedBlockSize = 8192;
+		public static ushort SendBuffer = 27182;
 
 		public static int DHCPPort = 67;
 		public static int BINLPort = 4011;
 		public static int TFTPPort = 69;
 		public static int HTTPPort = 8080;
-		public static int SendBuffer = 30000;
 		public static int ReadBuffer = 2 << 64;
 		public static int DiscoveryType = 3;
 		#endregion

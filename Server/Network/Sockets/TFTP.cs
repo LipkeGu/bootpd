@@ -58,9 +58,7 @@
 
 		public void Send(IPEndPoint target, TFTPPacket packet)
 		{
-			var bytessend = this.socket.SendTo(packet.Data,
-				packet.Offset, SocketFlags.None, target);
-
+			var bytessend = this.socket.SendTo(packet.Data,	packet.Offset, SocketFlags.None, target);
 			this.OnDataSend(bytessend, target, this.type);
 		}
 

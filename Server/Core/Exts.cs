@@ -27,6 +27,11 @@
 			return fmt.ToUpperInvariant();
 		}
 
+		public static string EncodeTo(string data, Encoding src, Encoding target)
+		{
+			return target.GetString(src.GetBytes(data));
+		}
+
 		public static string GetGuidAsString(byte[] guid, int length, bool patch)
 		{
 			var fmt = string.Empty;

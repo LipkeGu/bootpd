@@ -66,12 +66,7 @@
 		internal void OnHTTPDataReceived(HttpListenerContext context)
 		{
 			var evtargs = new HTTPDataReceivedEventArgs();
-
-			evtargs.Filename = this.context.Request.Url.LocalPath.ToLowerInvariant();
-			evtargs.Arguments = this.context.Request.QueryString;
-			evtargs.ContentType = this.context.Request.ContentType;
-			evtargs.Headers = this.context.Request.Headers;
-			evtargs.Method = this.context.Request.HttpMethod;
+			evtargs.Request = this.context.Request;
 
 			if (this.HTTPDataReceived != null)
 				this.HTTPDataReceived(this, evtargs);

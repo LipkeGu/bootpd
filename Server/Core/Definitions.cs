@@ -46,11 +46,7 @@
 
 	public class HTTPDataReceivedEventArgs : EventArgs
 	{
-		public string Filename;
-		public NameValueCollection Arguments;
-		public NameValueCollection Headers;
-		public string ContentType;
-		public string Method;
+		public HttpListenerRequest Request;
 	}
 
 	public class HTTPDataSendEventArgs : EventArgs

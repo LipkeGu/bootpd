@@ -89,16 +89,25 @@
 			return length;
 		}
 
+		public static int CopyTo(byte[] src, int srcoffset, byte[] dst, int dstoffset, int length)
+		{
+			Array.Copy(src, srcoffset, dst, dstoffset, length);
+
+			return length;
+		}
+
 		public static void ReadServerList(string filename, ref Dictionary<string, Serverentry> servers)
 		{
 			var serverlist = Files.ReadXML(filename.ToLowerInvariant());
 			var list = serverlist.GetElementsByTagName("Server");
-			servers.Add(Settings.ServerName, new Serverentry(254, Settings.ServerName, Settings.DHCP_DEFAULT_BOOTFILE,
-			Settings.ServerIP, Definitions.BootServerTypes.MicrosoftWindowsNTBootServer));
+
+			if (!servers.ContainsKey(Settings.ServerName))
+				servers.Add(Settings.ServerName, new Serverentry(254, Settings.ServerName, Settings.DHCP_DEFAULT_BOOTFILE,
+				Settings.ServerIP, Definitions.BootServerTypes.MicrosoftWindowsNTBootServer));
 
 			for (var i = 0; i < list.Count; i++)
 			{
-				if (servers.Count > byte.MaxValue)
+				if (servers.Count > byte.MaxValue - 1)
 					break;
 
 				var addr = IPAddress.Parse(list[i].Attributes["address"].InnerText);
@@ -119,21 +128,18 @@
 			var o = BitConverter.GetBytes(option);
 			var l = BitConverter.GetBytes(Convert.ToByte(length));
 
-			var offset = 0;
 			var result = new byte[(2 + data.Length)];
 
-			CopyTo(ref o, 0, ref result, 0, 1);
-			offset += 1;
+			var offset = 0;
+			offset += CopyTo(ref o, 0, ref result, offset, 1);
+			offset += CopyTo(ref l, 0, ref result, offset, 1);
 
-			CopyTo(ref l, 0, ref result, 1, 1);
-			offset += 1;
-
-			CopyTo(ref data, 0, ref result, 2, data.Length);
+			CopyTo(ref data, 0, ref result, offset, data.Length);
 
 			return result;
 		}
 
-		public static byte[] GenerateServerList(ref Dictionary<string, Serverentry> servers, short item)
+		public static byte[] GenerateServerList(ref Dictionary<string, Serverentry> servers, ushort item)
 		{
 			if (item == 0)
 			{
@@ -160,7 +166,7 @@
 				#endregion
 
 				#region "Menu"
-				var menu = new byte[(servers.Count * 64)];
+				var menu = new byte[(servers.Count * 128)];
 				var menulength = 0;
 				var moffset = 0;
 				var isrv2 = 0;
@@ -171,30 +177,23 @@
 						break;
 
 					var name = Exts.StringToByte("{0} ({1})".F(server.Value.Hostname, server.Value.IPAddress));
-
 					var ident = BitConverter.GetBytes(server.Value.Ident);
-
 					var nlen = name.Length;
 
-					if (nlen > 64)
-						nlen = 64;
+					if (nlen > 128)
+						nlen = 128;
 
 					var menuentry = new byte[(ident.Length + nlen + 3)];
-					moffset = 0;
-					CopyTo(ref ident, 0, ref menuentry, moffset, ident.Length);
-					moffset += ident.Length;
+					moffset = CopyTo(ref ident, 0, ref menuentry, moffset, ident.Length);
 
 					menuentry[2] = Convert.ToByte(nlen);
 					moffset += 1;
-
-					CopyTo(ref name, 0, ref menuentry, moffset, nlen);
-					moffset += nlen;
+					moffset += CopyTo(ref name, 0, ref menuentry, moffset, nlen);
 
 					if (menulength == 0)
 						menulength = 2;
-
-					CopyTo(ref menuentry, 0, ref menu, menulength, moffset);
-					menulength += moffset;
+					
+					menulength += CopyTo(ref menuentry, 0, ref menu, menulength, moffset);
 
 					isrv2++;
 				}
@@ -220,19 +219,13 @@
 					var ident = BitConverter.GetBytes(server.Value.Ident);
 					var type = BitConverter.GetBytes(Convert.ToByte(server.Value.Type));
 					var addr = Settings.ServerIP.GetAddressBytes();
+					
+					entryoffset += CopyTo(ref ident, 0, ref entry, entryoffset, ident.Length);
+					entryoffset += CopyTo(ref type, 0, ref entry, entryoffset, 1);
+					entryoffset += CopyTo(ref addr, 0, ref entry, entryoffset, addr.Length);
 
-					CopyTo(ref ident, 0, ref entry, entryoffset, ident.Length);
-					entryoffset += ident.Length;
-
-					CopyTo(ref type, 0, ref entry, entryoffset, 1);
-					entryoffset += 1;
-
-					CopyTo(ref addr, 0, ref entry, entryoffset, addr.Length);
-					entryoffset += addr.Length;
+					resultoffset += CopyTo(ref entry, 0, ref srvlist, resultoffset, entry.Length);
 					#endregion
-
-					CopyTo(ref entry, 0, ref srvlist, resultoffset, entry.Length);
-					resultoffset += entry.Length;
 
 					srvlist[0] = Convert.ToByte(Definitions.PXEVendorEncOptions.BootServers);
 					srvlist[1] += Convert.ToByte(entry.Length);
@@ -244,17 +237,10 @@
 				var result = new byte[(discover.Length + menu.Length + prompt.Length + srvlist.Length)];
 				var optoffset = 0;
 
-				CopyTo(ref discover, 0, ref result, optoffset, discover.Length);
-				optoffset += discover.Length;
-
-				CopyTo(ref srvlist, 0, ref result, optoffset, srvlist.Length);
-				optoffset += srvlist.Length;
-
-				CopyTo(ref prompt, 0, ref result, optoffset, prompt.Length);
-				optoffset += prompt.Length;
-
-				CopyTo(ref menu, 0, ref result, optoffset, menulength);
-				optoffset += menulength;
+				optoffset += CopyTo(ref discover, 0, ref result, optoffset, discover.Length);
+				optoffset += CopyTo(ref srvlist, 0, ref result, optoffset, srvlist.Length);
+				optoffset += CopyTo(ref prompt, 0, ref result, optoffset, prompt.Length);
+				optoffset += CopyTo(ref menu, 0, ref result, optoffset, menulength);
 
 				var block = new byte[optoffset];
 				CopyTo(ref result, 0, ref block, 0, block.Length);
@@ -318,15 +304,12 @@
 			var n = Exts.StringToByte(name);
 			var t = Exts.StringToByte(type);
 			var v = Exts.StringToByte(value);
-
-			var offset = 0;
+						
 			var data = new byte[n.Length + t.Length + v.Length + 2];
 
-			CopyTo(ref n, 0, ref data, offset, n.Length);
-			offset += n.Length + 1;
-
-			CopyTo(ref t, 0, ref data, offset, t.Length);
-			offset += t.Length + 1;
+			var offset = 0;
+			offset += CopyTo(ref n, 0, ref data, offset, n.Length) + 1;
+			offset += CopyTo(ref t, 0, ref data, offset, t.Length) + 1;
 
 			CopyTo(ref v, 0, ref data, offset, v.Length);
 
@@ -345,9 +328,7 @@
 							client.BCDPath = Path.Combine(Settings.WDS_BOOT_PREFIX_X86, Settings.WDS_BCD_FileName);
 						}
 						else
-						{
 							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_X86, Settings.WDS_BOOTFILE_ABORT);
-						}
 
 						break;
 					case Definitions.Architecture.EFIItanium:
@@ -357,9 +338,7 @@
 							client.BCDPath = Path.Combine(Settings.WDS_BOOT_PREFIX_IA64, Settings.WDS_BCD_FileName);
 						}
 						else
-						{
 							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_IA64, Settings.WDS_BOOTFILE_ABORT);
-						}
 
 						break;
 					case Definitions.Architecture.EFIx8664:
@@ -369,9 +348,7 @@
 							client.BCDPath = Path.Combine(Settings.WDS_BOOT_PREFIX_X64, Settings.WDS_BCD_FileName);
 						}
 						else
-						{
 							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_X64, Settings.WDS_BOOTFILE_ABORT);
-						}
 
 						break;
 					case Definitions.Architecture.EFIBC:
@@ -381,9 +358,7 @@
 							client.BCDPath = Path.Combine(Settings.WDS_BOOT_PREFIX_EFI, Settings.WDS_BCD_FileName);
 						}
 						else
-						{
 							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_EFI, Settings.WDS_BOOTFILE_ABORT);
-						}
 
 						break;
 					default:

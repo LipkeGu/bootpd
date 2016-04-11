@@ -1,6 +1,7 @@
 ﻿namespace bootpd
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Collections.Specialized;
 	using System.IO;
 	using System.Linq;
@@ -9,12 +10,13 @@
 	public sealed class HTTP : IDisposable
 	{
 		HTTPSocket socket;
+		Dictionary<string, string> Formdata;
 
 		public HTTP(int port)
 		{
 			if (!Settings.EnableHTTP)
 				return;
-
+			this.Formdata = new Dictionary<string, string>();
 			this.socket = new HTTPSocket(port);
 			this.socket.HTTPDataReceived += this.DataReceived;
 			this.socket.HTTPDataSend += this.DataSend;
@@ -22,7 +24,7 @@
 
 		~HTTP()
 		{
-			this.Close();
+			this.Dispose();
 		}
 
 		public void Dispose()
@@ -34,11 +36,12 @@
 		{
 		}
 
-		internal string ParseRequest(string url, NameValueCollection arguments, out long length)
+		internal string ParseRequest(string url, NameValueCollection arguments, string method, out long length)
 		{
 			try
 			{
 				var retval = url;
+
 				if (arguments.HasKeys() && url == "/approve.html")
 					if (arguments["cid"] != null && arguments["action"] != null)
 					{
@@ -58,6 +61,11 @@
 						}
 					}
 
+				if (method == "POST" && url == "/settings.html")
+				{
+					length = 0;
+					return null;
+				}
 				if (retval == "/approve.html")
 					retval = "/requests.html";
 
@@ -135,12 +143,78 @@
 			var length = 0L;
 			var statuscode = 200;
 			var description = "OK";
-			var url = this.ParseRequest(e.Filename != null ? e.Filename : "/", e.Arguments, out length);
+
+			if (e.Request.HttpMethod == "POST" && e.Request.Url.LocalPath.ToLowerInvariant() == "/settings.html")
+			{
+				using (var sr = new StreamReader(e.Request.InputStream, true))
+				{
+					var postdata = Exts.EncodeTo(sr.ReadToEnd(), e.Request.ContentEncoding, Encoding.ASCII).Split('&');
+
+					for (var i = 0; i < postdata.Length; i++)
+					{
+						if (!postdata[i].Contains('='))
+							continue;
+
+						var entry = postdata[i].Split('=');
+
+						if (!this.Formdata.ContainsKey(entry[0]) && !string.IsNullOrEmpty(entry[1]))
+							this.Formdata.Add(entry[0].ToLowerInvariant(), entry[1].Replace("+", " "));
+					}
+				}
+
+				foreach (var item in this.Formdata)
+				{
+					if (item.Key == "dhcp_bootfile")
+						Settings.DHCP_DEFAULT_BOOTFILE = item.Value;
+
+					if (item.Key == "pxe_enable_dhcp")
+						Settings.EnableDHCP = item.Value == "on" ? true : false;
+
+					if (item.Key == "tftp_max_winsize")
+					{
+						var winval = ushort.Parse(item.Value);
+						if (winval < byte.MaxValue)
+							Settings.MaximumAllowedWindowSize = winval;
+					}
+
+					if (item.Key == "tftp_max_blksize")
+					{
+						var blkval = ushort.Parse(item.Value);
+
+						if (blkval < ushort.MaxValue)
+							Settings.MaximumAllowedBlockSize = blkval;
+						else
+							Settings.MaximumAllowedBlockSize = 8192;
+					}
+
+					if (item.Key == "pxe_advert_srvlist")
+					{
+						Settings.AdvertPXEServerList = item.Value == "on" ? true : false;
+
+						if (Settings.AdvertPXEServerList)
+							DHCP.ReadServerList();
+						else
+							DHCP.Servers.Clear();
+					}
+
+					if (item.Key == "pxe_menu_prompt")
+						Settings.DHCP_MENU_PROMPT = item.Value;
+
+					if (item.Key == "osc_welcome_file")
+						Settings.OSC_DEFAULT_FILE = item.Value;
+
+					if (item.Key == "servermode")
+						Settings.Servermode = (Definitions.ServerMode)Convert.ToUInt32(item.Value);
+				}
+			}
+
+			var url = this.ParseRequest(e.Request.Url.LocalPath != null ?
+				e.Request.Url.LocalPath.ToLowerInvariant() : "/", e.Request.QueryString, e.Request.HttpMethod, out length);
 
 			if (string.IsNullOrEmpty(url))
 				return;
 
-			if (!Filesystem.Exist(url) && e.Method == "GET")
+			if (!Filesystem.Exist(url) && e.Request.HttpMethod == "GET")
 			{
 				this.Send(new byte[0], 404, "File not Found!");
 				return;
@@ -182,14 +256,11 @@
 				if (url.EndsWith(".htm") || url.EndsWith(".html"))
 				{
 					pagecontent = pagecontent.Replace("[[DESIGN]]", Settings.Design);
-
 					pagecontent = pagecontent.Replace("[[SERVER_INFO_BLOCK]]", this.Gen_ServerInfo());
-
 					pagecontent = pagecontent.Replace("[[SERVER_SETTINGS_BLOCK]]", this.Gen_settings_page());
-
 					pagecontent = pagecontent.Replace("[[SERVERNAME]]", Settings.ServerName);
 
-					if (pagecontent.Contains("[[CLIENT_BOOTP_OVERVIEW_LIST]]") && e.Headers.HasKeys() && e.Headers["Needs"] == "bootp")
+					if (pagecontent.Contains("[[CLIENT_BOOTP_OVERVIEW_LIST]]") && e.Request.Headers.HasKeys() && e.Request.Headers["Needs"] == "bootp")
 					{
 						var bootp_clients = this.Gen_BOOTP_client_list();
 						if (bootp_clients == null)
@@ -214,7 +285,6 @@
 			}
 
 			this.Send(data, statuscode, description);
-			Array.Clear(data, 0, data.Length);
 		}
 
 		internal void Send(byte[] buffer, int statuscode, string description)
@@ -273,6 +343,7 @@
 					{
 						link += "<a onclick=\"LoadDocument('approve.html?cid={1}&action=0', 'main', 'BOOTP Übersicht')\" href=\"/#\">Annehmen</a>\n".F(client.Value.ActionDone, Exts.ToBase64(client.Value.ID));
 						link += "<a onclick=\"LoadDocument('approve.html?cid={1}&action=1', 'main', 'BOOTP Übersicht')\" href=\"/#\">Ablehen</a>\n".F(client.Value.ActionDone, Exts.ToBase64(client.Value.ID));
+
 						output += "<div class=\"tr\">";
 						output += "<p class=\"td\">{1}</p><p class=\"td\">{2}</p><p class=\"td\">{3}</p><p class=\"td\">{0}</p".F(link, DHCP.RequestID, client.Value.Guid, client.Value.EndPoint.Address);
 						output += "</div>";
@@ -409,12 +480,12 @@
 			switch (Settings.Servermode)
 			{
 				case Definitions.ServerMode.AllowAll:
-					output += "<div id=\"nv_cbox_content\" style =\"width: 100%\"><input type=\"radio\" name=\"servermode\" id=\"allowall\" value=\"allowall\" checked /> <label for=\"allowall\">Unbekannten Clients antworten</label></div>";
-					output += "<div id=\"nv_cbox_content\" style =\"width: 100%\"><input type=\"radio\" name=\"servermode\" id=\"knownonly\" value=\"knownonly\" /> <label for=\"knownonly\">Unbekannten Clients nicht antworten</label></div>";
+					output += "<div id=\"nv_cbox_content\" style =\"width: 100%\"><input type=\"radio\" name=\"servermode\" id=\"allowall\" value=\"0\" checked /> <label for=\"allowall\">Unbekannten Clients antworten</label></div>";
+					output += "<div id=\"nv_cbox_content\" style =\"width: 100%\"><input type=\"radio\" name=\"servermode\" id=\"knownonly\" value=\"1\" /> <label for=\"knownonly\">Unbekannten Clients nicht antworten</label></div>";
 					break;
 				case Definitions.ServerMode.KnownOnly:
-					output += "<div id=\"nv_cbox_content\" style =\"width: 100%\"><input type=\"radio\" name=\"servermode\" id=\"allowall\" value=\"allowall\" /> <label for=\"allowall\">Unbekannten Clients antworten</label></div>";
-					output += "<div id=\"nv_cbox_content\" style =\"width: 100%\"><input type=\"radio\" name=\"servermode\" id=\"knownonly\" value=\"knownonly\" checked /> <label for=\"knownonly\">Unbekannten Clients nicht antworten</label></div>";
+					output += "<div id=\"nv_cbox_content\" style =\"width: 100%\"><input type=\"radio\" name=\"servermode\" id=\"allowall\" value=\"0\" /> <label for=\"allowall\">Unbekannten Clients antworten</label></div>";
+					output += "<div id=\"nv_cbox_content\" style =\"width: 100%\"><input type=\"radio\" name=\"servermode\" id=\"knownonly\" value=\"1\" checked /> <label for=\"knownonly\">Unbekannten Clients nicht antworten</label></div>";
 					break;
 				default:
 					break;
@@ -437,16 +508,19 @@
 			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><label for=\"pxe_enable_dhcp\">Port 67 nicht abhören</label></div>";
 			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><input type=\"checkbox\" name=\"pxe_enable_dhcp\" id=\"pxe_enable_dhcp\" /></div>";
 
+			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><label for=\"pxe_advert_srvlist\">Serverliste verteilen</label></div>";
+			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><input type=\"checkbox\" name=\"pxe_advert_srvlist\" id=\"pxe_advert_srvlist\" /></div>";
+
 			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><label for=\"pxe_menu_prompt\">PXE Menu prompt:</label></div>";
 			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><textarea name=\"pxe_menu_prompt\" id=\"pxe_menu_prompt\" maxlength=\"250\"/>{0}</textarea></div>".F(Settings.DHCP_MENU_PROMPT);
-			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><label for=\"dhcp_bootfile\">DHCP Bootfile:([TFTPRoot]/Boot/[Arch]/)</label></div>";
+			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><label for=\"dhcp_bootfile\">DHCP Bootfile:</label></div>";
 			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><input type=\"text\" name=\"dhcp_bootfile\" id=\"dhcp_bootfile\" maxlength=\"256\" value=\"{0}\"/></div>".F(Settings.DHCP_DEFAULT_BOOTFILE);
 
 			output += "</div>";
 			#endregion
-
+			output += "<div id=\"nv_cbox\">";
 			output += "<div id=\"nv_cbox_header\" style=\"width: 100px\"> <input type=\"submit\" value=\"Speichern\"/></div>";
-
+			output += "</div>";
 			output += "</form>";
 
 			return output;

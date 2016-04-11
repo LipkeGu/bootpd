@@ -2,9 +2,8 @@
 <document>
 	<Navigation>
 		<link url="summary.html" target="main" value="Server Übersicht" ident="anchor_summary" needs="index" />
-		<!-- <link url="tftpsession.html" target="main" value="TFTP Übersicht" ident="anchor_tftp" needs="tftp" /> -->
 		<link url="requests.html" target="main" value="BINL Übersicht" ident="anchor_bootp" needs="bootp" />
-		<!-- <link url="settings.html" target="main" value="Server Settings" ident="anchor_settings" needs="settings" /> -->
+		<link url="settings.html" target="main" value="Server Settings" ident="anchor_settings" needs="settings" />
 	</Navigation>
 	
 	<scripts>

@@ -40,8 +40,13 @@
 				this.DHCPsocket.DataSend += this.DataSend;
 
 				if (Settings.AdvertPXEServerList)
-					Functions.ReadServerList(Settings.ServersFile, ref Servers);
+					ReadServerList();
 			}
+		}
+
+		public static void ReadServerList()
+		{
+			Functions.ReadServerList(Settings.ServersFile, ref Servers);
 		}
 
 		public static int RequestID
@@ -102,7 +107,7 @@
 			{
 				var parameterlist_offset = Functions.GetOptionOffset(ref packet, DHCPOptionEnum.ParameterRequestList);
 				var parameterlistLength = packet.Data[(parameterlist_offset + 1)];
-				var bootitem = (short)0;
+				var bootitem = (ushort)0;
 				var pktlength = (ushort)1024;
 
 				if (parameterlist_offset != 0)
@@ -237,7 +242,7 @@
 						switch (data[0])
 						{
 							case (byte)Definitions.PXEVendorEncOptions.BootItem:
-								bootitem = BitConverter.ToInt16(data, 2);
+								bootitem = BitConverter.ToUInt16(data, 2);
 								break;
 							default:
 								break;
@@ -538,7 +543,7 @@
 								return;
 
 							var cguid = Exts.GetOptionValue(request.Data, DHCPOptionEnum.GUID);
-							if (cguid.Length == 1)
+							if (cguid.Length == 1 || cguid.Length > 32)
 								return;
 
 							var guid = Guid.Parse(Exts.GetGuidAsString(cguid, cguid.Length, true));
