@@ -76,7 +76,7 @@
 			Ris = 0x00018206
 		}
 
-		public enum NTLMSubBlockType : short
+		public enum NTLMSubBlockType : ushort
 		{
 			Terminator = 0x0000,
 			ServerName = 0x0100,
@@ -162,8 +162,8 @@
 		{
 			var offset = 0;
 			var d = Encoding.Unicode.GetBytes(value);
-			var t = BitConverter.GetBytes((short)type);
-			var l = BitConverter.GetBytes((short)d.Length);
+			var t = BitConverter.GetBytes((ushort)type);
+			var l = BitConverter.GetBytes((ushort)d.Length);
 
 			var block = new byte[(d.Length + t.Length + l.Length)];
 
@@ -251,7 +251,7 @@
 			offset += context.Length;
 
 			/*
-			TODO: Our C- Version is skipping this o.o" (Why?!)
+			TODO: Our C-Version is skipping this o.o" (Why?!)
 			
 			Console.WriteLine("Offset is now: {0} | 40 | {1} (tisb) | 8", offset, tisb.Length);
 			Array.Copy(tisb, 0, message, offset, tisb.Length);
@@ -281,7 +281,7 @@
 		{
 			var offset = 0;
 			var buffer = new byte[8];
-			var length = BitConverter.GetBytes((short)(data.Length * 2));
+			var length = BitConverter.GetBytes((ushort)(data.Length * 2));
 			var pos = BitConverter.GetBytes(position);
 
 			// length
@@ -301,7 +301,7 @@
 		{
 			var offset = 0;
 			var buffer = new byte[8];
-			var length = BitConverter.GetBytes((short)data.Length);
+			var length = BitConverter.GetBytes((ushort)data.Length);
 			var pos = BitConverter.GetBytes(position);
 
 			// length
@@ -392,7 +392,7 @@
 		{
 			var key7 = new byte[7];
 			var tmp = password.ToUpper(CultureInfo.CurrentCulture);
-			Encoding.ASCII.GetBytes(tmp, position, Math.Min(tmp.Length - position, 7), key7, 0);
+			Encoding.ASCII.GetBytes(tmp, position, Math.Min(tmp.Length - position, key7.Length), key7, 0);
 
 			var key8 = this.PrepareDESKey(key7, 0);
 			Array.Clear(key7, 0, key7.Length);

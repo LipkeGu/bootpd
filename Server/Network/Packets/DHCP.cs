@@ -54,12 +54,12 @@
 		{
 			get
 			{
-				return this.offset;
+				return this.Offset;
 			}
 
 			set
 			{
-				this.offset = value;
+				this.Offset = value;
 			}
 		}
 

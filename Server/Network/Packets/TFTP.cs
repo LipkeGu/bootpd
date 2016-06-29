@@ -178,7 +178,7 @@
 				if (this.OPCode == TFTPOPCodes.ACK && this.data.Length == 5)
 					return Convert.ToUInt16(this.data[this.data.Length - 1]);
 				else
-					return 0;
+					return 1;
 			}
 		}
 		#endregion

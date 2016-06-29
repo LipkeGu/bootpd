@@ -17,6 +17,11 @@
 
 		#region "Windows Deployment Server"
 		public static string OSC_DEFAULT_FILE = "welcome.osc";
+		public static string OSC_DEFAULT_LANG = "English";
+
+		public static string OSC_DEFAULT_USER = "Administrator";
+		public static string OSC_DEFAULT_PASS = "secret";
+
 		public static string WDS_BCD_FileName = "default.bcd";
 		public static string WDS_BOOT_PREFIX_X86 = "Boot/x86/";
 		public static string WDS_BOOT_PREFIX_X64 = "Boot/x64/";
@@ -30,8 +35,8 @@
 		public static string DHCP_DEFAULT_BOOTFILE = "wdsnbp.com";
 		public static string DHCP_MENU_PROMPT = "Select Server...";
 
-		public static short PollInterval = 5;
-		public static short RetryCount = short.MaxValue;
+		public static ushort PollInterval = 3;
+		public static ushort RetryCount = ushort.MaxValue;
 		public static int RequestID = 1;
 
 		public static bool EnableNTLMV2 = false;
@@ -46,7 +51,7 @@
 		public static string DriverFile = Path.Combine(Filesystem.ReplaceSlashes(Environment.CurrentDirectory), "drivers.xml");
 		public static string ServersFile = Path.Combine(Filesystem.ReplaceSlashes(Environment.CurrentDirectory), "serverlist.xml");
 
-		public static Definitions.ServerMode Servermode = Definitions.ServerMode.AllowAll;
+		public static Definitions.ServerMode Servermode = Definitions.ServerMode.KnownOnly;
 
 		public static long MaxAllowedFileLength = 10485760;
 
@@ -55,9 +60,10 @@
 		public static bool ReUseAddress = false;
 		public static bool AdvertPXEServerList = false;
 		public static bool FixPXELinuxConfigPath = true;
-		
-		public static ushort MaximumAllowedWindowSize = byte.MaxValue;
+
 		public static ushort MaximumAllowedBlockSize = 8192;
+		public static ushort MaximumAllowedWindowSize = byte.MaxValue;
+		
 		public static ushort SendBuffer = 27182;
 
 		public static int DHCPPort = 67;

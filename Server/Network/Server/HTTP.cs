@@ -17,6 +17,7 @@
 			if (!Settings.EnableHTTP)
 				return;
 			this.Formdata = new Dictionary<string, string>();
+
 			this.socket = new HTTPSocket(port);
 			this.socket.HTTPDataReceived += this.DataReceived;
 			this.socket.HTTPDataSend += this.DataSend;
@@ -50,7 +51,7 @@
 						{
 							if (arguments["action"] == "0")
 							{
-								DHCP.Clients[client].NextAction = Definitions.NextActionOptionValues.Referral;
+								DHCP.Clients[client].NextAction = Definitions.NextActionOptionValues.Approval;
 								DHCP.Clients[client].ActionDone = true;
 							}
 							else
@@ -62,10 +63,8 @@
 					}
 
 				if (method == "POST" && url == "/settings.html")
-				{
-					length = 0;
-					return null;
-				}
+					retval = "/";
+
 				if (retval == "/approve.html")
 					retval = "/requests.html";
 
@@ -393,6 +392,16 @@
 				output += "<div id=\"nv_cbox_header\"> TFTP-Server</div>";
 				output += "<div id=\"nv_cbox_content\" style=\"width: 50%\">Endpunkt:</div><div id=\"nv_cbox_content\" style=\"width: 50%\">{0}:{1}</div>".F(Settings.ServerIP, Settings.TFTPPort);
 				output += "<div id=\"nv_cbox_content\" style=\"width: 50%\">Path:</div><div id=\"nv_cbox_content\" style=\"width: 50%\">{0}</div>".F(Settings.TFTPRoot);
+				output += "<div id=\"nv_cbox_content\" style=\"width: 50%\">Maximale Blocksize:</div><div id=\"nv_cbox_content\" style=\"width: 50%\">{0} Bytes</div>".F(Settings.MaximumAllowedBlockSize);
+
+				var varwindow_str = string.Empty;
+				if (Settings.AllowVariableWindowSize)
+					varwindow_str = "(Dynamisch)";
+				else
+					varwindow_str = "";
+
+				output += "<div id=\"nv_cbox_content\" style=\"width: 50%\">Windowsize:</div><div id=\"nv_cbox_content\" style=\"width: 50%\">{0} {1}</div>".F(Settings.MaximumAllowedWindowSize, varwindow_str);
+
 				output += "</div>";
 			}
 			#endregion
@@ -506,10 +515,24 @@
 			output += "<div id=\"nv_cbox\">";
 			output += "<div id=\"nv_cbox_header\">DHCP-/BINL-Server</div>";
 			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><label for=\"pxe_enable_dhcp\">Port 67 nicht abhören</label></div>";
-			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><input type=\"checkbox\" name=\"pxe_enable_dhcp\" id=\"pxe_enable_dhcp\" /></div>";
+
+			var enable_dhcp_pxe = string.Empty;
+			if (!Settings.EnableDHCP)
+				enable_dhcp_pxe = "checked";
+			else
+				enable_dhcp_pxe = string.Empty;
+
+
+			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><input type=\"checkbox\" name=\"pxe_enable_dhcp\" id=\"pxe_enable_dhcp\" {0}/></div>".F(enable_dhcp_pxe);
+
+			var checkbox_advert_servers = string.Empty;
+			if (!Settings.AdvertPXEServerList)
+				checkbox_advert_servers = "checked";
+			else
+				checkbox_advert_servers = string.Empty;
 
 			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><label for=\"pxe_advert_srvlist\">Serverliste verteilen</label></div>";
-			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><input type=\"checkbox\" name=\"pxe_advert_srvlist\" id=\"pxe_advert_srvlist\" /></div>";
+			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><input type=\"checkbox\" name=\"pxe_advert_srvlist\" id=\"pxe_advert_srvlist\" {0}/></div>".F(checkbox_advert_servers);
 
 			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><label for=\"pxe_menu_prompt\">PXE Menu prompt:</label></div>";
 			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><textarea name=\"pxe_menu_prompt\" id=\"pxe_menu_prompt\" maxlength=\"250\"/>{0}</textarea></div>".F(Settings.DHCP_MENU_PROMPT);

@@ -98,6 +98,9 @@
 
 		public static void ReadServerList(string filename, ref Dictionary<string, Serverentry> servers)
 		{
+			if (!Filesystem.Exist(filename))
+				return;
+
 			var serverlist = Files.ReadXML(filename.ToLowerInvariant());
 			var list = serverlist.GetElementsByTagName("Server");
 
@@ -194,7 +197,6 @@
 						menulength = 2;
 					
 					menulength += CopyTo(ref menuentry, 0, ref menu, menulength, moffset);
-
 					isrv2++;
 				}
 
@@ -318,56 +320,68 @@
 
 		public static void SelectBootFile(ref DHCPClient client)
 		{
+			var bootfile = string.Empty;
+			var bcdpath = string.Empty;
+
 			if (client.IsWDSClient)
 				switch (client.Arch)
 				{
 					case Definitions.Architecture.Intelx86PC:
 						if (client.NextAction == Definitions.NextActionOptionValues.Approval)
 						{
-							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_X86, Settings.WDS_BOOTFILE_X86);
-							client.BCDPath = Path.Combine(Settings.WDS_BOOT_PREFIX_X86, Settings.WDS_BCD_FileName);
+							bootfile = Path.Combine(Settings.WDS_BOOT_PREFIX_X86, Settings.WDS_BOOTFILE_X86);
+							bcdpath = Path.Combine(Settings.WDS_BOOT_PREFIX_X86, Settings.WDS_BCD_FileName);
 						}
 						else
-							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_X86, Settings.WDS_BOOTFILE_ABORT);
+							bootfile = Path.Combine(Settings.WDS_BOOT_PREFIX_X86, Settings.WDS_BOOTFILE_ABORT);
 
 						break;
 					case Definitions.Architecture.EFIItanium:
 						if (client.NextAction == Definitions.NextActionOptionValues.Approval)
 						{
-							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_IA64, Settings.WDS_BOOTFILE_IA64);
-							client.BCDPath = Path.Combine(Settings.WDS_BOOT_PREFIX_IA64, Settings.WDS_BCD_FileName);
+							bootfile = Path.Combine(Settings.WDS_BOOT_PREFIX_IA64, Settings.WDS_BOOTFILE_IA64);
+							bcdpath = Path.Combine(Settings.WDS_BOOT_PREFIX_IA64, Settings.WDS_BCD_FileName);
 						}
 						else
-							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_IA64, Settings.WDS_BOOTFILE_ABORT);
+							bootfile = Path.Combine(Settings.WDS_BOOT_PREFIX_IA64, Settings.WDS_BOOTFILE_ABORT);
 
 						break;
 					case Definitions.Architecture.EFIx8664:
 						if (client.NextAction == Definitions.NextActionOptionValues.Approval)
 						{
-							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_X64, Settings.WDS_BOOTFILE_X64);
-							client.BCDPath = Path.Combine(Settings.WDS_BOOT_PREFIX_X64, Settings.WDS_BCD_FileName);
+							bootfile = Path.Combine(Settings.WDS_BOOT_PREFIX_X64, Settings.WDS_BOOTFILE_X64);
+							bcdpath = Path.Combine(Settings.WDS_BOOT_PREFIX_X64, Settings.WDS_BCD_FileName);
 						}
 						else
-							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_X64, Settings.WDS_BOOTFILE_ABORT);
+							bootfile = Path.Combine(Settings.WDS_BOOT_PREFIX_X64, Settings.WDS_BOOTFILE_ABORT);
 
 						break;
 					case Definitions.Architecture.EFIBC:
 						if (client.NextAction == Definitions.NextActionOptionValues.Approval)
 						{
-							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_EFI, Settings.WDS_BOOTFILE_EFI);
-							client.BCDPath = Path.Combine(Settings.WDS_BOOT_PREFIX_EFI, Settings.WDS_BCD_FileName);
+							bootfile = Path.Combine(Settings.WDS_BOOT_PREFIX_EFI, Settings.WDS_BOOTFILE_EFI);
+							bcdpath = Path.Combine(Settings.WDS_BOOT_PREFIX_EFI, Settings.WDS_BCD_FileName);
 						}
 						else
-							client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_EFI, Settings.WDS_BOOTFILE_ABORT);
+							bootfile = Path.Combine(Settings.WDS_BOOT_PREFIX_EFI, Settings.WDS_BOOTFILE_ABORT);
 
 						break;
 					default:
-						client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_X86, Settings.WDS_BOOTFILE_X86);
-						client.BCDPath = Path.Combine(Settings.WDS_BOOT_PREFIX_X86, Settings.WDS_BCD_FileName);
+						bootfile = Path.Combine(Settings.WDS_BOOT_PREFIX_X86, Settings.WDS_BOOTFILE_X86);
+						bcdpath = Path.Combine(Settings.WDS_BOOT_PREFIX_X86, Settings.WDS_BCD_FileName);
 						break;
 				}
 			else
-				client.BootFile = Path.Combine(Settings.WDS_BOOT_PREFIX_X86, Settings.DHCP_DEFAULT_BOOTFILE);
+				bootfile = Path.Combine(Settings.WDS_BOOT_PREFIX_X86, Settings.DHCP_DEFAULT_BOOTFILE);
+
+
+			if (Filesystem.Exist(Filesystem.ResolvePath(bootfile)))
+			{
+				client.BootFile = bootfile;
+				client.BCDPath = bcdpath;
+			}
+			else
+				Errorhandler.Report(Definitions.LogTypes.Error, "Can not find Bootfile: {0}".F(bootfile));
 		}
 	}
 }
