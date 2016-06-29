@@ -187,7 +187,7 @@
 			response.MessageType = client.MsgType;
 
 			// Option 60
-			var opt = Exts.SetDHCPOption(DHCPOptionEnum.Vendorclassidentifier, Exts.StringToByte(client.VendorIdent.ToString()));
+			var opt = Exts.SetDHCPOption(DHCPOptionEnum.Vendorclassidentifier, Exts.StringToByte(client.VendorIdent.ToString(), Encoding.ASCII));
 
 			Array.Copy(opt, 0, response.Data, response.Offset, opt.Length);
 			response.Offset += opt.Length;
@@ -241,7 +241,7 @@
 			// Option 252 - BCDStore
 			if (client.BCDPath != null && client.ActionDone && client.IsWDSClient)
 			{
-				var bcdstore = Exts.SetDHCPOption(DHCPOptionEnum.BCDPath, Exts.StringToByte(client.BCDPath));
+				var bcdstore = Exts.SetDHCPOption(DHCPOptionEnum.BCDPath, Exts.StringToByte(client.BCDPath, Encoding.ASCII));
 
 				Array.Copy(bcdstore, 0, response.Data, response.Offset, bcdstore.Length);
 				response.Offset += bcdstore.Length;
@@ -674,7 +674,7 @@
 			var retrycount = Functions.GenerateDHCPEncOption(Convert.ToByte(WDSNBPOptions.PollRetryCount), 2, val);
 			length += retrycount.Length;
 
-			val = Exts.StringToByte(adminMessage);
+			val = Exts.StringToByte(adminMessage, Encoding.ASCII);
 			var message = Functions.GenerateDHCPEncOption(Convert.ToByte(WDSNBPOptions.Message), val.Length, val);
 			length += message.Length;
 
@@ -736,7 +736,7 @@
 				oscfile += "The requested file \"{0}\" was not found on the server.".F(filename);
 				oscfile += "</BODY></OSCML>";
 
-				return Exts.StringToByte(oscfile);
+				return Exts.StringToByte(oscfile, Encoding.ASCII);
 			}
 		}
 	}

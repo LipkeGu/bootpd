@@ -4,6 +4,7 @@
 	using System.Collections.Generic;
 	using System.IO;
 	using System.Net;
+	using System.Text;
 	using System.Threading;
 
 	public sealed class TFTP : ServerProvider, ITFTPServer_Provider, IDisposable
@@ -301,33 +302,33 @@
 				var tmpbuffer = new byte[100];
 				var offset = 0;
 
-				var blksizeopt = Exts.StringToByte("blksize");
+				var blksizeopt = Exts.StringToByte("blksize", Encoding.ASCII);
 				offset += Functions.CopyTo(ref blksizeopt, 0, ref tmpbuffer, offset, blksizeopt.Length) + 1;
 
-				var blksize_value = Exts.StringToByte(blksize.ToString());
+				var blksize_value = Exts.StringToByte(blksize.ToString(), Encoding.ASCII);
 				offset += Functions.CopyTo(ref blksize_value, 0, ref tmpbuffer, offset, blksize_value.Length) + 1;
 
 
-				var tsizeOpt = Exts.StringToByte("tsize");
+				var tsizeOpt = Exts.StringToByte("tsize", Encoding.ASCII);
 				offset += Functions.CopyTo(ref tsizeOpt, 0, ref tmpbuffer, offset, tsizeOpt.Length) + 1;
 
-				var tsize_value = Exts.StringToByte(tsize.ToString());
+				var tsize_value = Exts.StringToByte(tsize.ToString(), Encoding.ASCII);
 				offset += Functions.CopyTo(ref tsize_value, 0, ref tmpbuffer, offset, tsize_value.Length) + 1;
 
 				if (winsize > 1)
 				{
-					var winOpt = Exts.StringToByte("windowsize");
+					var winOpt = Exts.StringToByte("windowsize", Encoding.ASCII);
 					offset += Functions.CopyTo(ref winOpt, 0, ref tmpbuffer, offset, winOpt.Length) + 1;
 
-					var winsize_value = Exts.StringToByte(winsize.ToString());
+					var winsize_value = Exts.StringToByte(winsize.ToString(), Encoding.ASCII);
 					offset += Functions.CopyTo(ref winsize_value, 0, ref tmpbuffer, offset, winsize_value.Length) + 1;
 
 					if (Settings.AllowVariableWindowSize)
 					{
-						var mswinOpt = Exts.StringToByte("msftwindow");
+						var mswinOpt = Exts.StringToByte("msftwindow", Encoding.ASCII);
 						offset += Functions.CopyTo(ref mswinOpt, 0, ref tmpbuffer, offset, mswinOpt.Length) + 1;
 
-						var mswinsize_value = Exts.StringToByte(mswinsize.ToString());
+						var mswinsize_value = Exts.StringToByte(mswinsize.ToString(), Encoding.ASCII);
 						offset += Functions.CopyTo(ref mswinsize_value, 0, ref tmpbuffer, offset, mswinsize_value.Length) + 1;
 					}
 				}

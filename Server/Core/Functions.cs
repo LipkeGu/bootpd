@@ -4,6 +4,7 @@
 	using System.Collections.Generic;
 	using System.IO;
 	using System.Net;
+	using System.Text;
 	using System.Threading.Tasks;
 
 	public static class Functions
@@ -157,7 +158,7 @@
 				if (msg.Length >= byte.MaxValue)
 					msg.Remove(250);
 
-				var message = Exts.StringToByte(msg);
+				var message = Exts.StringToByte(msg, Encoding.ASCII);
 				var timeout = byte.MaxValue;
 
 				var prompt = new byte[(message.Length + 3)];
@@ -179,7 +180,7 @@
 					if (isrv2 > byte.MaxValue)
 						break;
 
-					var name = Exts.StringToByte("{0} ({1})".F(server.Value.Hostname, server.Value.IPAddress));
+					var name = Exts.StringToByte("{0} ({1})".F(server.Value.Hostname, server.Value.IPAddress),Encoding.ASCII);
 					var ident = BitConverter.GetBytes(server.Value.Ident);
 					var nlen = name.Length;
 
@@ -303,9 +304,9 @@
 
 		public static byte[] ParameterlistEntry(string name, string type, string value)
 		{
-			var n = Exts.StringToByte(name);
-			var t = Exts.StringToByte(type);
-			var v = Exts.StringToByte(value);
+			var n = Exts.StringToByte(name, Encoding.ASCII);
+			var t = Exts.StringToByte(type, Encoding.ASCII);
+			var v = Exts.StringToByte(value, Encoding.ASCII);
 						
 			var data = new byte[n.Length + t.Length + v.Length + 2];
 

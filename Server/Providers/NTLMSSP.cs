@@ -28,7 +28,7 @@
 			this.lmpassword = new byte[21];
 			this.ntpassword = new byte[21];
 
-			this.challenge = Encoding.ASCII.GetBytes(challenge);
+			this.challenge = Exts.StringToByte(challenge, Encoding.ASCII);
 			this.password = password;
 
 			this.GenerateHashes(this.password);
@@ -161,21 +161,16 @@
 		public static byte[] GenerateSubBlock(NTLMSubBlockType type, string value)
 		{
 			var offset = 0;
-			var d = Encoding.Unicode.GetBytes(value);
+			var d = Exts.StringToByte(value, Encoding.Unicode);
 			var t = BitConverter.GetBytes((ushort)type);
 			var l = BitConverter.GetBytes((ushort)d.Length);
 
 			var block = new byte[(d.Length + t.Length + l.Length)];
 
-			Array.Copy(t, 0, block, offset, t.Length);
-			offset += t.Length;
-
-			Array.Copy(l, 0, block, offset, l.Length);
-			offset += l.Length;
-
-			Array.Copy(d, 0, block, offset, d.Length);
-			offset += d.Length;
-
+			offset += Functions.CopyTo(ref t, 0, ref block, offset, t.Length);
+			offset += Functions.CopyTo(ref l, 0, ref block, offset, l.Length);
+			offset += Functions.CopyTo(ref d, 0, ref block, offset, d.Length);
+			
 			return block;
 		}
 
@@ -183,13 +178,13 @@
 		{
 			var targetnameOffset = 48;
 
-			var domain = Encoding.Unicode.GetBytes(Settings.ServerDomain);
+			var domain = Exts.StringToByte(Settings.ServerDomain, Encoding.Unicode);
 			var tiboffset = targetnameOffset + domain.Length;
 			var offset = 0;
 			var targetInfoBlockSize = 0;
 			var tib = TargetInfoBlock(out targetInfoBlockSize);
 
-			var signature = Encoding.ASCII.GetBytes("NTLMSSP\0");
+			var signature = Exts.StringToByte("NTLMSSP\0", Encoding.ASCII);
 			var indicator = BitConverter.GetBytes((int)msgtype);
 			var tnsb = SecBuffer(Settings.ServerDomain, targetnameOffset);
 			var flags = BitConverter.GetBytes((int)ntlmflags);
@@ -197,7 +192,7 @@
 			if (BitConverter.IsLittleEndian)
 				Array.Reverse(flags);
 
-			var challeng = Encoding.ASCII.GetBytes(challenge);
+			var challeng = Exts.StringToByte(challenge, Encoding.ASCII);
 			var context = new byte[8];
 			var tisb = SecBuffer(tib, tiboffset);
 
@@ -215,63 +210,44 @@
 			*/
 
 			buflen += domain.Length;
-
 			var message = new byte[buflen];
+			offset += Functions.CopyTo(ref signature, 0, ref message, offset, signature.Length);
 
-			Array.Copy(signature, 0, message, offset, signature.Length);
-			offset += signature.Length;
-
-			Console.WriteLine("Offset is now: {0} | 8 | {1} (indicator) | 4", offset, indicator.Length);
+			/* Indicator */
 			if (BitConverter.IsLittleEndian)
 				Array.Reverse(indicator);
 
-			Array.Copy(indicator, 0, message, offset, indicator.Length);
-			offset += indicator.Length;
+			offset += Functions.CopyTo(ref indicator, 0, ref message, offset, indicator.Length);
 
-			Console.WriteLine("Offset is now: {0} | 12 | {1} (tnsb) | 8", offset, tnsb.Length);
-			Array.Copy(tnsb, 0, message, offset, tnsb.Length);
-			offset += tnsb.Length;
+			/* Target Name Security Buffer */
+			offset += Functions.CopyTo(ref tnsb, 0, ref message, offset, tnsb.Length);
+			
 
-			Console.WriteLine("Offset is now: {0} | 20 | {1} (flasg) | 4", offset, 4);
-
+			/* Flags */
 			if (BitConverter.IsLittleEndian)
 				Array.Reverse(flags);
 
-			Array.Copy(flags, 0, message, offset, flags.Length);
-			offset += flags.Length;
+			offset += Functions.CopyTo(ref flags, 0, ref message, offset, flags.Length);
 
-			Console.WriteLine("Offset is now: {0} | 24 | {1} (Challenge) | 8", offset, challeng.Length);
-
-			Array.Copy(challeng, 0, message, offset, challeng.Length);
-			offset += challeng.Length;
-
-			Console.WriteLine("Offset is now: {0} | 32 | {1} (Context) | 8", offset, context.Length);
-
-			Array.Copy(context, 0, message, offset, context.Length);
-			offset += context.Length;
-
-			/*
-			TODO: Our C-Version is skipping this o.o" (Why?!)
+			/* Challenge */
+			offset += Functions.CopyTo(ref challeng, 0, ref message, offset, challeng.Length);
 			
-			Console.WriteLine("Offset is now: {0} | 40 | {1} (tisb) | 8", offset, tisb.Length);
-			Array.Copy(tisb, 0, message, offset, tisb.Length);
-			offset += tisb.Length;
+			/* Context */
+			offset += Functions.CopyTo(ref context, 0, ref message, offset, context.Length);
+
+			/* TODO: Our C-Version is skipping this o.o" (Why?!)
+			offset += Functions.CopyTo(ref tisb, 0, ref message, offset, tisb.Length);
 			*/
 
-			Console.WriteLine("Offset is now: {0} | 40 | {1} (tisb) | 8", offset, tisb.Length);
-			Array.Copy(tnsb, 0, message, offset, tnsb.Length);
-			offset += tnsb.Length;
+			/* TNSB (Dummy Copy) */
+			offset += Functions.CopyTo(ref tnsb, 0, ref message, offset, tnsb.Length);
 
-			Console.WriteLine("Offset is now: {0} | 48 | {1} (domain) | 8", offset, domain.Length);
-			Array.Copy(domain, 0, message, offset, domain.Length);
-			offset += domain.Length;
-			Console.WriteLine("Offset is now: {0} | X Position | {1} (tib) | {2}", offset, tib.Length, targetInfoBlockSize);
-
+			/* Domain */
+			offset += Functions.CopyTo(ref domain, 0, ref message, offset, domain.Length);
+		
 			/*
 			TODO: Our C- Version is skipping this o.o" (Why?!) 
-			
-			Array.Copy(tib, 0, Message, offset, tib.Length);
-			offset += tib.Length;
+			offset += Functions.CopyTo(ref tib, 0, ref Message, offset, tib.Length);
 			*/
 
 			return message;
@@ -284,16 +260,13 @@
 			var length = BitConverter.GetBytes((ushort)(data.Length * 2));
 			var pos = BitConverter.GetBytes(position);
 
-			// length
-			Array.Copy(length, 0, buffer, offset, length.Length);
-			offset += length.Length;
-
-			// Allocated Space
-			Array.Copy(length, 0, buffer, offset, length.Length);
-			offset += length.Length;
+			// length + Allocated Space!
+			offset += Functions.CopyTo(ref length, 0, ref buffer, offset, length.Length);
+			offset += Functions.CopyTo(ref length, 0, ref buffer, offset, length.Length);
 
 			// Offset
-			Array.Copy(pos, 0, buffer, offset, pos.Length);
+			offset += Functions.CopyTo(ref pos, 0, ref buffer, offset, pos.Length);
+
 			return buffer;
 		}
 
@@ -304,18 +277,13 @@
 			var length = BitConverter.GetBytes((ushort)data.Length);
 			var pos = BitConverter.GetBytes(position);
 
-			// length
-			Array.Copy(length, 0, buffer, offset, length.Length);
-			offset += length.Length;
-
-			// Allocated Space
-			Array.Copy(length, 0, buffer, offset, length.Length);
-			offset += length.Length;
+			// length + Allocated Space!
+			offset += Functions.CopyTo(ref length, 0, ref buffer, offset, length.Length);
+			offset += Functions.CopyTo(ref length, 0, ref buffer, offset, length.Length);
 
 			// Offset
-			Array.Copy(pos, 0, buffer, offset, pos.Length);
-			offset += pos.Length;
-
+			offset += Functions.CopyTo(ref pos, 0, ref buffer, offset, pos.Length);
+			
 			return buffer;
 		}
 
@@ -332,18 +300,10 @@
 
 			var offset = 0;
 
-			Array.Copy(domainname, 0, block, offset, domainname.Length);
-			offset += domainname.Length;
-
-			Array.Copy(servername, 0, block, offset, servername.Length);
-			offset += servername.Length;
-
-			Array.Copy(dnsdomain, 0, block, offset, dnsdomain.Length);
-			offset += dnsdomain.Length;
-
-			Array.Copy(fqdnservername, 0, block, offset, fqdnservername.Length);
-			offset += fqdnservername.Length + 4;
-
+			offset += Functions.CopyTo(ref domainname, 0, ref block, offset, domainname.Length);
+			offset += Functions.CopyTo(ref servername, 0, ref block, offset, servername.Length);
+			offset += Functions.CopyTo(ref dnsdomain, 0, ref block, offset, dnsdomain.Length);
+			offset += Functions.CopyTo(ref fqdnservername, 0, ref block, offset, fqdnservername.Length) + 4;
 			size = offset;
 
 			return block;
@@ -388,11 +348,11 @@
 			return response;
 		}
 
-		private byte[] PasswordToKey(string password, int position)
+		private byte[] PasswordToKey(string password, int position, Encoding encoding)
 		{
 			var key7 = new byte[7];
 			var tmp = password.ToUpper(CultureInfo.CurrentCulture);
-			Encoding.ASCII.GetBytes(tmp, position, Math.Min(tmp.Length - position, key7.Length), key7, 0);
+			encoding.GetBytes(tmp, position, Math.Min(tmp.Length - position, key7.Length), key7, 0);
 
 			var key8 = this.PrepareDESKey(key7, 0);
 			Array.Clear(key7, 0, key7.Length);
@@ -410,7 +370,7 @@
 				Buffer.BlockCopy(nullEncMagic, 0, this.lmpassword, 0, 8);
 			else
 			{
-				des.Key = this.PasswordToKey(password, 0);
+				des.Key = this.PasswordToKey(password, 0, Encoding.ASCII);
 				ct = des.CreateEncryptor();
 				ct.TransformBlock(magic, 0, 8, this.lmpassword, 0);
 			}
@@ -419,7 +379,7 @@
 				Buffer.BlockCopy(nullEncMagic, 0, this.lmpassword, 8, 8);
 			else
 			{
-				des.Key = this.PasswordToKey(password, 7);
+				des.Key = this.PasswordToKey(password, 7, Encoding.ASCII);
 				ct = des.CreateEncryptor();
 				ct.TransformBlock(magic, 0, 8, this.lmpassword, 8);
 			}
@@ -428,7 +388,7 @@
 
 			md4.Initialize();
 
-			var data = (password == null) ? new byte[0] : Encoding.Unicode.GetBytes(password);
+			var data = (password == null) ? new byte[0] : Exts.StringToByte(password, Encoding.Unicode);
 			var hash = md4.ComputeHash(data);
 			Buffer.BlockCopy(hash, 0, this.ntpassword, 0, 16);
 

@@ -10,7 +10,9 @@
 	{
 		public static string F(this string fmt, params object[] objs) => string.Format(fmt, objs);
 
-		public static string ToBase64(string s) => Convert.ToBase64String(StringToByte(s));
+		public static string ToBase64(string s) => Convert.ToBase64String(StringToByte(s, Encoding.ASCII));
+		public static string ToBase64(string s, Encoding encoding) => Convert.ToBase64String(StringToByte(s, encoding));
+		public static string ToBase64(byte[] b) => Convert.ToBase64String(b);
 
 		public static string FromBase64(string s) => Encoding.ASCII.GetString(Convert.FromBase64String(s));
 
@@ -30,6 +32,11 @@
 		public static string EncodeTo(string data, Encoding src, Encoding target)
 		{
 			return target.GetString(src.GetBytes(data));
+		}
+
+		public static string EncodeTo(byte[] data, Encoding target)
+		{
+			return target.GetString(data);
 		}
 
 		public static string GetGuidAsString(byte[] guid, int length, bool patch)
@@ -86,7 +93,7 @@
 			return opt;
 		}
 
-		public static byte[] StringToByte(string input) => Encoding.ASCII.GetBytes(input.ToCharArray());
+		public static byte[] StringToByte(string input, Encoding encoding) => encoding.GetBytes(input.ToCharArray());
 
 		public static IPAddress GetServerIP() => (from a in Dns.GetHostEntry(Dns.GetHostName()).AddressList where a.AddressFamily == AddressFamily.InterNetwork select a).FirstOrDefault();
 
@@ -94,7 +101,7 @@
 
 		public static byte[] Replace(byte[] input, string oldValue, string newValue)
 		{
-			return StringToByte(Replace(Encoding.ASCII.GetString(input, 0, input.Length), oldValue, newValue));
+			return StringToByte(Replace(Encoding.ASCII.GetString(input, 0, input.Length), oldValue, newValue), Encoding.ASCII);
 		}
 
 		public static string[] ToParts(byte[] input, string seperator) => Encoding.ASCII.GetString(input, 2, input.Length - 2).Split(seperator.ToCharArray());

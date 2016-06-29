@@ -121,7 +121,7 @@
 
 			set
 			{
-				var bytes = Exts.StringToByte(value);
+				var bytes = Exts.StringToByte(value, Encoding.ASCII);
 				Functions.CopyTo(ref bytes, 0, ref this.data, 4, bytes.Length);
 
 				this.offset += bytes.Length + 1;

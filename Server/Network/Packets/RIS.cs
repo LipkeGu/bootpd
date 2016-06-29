@@ -162,7 +162,7 @@
 
 			set
 			{
-				var type = Exts.StringToByte(value.ToUpper());
+				var type = Exts.StringToByte(value.ToUpper(), Encoding.ASCII);
 				Functions.CopyTo(ref type, 0, ref this.data, 1, type.Length);
 			}
 		}
