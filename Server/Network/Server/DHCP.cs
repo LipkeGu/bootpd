@@ -116,31 +116,44 @@
 				return;
 
 			var vendor_str = Encoding.ASCII.GetString(packet.Data, vendoroffset + 2, packet.Data[vendoroffset + 1]);
-
-			if (vendor_str.Contains("PXEClient"))
-			{
-				client.VendorIdent = "PXEClient";
-
-				// Option contains additional Informations!
-				if (vendor_str.Contains(":"))
-				{
-					var vendor_parts = vendor_str.Split(':');
-					if (vendor_parts.Length > 1)
-					{
-						client.PXEFramework = PXEFrameworks.UNDI;
-						if (vendor_parts[1] == "ARCH")
-							client.Arch = (Architecture)ushort.Parse(vendor_parts[2]);
-
-						if (vendor_parts[3] == "UNDI")
-						{
-							client.UNDI_Major = ushort.Parse(vendor_parts[4].Substring(0, 3).Replace("00", string.Empty));
-							client.UNDI_Minor = ushort.Parse(vendor_parts[4].Substring(3, 3).Replace("00", string.Empty));
-						}
-					}
-				}
-			}
+			if (vendor_str.Contains(VendorIdents.PXEClient.ToString()))
+				client.VendorIdent = VendorIdents.PXEClient;
+			else if (vendor_str.Contains(VendorIdents.PXEServer.ToString()))
+				client.VendorIdent = VendorIdents.PXEServer;
+			else if (vendor_str.Contains(VendorIdents.BSDP.ToString()))
+				client.VendorIdent = VendorIdents.BSDP;
 			else
 				return;
+
+			switch (client.VendorIdent)
+			{
+				case VendorIdents.PXEClient:
+					if (vendor_str.Contains(":"))
+					{
+						var vendor_parts = vendor_str.Split(':');
+						if (vendor_parts.Length > 1)
+						{
+							client.PXEFramework = PXEFrameworks.UNDI;
+							if (vendor_parts[1] == "ARCH" && !client.IsWDSClient)
+								client.Arch = (Architecture)ushort.Parse(vendor_parts[2]);
+
+							if (vendor_parts[3] == PXEFrameworks.UNDI.ToString())
+							{
+								client.UNDI_Major = ushort.Parse(vendor_parts[4].Substring(0, 3).Replace("00", string.Empty));
+								client.UNDI_Minor = ushort.Parse(vendor_parts[4].Substring(3, 3).Replace("00", string.Empty));
+							}
+						}
+					}
+					break;
+				case VendorIdents.PXEServer:
+					/* Server <-> Server Communication */
+					break;
+				case VendorIdents.BSDP:
+					/* Apple Boot server discovery Protocol */
+					break;
+				default:
+					return;
+			}
 
 			var response = new DHCPPacket(new byte[pktlength]);
 			Array.Copy(packet.Data, 0, response.Data, 0, 242);
@@ -174,7 +187,7 @@
 			response.MessageType = client.MsgType;
 
 			// Option 60
-			var opt = Exts.SetDHCPOption(DHCPOptionEnum.Vendorclassidentifier, Exts.StringToByte(client.VendorIdent));
+			var opt = Exts.SetDHCPOption(DHCPOptionEnum.Vendorclassidentifier, Exts.StringToByte(client.VendorIdent.ToString()));
 
 			Array.Copy(opt, 0, response.Data, response.Offset, opt.Length);
 			response.Offset += opt.Length;
@@ -257,7 +270,7 @@
 
 				// Option 43:8
 				var pxeservers = Functions.GenerateServerList(ref Servers, bootitem);
-				if (pxeservers != null)
+				if (pxeservers != null && client.PXEFramework == PXEFrameworks.UNDI)
 				{
 					var vendoropt = Exts.SetDHCPOption(DHCPOptionEnum.VendorSpecificInformation, pxeservers, true);
 					Array.Copy(vendoropt, 0, response.Data, response.Offset, vendoropt.Length);
@@ -267,7 +280,7 @@
 					response.Offset += 1;
 				}
 
-				if (bootitem != 254 && bootitem != 0)
+				if (bootitem != 254 && bootitem != 0 && client.PXEFramework == PXEFrameworks.UNDI)
 				{
 					var server = (from s in Servers where s.Value.Ident == bootitem select s.Value.Hostname).FirstOrDefault();
 
@@ -542,7 +555,11 @@
 							if (cguid.Length == 1 || cguid.Length > 32)
 								return;
 
-							var guid = Guid.Parse(Exts.GetGuidAsString(cguid, cguid.Length, true));
+							var guid_string = Exts.GetGuidAsString(cguid, cguid.Length, true);
+							if (string.IsNullOrEmpty(guid_string))
+								return;
+
+							var guid = Guid.Parse(guid_string);
 
 							var clientMAC = Exts.GetDataAsString(request.MacAddress, 0, request.MACAddresslength);
 							var clientTag = "{0}-{1}".F(guid, clientMAC);

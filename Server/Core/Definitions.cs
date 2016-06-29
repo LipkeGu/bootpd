@@ -176,6 +176,13 @@
 			Inform = 8
 		}
 
+		public enum VendorIdents
+		{
+			PXEClient,
+			PXEServer,
+			BSDP /* Apple */
+		}
+
 		// TODO: This List is not complete!
 		public enum DHCPOptionEnum
 		{

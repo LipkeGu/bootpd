@@ -10,7 +10,7 @@
 		string id;
 		string adminMessage;
 		string mac;
-		string vendorClass;
+		VendorIdents vendorIdent;
 
 		NextActionOptionValues nextAction;
 		PXEFrameworks pxeframework;
@@ -105,16 +105,16 @@
 			}
 		}
 
-		public string VendorIdent
+		public VendorIdents VendorIdent
 		{
 			get
 			{
-				return this.vendorClass;
+				return this.vendorIdent;
 			}
 
 			set
 			{
-				this.vendorClass = value;
+				this.vendorIdent = value;
 			}
 		}
 

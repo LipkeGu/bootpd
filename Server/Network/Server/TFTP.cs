@@ -137,61 +137,63 @@
 			{
 				var packet = (TFTPPacket)request;
 
-				if (Clients.ContainsKey(packet.Source.Address))
-					Clients[packet.Source.Address].EndPoint = packet.Source;
-				else
+				if (!Clients.ContainsKey(packet.Source.Address))
 				{
 					Clients.Add(packet.Source.Address, new TFTPClient(packet.Source));
 					Clients[packet.Source.Address].Stage = TFTPStage.Handshake;
-				}
-				
-				this.ExtractOptions(ref packet);
 
-				var file = Filesystem.ResolvePath(Options["file"]);
-				if (file == Settings.TFTPRoot.ToLowerInvariant())
-				{
-					this.Handle_Error_Request(TFTPErrorCode.AccessViolation, "Directories are not supported!", packet.Source);
+					this.ExtractOptions(ref packet);
 
-					return;
-				}
-
-				if (Filesystem.Exist(file) && !string.IsNullOrEmpty(file))
-				{
-					Clients[packet.Source.Address].FileName = file;
-					Clients[packet.Source.Address].FileStream = new FileStream(Clients[packet.Source.Address].FileName,
-					 FileMode.Open, FileAccess.Read, FileShare.Read, Settings.ReadBuffer, FileOptions.SequentialScan);
-					Clients[packet.Source.Address].TransferSize = Clients[packet.Source.Address].FileStream.Length;
-
-					Clients[packet.Source.Address].BufferedStream = new BufferedStream(Clients[packet.Source.Address].FileStream, Settings.ReadBuffer);
-
-					if (Options.ContainsKey("blksize"))
+					var file = Filesystem.ResolvePath(Options["file"]);
+					if (file == Settings.TFTPRoot.ToLowerInvariant())
 					{
-						Clients[packet.Source.Address].BlockSize = Functions.CalcBlocksize(Clients[packet.Source.Address].FileStream.Length,
-							Convert.ToUInt16(Clients[packet.Source.Address].BlockSize));
-
-						this.Handle_Option_request(Clients[packet.Source.Address].TransferSize,
-						Clients[packet.Source.Address].BlockSize, Clients[packet.Source.Address].WindowSize, 
-						Clients[packet.Source.Address].MSFTWindow, Clients[packet.Source.Address].EndPoint);
+						this.Handle_Error_Request(TFTPErrorCode.AccessViolation, "Directories are not supported!", packet.Source);
 
 						return;
 					}
 
-					Options.Clear();
+					if (Filesystem.Exist(file) && !string.IsNullOrEmpty(file))
+					{
+						Clients[packet.Source.Address].FileName = file;
+						Clients[packet.Source.Address].FileStream = new FileStream(Clients[packet.Source.Address].FileName,
+							FileMode.Open, FileAccess.Read, FileShare.Read, Settings.ReadBuffer, FileOptions.SequentialScan);
+						Clients[packet.Source.Address].TransferSize = Clients[packet.Source.Address].FileStream.Length;
 
-					Clients[packet.Source.Address].Stage = TFTPStage.Transmitting;
-					if (Clients[packet.Source.Address].WindowSize > 1)
-						for (var i = 0; i < Clients[packet.Source.Address].WindowSize; i++)
+						Clients[packet.Source.Address].BufferedStream = new BufferedStream(Clients[packet.Source.Address].FileStream, Settings.ReadBuffer);
+
+						if (Options.ContainsKey("blksize"))
+						{
+							Clients[packet.Source.Address].BlockSize = Functions.CalcBlocksize(Clients[packet.Source.Address].FileStream.Length,
+								Convert.ToUInt16(Clients[packet.Source.Address].BlockSize));
+
+							this.Handle_Option_request(Clients[packet.Source.Address].TransferSize,
+							Clients[packet.Source.Address].BlockSize, Clients[packet.Source.Address].WindowSize, 
+							Clients[packet.Source.Address].MSFTWindow, Clients[packet.Source.Address].EndPoint);
+
+							return;
+						}
+
+						Clients[packet.Source.Address].Stage = TFTPStage.Transmitting;
+						if (Clients[packet.Source.Address].WindowSize > 1)
+							for (var i = 0; i < Clients[packet.Source.Address].WindowSize; i++)
+								this.Readfile(packet.Source);
+						else
 							this.Readfile(packet.Source);
+					}
 					else
-						this.Readfile(packet.Source);
+						this.Handle_Error_Request(TFTPErrorCode.FileNotFound, file, packet.Source);
 				}
 				else
-					this.Handle_Error_Request(TFTPErrorCode.FileNotFound, file, packet.Source);
+				{
+					Clients[packet.Source.Address].Dispose();
+					Clients.Remove(packet.Source.Address);
+				}
 			}
 		}
 
 		internal void ExtractOptions(ref TFTPPacket data)
 		{
+			Options.Clear();
 			var parts = Exts.ToParts(data.Data, "\0");
 
 			for (var i = 0; i < parts.Length; i++)
