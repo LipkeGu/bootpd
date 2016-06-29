@@ -138,19 +138,15 @@
 				var packet = (TFTPPacket)request;
 
 				if (Clients.ContainsKey(packet.Source.Address))
-				{
-					Clients[packet.Source.Address].Dispose();
-					Clients.Remove(packet.Source.Address);
-				}
-
-				if (!Clients.ContainsKey(packet.Source.Address))
+					Clients[packet.Source.Address].EndPoint = packet.Source;
+				else
 				{
 					Clients.Add(packet.Source.Address, new TFTPClient(packet.Source));
 					Clients[packet.Source.Address].Stage = TFTPStage.Handshake;
-
-					this.ExtractOptions(ref packet);
 				}
 				
+				this.ExtractOptions(ref packet);
+
 				var file = Filesystem.ResolvePath(Options["file"]);
 				if (file == Settings.TFTPRoot.ToLowerInvariant())
 				{
