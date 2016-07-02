@@ -18,11 +18,8 @@
 
 		public static string ResolvePath(string path)
 		{
-			var givenPath = path.ToLowerInvariant();
-			var dir = Settings.TFTPRoot;
-
-			givenPath = ReplaceSlashes(StripRoot(givenPath, dir));
-
+			var givenPath = ReplaceSlashes(StripRoot(path.ToLowerInvariant(), Settings.TFTPRoot));
+			
 			if (givenPath.EndsWith(".html") || givenPath.EndsWith(".htm") ||
 			givenPath.EndsWith(".css") || givenPath.EndsWith(".js") || givenPath.EndsWith(".xml"))
 				return Path.Combine(Environment.CurrentDirectory, givenPath);

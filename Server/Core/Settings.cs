@@ -18,6 +18,7 @@
 		#region "Windows Deployment Server"
 		public static string OSC_DEFAULT_FILE = "welcome.osc";
 		public static string OSC_DEFAULT_LANG = "English";
+		public static string OSC_DEFAULT_TITLE = "Client Installation Wizard";
 
 		public static string OSC_DEFAULT_USER = "Administrator";
 		public static string OSC_DEFAULT_PASS = "secret";

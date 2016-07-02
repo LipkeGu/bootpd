@@ -46,7 +46,7 @@
 				if (arguments.HasKeys() && url == "/approve.html")
 					if (arguments["cid"] != null && arguments["action"] != null)
 					{
-						var client = Exts.FromBase64(arguments["cid"]);
+						var client = Exts.FromBase64(arguments["cid"], Encoding.ASCII);
 						if (DHCP.Clients.ContainsKey(client) && !DHCP.Clients[client].ActionDone)
 						{
 							if (arguments["action"] == "0")
@@ -250,7 +250,7 @@
 					pagecontent += "\t\t\t<main>\n";
 				}
 
-				pagecontent += Encoding.UTF8.GetString(data, 0, data.Length);
+				pagecontent += Exts.EncodeTo(data, Encoding.UTF8);
 
 				if (url.EndsWith(".htm") || url.EndsWith(".html"))
 				{
@@ -279,7 +279,7 @@
 				if (statuscode == 800)
 					pagecontent = string.Empty;
 
-				data = Encoding.UTF8.GetBytes(pagecontent);
+				data = Exts.StringToByte(pagecontent, Encoding.UTF8);
 				pagecontent = null;
 			}
 
@@ -542,7 +542,7 @@
 			output += "</div>";
 			#endregion
 			output += "<div id=\"nv_cbox\">";
-			output += "<div id=\"nv_cbox_header\" style=\"width: 100px\"> <input type=\"submit\" value=\"Speichern\"/></div>";
+			output += "<div id=\"nv_cbox_header\" style=\"width: 100%\"> <input type=\"submit\" value=\"Speichern\" /></div>";
 			output += "</div>";
 			output += "</form>";
 

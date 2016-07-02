@@ -4,7 +4,7 @@
 	using System.IO;
 	using System.Net;
 
-	public sealed class TFTPClient : ClientProvider, IDisposable
+	public sealed class TFTPClient : ClientProvider, IDisposable, ITFTPClient_Provider
 	{
 		string id;
 		string filename;
@@ -17,7 +17,7 @@
 		ushort blocks;
 		ushort winsize;
 		ushort msftwindow;
-		
+
 		long tsize;
 		long bytesread;
 
@@ -47,33 +47,7 @@
 		{
 			this.Dispose();
 		}
-
-		public FileStream FileStream
-		{
-			get
-			{
-				return this.filestream;
-			}
-
-			set
-			{
-				this.filestream = value;
-			}
-		}
-
-		public BufferedStream BufferedStream
-		{
-			get
-			{
-				return this.bufferedstream;
-			}
-
-			set
-			{
-				this.bufferedstream = value;
-			}
-		}
-
+		
 		public string ID
 		{
 			get
@@ -266,6 +240,32 @@
 			set
 			{
 				this.type = value;
+			}
+		}
+
+		public FileStream FileStream
+		{
+			get
+			{
+				return this.filestream;
+			}
+
+			set
+			{
+				this.filestream = value;
+			}
+		}
+
+		public BufferedStream BufferedStream
+		{
+			get
+			{
+				return this.bufferedstream;
+			}
+
+			set
+			{
+				this.bufferedstream = value;
 			}
 		}
 

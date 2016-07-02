@@ -33,7 +33,8 @@
 
 			this.GenerateHashes(this.password);
 
-			this.flags = NTLMFlags.Ris;
+			this.flags = NTLMFlags.NTLMSSP_TARGET_TYPE_DOMAIN | NTLMFlags.NTLMSSP_NEGOTIATE_ALWAYS_SIGN | 
+				NTLMFlags.NTLMSSP_NEGOTIATE_NTLM | NTLMFlags.NTLMSSP_NEGOTIATE_OEM | NTLMFlags.NTLMSSP_REQUEST_TARGET;
 		}
 
 		public NTLMSSP(string password, byte[] challenge)
@@ -45,17 +46,17 @@
 		public enum NTLMFlags : int
 		{
 			NTLMSSP_NEGOTIATE_UNICODE = 0x00000001,
-			NTLM_NEGOTIATE_OEM = 0x00000002,
+			NTLMSSP_NEGOTIATE_OEM = 0x00000002,
 			NTLMSSP_REQUEST_TARGET = 0x00000004,
 			NTLMSSP_RESERVED_9 = 0x00000008,
 			NTLMSSP_NEGOTIATE_SIGN = 0x00000010,
 			NTLMSSP_NEGOTIATE_SEAL = 0x00000020,
 			NTLMSSP_NEGOTIATE_DATAGRAM = 0x00000040,
 			NTLMSSP_NEGOTIATE_LM_KEY = 0x00000080,
-			NTLMSSP_Negotiate_NETWARE = 0x00000100,
+			NTLMSSP_NEGOTIATE_NETWARE = 0x00000100,
 			NTLMSSP_NEGOTIATE_NTLM = 0x00000200,
 			NTLMSSP_NEGOTIATE_NT_ONLY = 0x00000400,
-			NTLMSSP_Negotiate_ANONYMOUS = 0x00000800,
+			NTLMSSP_NEGOTIATE_ANONYMOUS = 0x00000800,
 			NTLMSSP_NEGOTIATE_OEM_DOMAIN_SUPPLIED = 0x00001000,
 			NTLMSSP_NEGOTIATE_OEM_WORKSTATION_SUPPLIED = 0x00002000,
 			NTLMSSP_NEGOTIATE_LOCALCALL = 0x00004000,
@@ -66,14 +67,13 @@
 			NTLMSSP_TARGET_TYPE_SHARE = 0x00040000,
 			NTLMSSP_NEGOTIATE_NTLM2 = 0x00080000,
 			NTLMSSP_NEGOTIATE_IDENTIFY = 0x00100000,
-			NTLMSSP_Request_ACCEPTRESPONSE = 0x00200000,
+			NTLMSSP_REQUEST_ACCEPTRESPONSE = 0x00200000,
 			NTLMSSP_REQUEST_NONNTSESSION_KEY = 0x00400000,
 			NTLMSSP_NEGOTIATE_TARGET_INFO = 0x00800000,
 
 			Negotiate128 = 0x20000000,
 			NTLMSSP_NEGOTIATE_KEY_EXCH = 0x40000000,
 			Negotiate56 = (unchecked((int)0x80000000)),
-			Ris = 0x00018206
 		}
 
 		public enum NTLMSubBlockType : ushort
@@ -145,8 +145,19 @@
 
 		public byte[] NT => this.GetResponse(this.ntpassword);
 
-		public byte[] UserSessionKey
+		public byte[] NTLM_UserSessionKey
 		{
+			/*
+			*	The NTLM User Session Key
+			*
+			*	This variant is used when the client sends the NTLM response. The calculation of the key is fairly straightforward:
+			*
+			*	1. The NTLM hash is obtained (the MD4 digest of the Unicode mixed-case password, calculated previously).
+			*	2. The MD4 message-digest algorithm is applied to the NTLM hash, resulting in a 16-byte value.
+			*	
+			*	This is the NTLM User Session Key.
+			*/
+
 			get
 			{
 				var md4 = MD4.Create();
@@ -155,6 +166,31 @@
 				this.userSessionKey = md4.ComputeHash(this.GetResponse(this.ntpassword));
 
 				return this.userSessionKey;
+			}
+		}
+
+		public byte[] LM_UserSessionKey
+		{
+			/*
+			*	
+			*	The LM User Session Key
+			*	
+			*	Used when only the LM response is provided (i.e., with Win9x clients). 
+			*	The LM User Session Key is derived as follows:
+			*
+			*	The 16-byte LM hash (calculated previously) is truncated to 8 bytes.
+			*	This is null-padded to 16 bytes. This value is the LM User Session Key.
+			*	
+			*	The LM User Session Key is the first half of the LM hash.
+			*
+			*/ 
+
+			get
+			{
+				var sessionKey = new byte[(LM.Length / 2)];
+				Functions.CopyTo(LM, 0, sessionKey, 0, sessionKey.Length);
+				
+				return sessionKey;
 			}
 		}
 

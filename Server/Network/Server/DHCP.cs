@@ -350,7 +350,7 @@
 					return;
 				case RISOPCodes.RQU:
 					#region "OSC File Request"
-					var data = this.ReadOSCFile(packet.FileName, encrypted, encrypted ? this.ntlmkey : null);
+					var data = this.ReadOSCFile(packet.FileName, encrypted, Encoding.ASCII, encrypted ? this.ntlmkey : null);
 
 					if (data == null)
 						return;
@@ -376,7 +376,7 @@
 					#endregion
 					break;
 				case RISOPCodes.NCQ:
-					#region "Driver Query"
+					#region "Network Card Query"
 					var ncq_packet = Functions.Unpack_Packet(packet.Data);
 
 					var vendorid = new byte[2];
@@ -400,9 +400,9 @@
 
 					if (retval == 0)
 					{
-						var drv = Encoding.Unicode.GetBytes(sysfile);
-						var svc = Encoding.Unicode.GetBytes(service);
-						var pciid = Encoding.Unicode.GetBytes("PCI\\VEN_{0}&DEV_{1}".F(vid, pid));
+						var drv = Exts.StringToByte(sysfile, Encoding.Unicode);
+						var svc = Exts.StringToByte(service, Encoding.Unicode);
+						var pciid = Exts.StringToByte("PCI\\VEN_{0}&DEV_{1}".F(vid, pid), Encoding.Unicode);
 
 						var ncr_packet = new RISPacket(new byte[512]);
 						ncr_packet.RequestType = "NCR";
@@ -483,25 +483,53 @@
 					}
 					else
 					{
-						Console.WriteLine("Could not find Driver for: {0} - {1}", vid, pid);
+						Errorhandler.Report(LogTypes.Error, "Could not find Driver for: {0} - {1}".F( vid, pid));
 					}
 
 					#endregion
 					break;
 				case RISOPCodes.AUT:
 					#region "NTLM Authenticate"
+					/* Extract the NTLMSSP Packet :) */
 					var ntlmssp_packet = Functions.Unpack_Packet(packet.Data);
+					
+
 					if (packet.Length >= 28)
 					{
+						var auth_ok = false;
 						Array.Copy(ntlmssp_packet, ntlmssp_packet[48], this.ntlmkey, 0, ntlmssp_packet[44]);
+
+						/* Domain */
+						var domain = new byte[ntlmssp_packet[30]];
+						Functions.CopyTo(ref ntlmssp_packet, ntlmssp_packet[32], ref domain, 0, ntlmssp_packet[30]);
+
+						/* Username */
+						var username = new byte[ntlmssp_packet[36]];
+						Functions.CopyTo(ref ntlmssp_packet, ntlmssp_packet[40], ref username, 0, ntlmssp_packet[36]);
+
+						if (Exts.EncodeTo(domain, Encoding.ASCII) == Settings.ServerDomain && Exts.EncodeTo(username, Encoding.ASCII) == Settings.OSC_DEFAULT_USER)
+							auth_ok = true;
+						else 
+							auth_ok = false;
+
+						var res = BitConverter.GetBytes(0xffffffff);
+
+						if (auth_ok)
+						{
+							res = BitConverter.GetBytes(0x00000000);
+							Errorhandler.Report(LogTypes.Info, "Authentication Succeded!");
+						}
+						else
+						{
+							res = BitConverter.GetBytes(0xC00000DF);
+							Errorhandler.Report(LogTypes.Info, "Authentication Failed!");
+						}
 
 						var resPacket = new RISPacket(new byte[10]);
 						resPacket.RequestType = "RES";
 						resPacket.Orign = 130;
 
 						resPacket.Offset += 4;
-						var res = BitConverter.GetBytes(0x00000000);
-
 						resPacket.Length = 4;
 
 						Array.Copy(res, 0, resPacket.Data, resPacket.Offset, res.Length);
@@ -529,6 +557,9 @@
 
 					this.Send(ref negResponse, client.Endpoint);
 					#endregion
+					break;
+				case RISOPCodes.OFF:
+					var off_packet = Functions.Unpack_Packet(packet.Data);
 					break;
 				default:
 					break;
@@ -612,6 +643,10 @@
 							break;
 						case "NCQ":
 							packet.OPCode = RISOPCodes.NCQ;
+							this.Handle_RIS_Request(packet, ref client);
+							break;
+						case "OFF":
+							packet.OPCode = RISOPCodes.OFF;
 							this.Handle_RIS_Request(packet, ref client);
 							break;
 						default:
@@ -700,7 +735,7 @@
 			return wdsBlock;
 		}
 
-		private byte[] ReadOSCFile(string filename, bool encrypted, byte[] key = null)
+		private byte[] ReadOSCFile(string filename, bool encrypted, Encoding encoding, byte[] key = null)
 		{
 			try
 			{
@@ -715,9 +750,9 @@
 
 				Files.Read(file, ref buffer, out bytesRead);
 
-				var oscContent = Exts.Replace(buffer, "%SERVERNAME%", Settings.ServerName);
-				oscContent = Exts.Replace(oscContent, "%SERVERDOMAIN%", Settings.ServerDomain);
-				oscContent = Exts.Replace(oscContent, "%NTLMV2Enabled%", Settings.EnableNTLMV2 ? "1" : "0");
+				var oscContent = Exts.Replace(buffer, "%SERVERNAME%", Settings.ServerName, encoding);
+				oscContent = Exts.Replace(oscContent, "%SERVERDOMAIN%", Settings.ServerDomain, encoding);
+				oscContent = Exts.Replace(oscContent, "%NTLMV2Enabled%", Settings.EnableNTLMV2 ? "1" : "0", encoding);
 
 				if (encrypted)
 					return RC4.Encrypt(key, oscContent);
@@ -726,17 +761,15 @@
 			}
 			catch
 			{
-				var oscfile = string.Empty;
-
-				oscfile += "<OSCML>";
+				var oscfile = "<OSCML>";
 				oscfile += "<META KEY=\"F3\" ACTION=\"REBOOT\">";
-				oscfile += "<TITLE>  Client Installation Wizard</TITLE>";
+				oscfile += "<TITLE>  {0}</TITLE>".F(Settings.OSC_DEFAULT_TITLE);
 				oscfile += "<FOOTER>[F3] Restart computer [ENTER] Continue</FOOTER>";
 				oscfile += "<BODY left=5 right=75><BR><BR>";
 				oscfile += "The requested file \"{0}\" was not found on the server.".F(filename);
 				oscfile += "</BODY></OSCML>";
 
-				return Exts.StringToByte(oscfile, Encoding.ASCII);
+				return Exts.StringToByte(oscfile, encoding);
 			}
 		}
 	}

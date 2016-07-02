@@ -14,7 +14,7 @@
 		public static string ToBase64(string s, Encoding encoding) => Convert.ToBase64String(StringToByte(s, encoding));
 		public static string ToBase64(byte[] b) => Convert.ToBase64String(b);
 
-		public static string FromBase64(string s) => Encoding.ASCII.GetString(Convert.FromBase64String(s));
+		public static string FromBase64(string s, Encoding encoding) => encoding.GetString(Convert.FromBase64String(s));
 
 		public static string GetDataAsString(byte[] input, int index, int length, string delimeter = "")
 		{
@@ -99,11 +99,11 @@
 
 		public static string Replace(string input, string oldValue, string newValue) => input.Replace(oldValue, newValue);
 
-		public static byte[] Replace(byte[] input, string oldValue, string newValue)
+		public static byte[] Replace(byte[] input, string oldValue, string newValue, Encoding encoding)
 		{
-			return StringToByte(Replace(Encoding.ASCII.GetString(input, 0, input.Length), oldValue, newValue), Encoding.ASCII);
+			return StringToByte(Replace(encoding.GetString(input, 0, input.Length), oldValue, newValue), encoding);
 		}
 
-		public static string[] ToParts(byte[] input, string seperator) => Encoding.ASCII.GetString(input, 2, input.Length - 2).Split(seperator.ToCharArray());
+		public static string[] ToParts(byte[] input, string seperator, Encoding encoding) => encoding.GetString(input, 2, input.Length - 2).Split(seperator.ToCharArray());
 	}
 }

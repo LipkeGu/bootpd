@@ -234,3 +234,4 @@ $RECYCLE.BIN/
 *.manifest
 
 TFTPRoot/
+*.db

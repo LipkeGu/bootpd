@@ -11,67 +11,31 @@
 
 		public static long TotalSize(DriveInfo drive)
 		{
-			try
-			{
-				return drive.TotalSize;
-			}
-			catch (Exception ex)
-			{
-				Errorhandler.Report(Definitions.LogTypes.Error, ex.Message);
-
-				return 0;
-			}
+			return drive.TotalSize;
 		}
 
 		public static long TotalFreeSpace(DriveInfo drive)
 		{
-			try
-			{
-				return drive.TotalFreeSpace;
-			}
-			catch (Exception ex)
-			{
-				Errorhandler.Report(Definitions.LogTypes.Error, ex.Message);
-
-				return 0;
-			}
+			return drive.TotalFreeSpace;
 		}
 
 		public static long AvailableFreeSpace(DriveInfo drive)
 		{
-			try
-			{
-				return drive.AvailableFreeSpace;
-			}
-			catch (Exception ex)
-			{
-				Errorhandler.Report(Definitions.LogTypes.Error, ex.Message);
-
-				return 0;
-			}
+			return drive.AvailableFreeSpace;
 		}
 
 		public static Definitions.Fileystem Filesystem(DriveInfo drive)
 		{
-			try
+			switch (drive.DriveFormat)
 			{
-				switch (drive.DriveFormat)
-				{
-					case "NTFS":
-						return Definitions.Fileystem.NTFS;
-					case "FAT":
-						return Definitions.Fileystem.FAT;
-					case "FAT32":
-						return Definitions.Fileystem.FAT32;
-					default:
-						return Definitions.Fileystem.Unknown;
-				}
-			}
-			catch (Exception ex)
-			{
-				Errorhandler.Report(Definitions.LogTypes.Error, ex.Message);
-
-				return Definitions.Fileystem.Unknown;
+				case "NTFS":
+					return Definitions.Fileystem.NTFS;
+				case "FAT":
+					return Definitions.Fileystem.FAT;
+				case "FAT32":
+					return Definitions.Fileystem.FAT32;
+				default:
+					return Definitions.Fileystem.Unknown;
 			}
 		}
 	}
