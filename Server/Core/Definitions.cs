@@ -1,7 +1,6 @@
 ﻿namespace bootpd
 {
 	using System;
-	using System.Collections.Specialized;
 	using System.Net;
 
 	public delegate void DataReceivedEventHandler(object sender, DataReceivedEventArgs e);
@@ -372,7 +371,7 @@
 		/// <summary>
 		/// Defines the Modes in which the Server can operate
 		/// AllowAll: Accapt All (known and unknown) Clients
-		/// KnownOnly: Accept only known Clients but ignore unknown Clients
+		/// KnownOnly: Accept only known Clients
 		/// </summary>
 		public enum ServerMode
 		{

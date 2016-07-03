@@ -294,7 +294,7 @@
 			{
 				var bytes = new byte[128];
 
-				Array.Clear(this.data, 108, 128);
+				Array.Clear(this.data, 108, bytes.Length);
 				bytes = Exts.StringToByte(value, Encoding.ASCII);
 				Functions.CopyTo(ref bytes, 0, ref this.data, 108, bytes.Length);
 			}

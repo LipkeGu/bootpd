@@ -15,7 +15,7 @@
 			get; set;
 		}
 
-		Definitions.DHCPMsgType MsgType
+		DHCPMsgType MsgType
 		{
 			get; set;
 		}

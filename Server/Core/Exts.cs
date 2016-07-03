@@ -66,8 +66,9 @@
 
 		public static byte[] GetOptionValue(byte[] data, Definitions.DHCPOptionEnum option)
 		{
+			var opt = Convert.ToInt32(option);
 			for (var i = 0; i < data.Length; i++)
-				if (Convert.ToInt32(data[i]) == Convert.ToInt32(option))
+				if (Convert.ToInt32(data[i]) == opt)
 				{
 					var value = new byte[Convert.ToInt32(data[i + 1])];
 					Functions.CopyTo(ref data, i + 2, ref value, 0, value.Length);

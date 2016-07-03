@@ -9,7 +9,8 @@
 		string bootfile;
 		IPAddress address;
 
-		public Serverentry(short ident, string hostname, string bootfile, IPAddress address, Definitions.BootServerTypes type = Definitions.BootServerTypes.PXEBootstrapServer)
+		public Serverentry(short ident, string hostname, string bootfile, IPAddress address,
+			Definitions.BootServerTypes type = Definitions.BootServerTypes.PXEBootstrapServer)
 		{
 			this.ident = ident;
 			this.bootfile = bootfile;
