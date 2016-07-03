@@ -12,8 +12,7 @@
 		TFTPMode mode;
 		TFTPStage stage;
 
-		int blksize;
-
+		ushort blksize;
 		ushort blocks;
 		ushort winsize;
 		ushort msftwindow;
@@ -61,7 +60,7 @@
 			}
 		}
 
-		public int BlockSize
+		public ushort BlockSize
 		{
 			get
 			{

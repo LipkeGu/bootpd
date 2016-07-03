@@ -5,11 +5,12 @@
 	{
 		Definitions.BootServerTypes type;
 		string hostname;
-		short ident;
 		string bootfile;
+
+		ushort ident;
 		IPAddress address;
 
-		public Serverentry(short ident, string hostname, string bootfile, IPAddress address,
+		public Serverentry(ushort ident, string hostname, string bootfile, IPAddress address,
 			Definitions.BootServerTypes type = Definitions.BootServerTypes.PXEBootstrapServer)
 		{
 			this.ident = ident;
@@ -39,7 +40,7 @@
 			get { return this.type; }
 		}
 
-		public short Ident
+		public ushort Ident
 		{
 			get { return this.ident; }
 		}

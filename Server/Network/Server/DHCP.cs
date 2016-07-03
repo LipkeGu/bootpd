@@ -377,14 +377,14 @@
 					break;
 				case RISOPCodes.NCQ:
 					#region "Network Card Query"
-					var ncq_packet = Functions.Unpack_Packet(packet.Data);
+					var ncq_packet = Functions.Unpack_Packet(packet);
 
 					var vendorid = new byte[2];
-					Array.Copy(ncq_packet, 28, vendorid, 0, vendorid.Length);
+					Array.Copy(ncq_packet.Data, 28, vendorid, 0, vendorid.Length);
 					Array.Reverse(vendorid);
 
 					var deviceid = new byte[2];
-					Array.Copy(ncq_packet, 30, deviceid, 0, deviceid.Length);
+					Array.Copy(ncq_packet.Data, 30, deviceid, 0, deviceid.Length);
 					Array.Reverse(deviceid);
 
 					var vid = Exts.GetDataAsString(vendorid, 0, vendorid.Length);
@@ -483,7 +483,7 @@
 					}
 					else
 					{
-						Errorhandler.Report(LogTypes.Error, "Could not find Driver for: {0} - {1}".F( vid, pid));
+						Errorhandler.Report(LogTypes.Error, "Could not find Driver for: {0} - {1}".F(vid, pid));
 					}
 
 					#endregion
@@ -491,21 +491,21 @@
 				case RISOPCodes.AUT:
 					#region "NTLM Authenticate"
 					/* Extract the NTLMSSP Packet :) */
-					var ntlmssp_packet = Functions.Unpack_Packet(packet.Data);
+					var ntlmssp_packet = Functions.Unpack_Packet(packet);
 					
 
 					if (packet.Length >= 28)
 					{
 						var auth_ok = false;
-						Array.Copy(ntlmssp_packet, ntlmssp_packet[48], this.ntlmkey, 0, ntlmssp_packet[44]);
+						Array.Copy(ntlmssp_packet.Data, ntlmssp_packet.Data[48], this.ntlmkey, 0, ntlmssp_packet.Data[44]);
 
 						/* Domain */
-						var domain = new byte[ntlmssp_packet[30]];
-						Functions.CopyTo(ref ntlmssp_packet, ntlmssp_packet[32], ref domain, 0, ntlmssp_packet[30]);
+						var domain = new byte[ntlmssp_packet.Data[30]];
+						Functions.CopyTo(ntlmssp_packet.Data, ntlmssp_packet.Data[32], domain, 0, ntlmssp_packet.Data[30]);
 
 						/* Username */
-						var username = new byte[ntlmssp_packet[36]];
-						Functions.CopyTo(ref ntlmssp_packet, ntlmssp_packet[40], ref username, 0, ntlmssp_packet[36]);
+						var username = new byte[ntlmssp_packet.Data[36]];
+						Functions.CopyTo(ntlmssp_packet.Data, ntlmssp_packet.Data[40], username, 0, ntlmssp_packet.Data[36]);
 
 						if (Exts.EncodeTo(domain, Encoding.ASCII) == Settings.ServerDomain && Exts.EncodeTo(username, Encoding.ASCII) == Settings.OSC_DEFAULT_USER)
 							auth_ok = true;
@@ -550,7 +550,7 @@
 					negResponse.Orign = 130;
 
 					negResponse.Offset = 8;
-					Array.Copy(msg, 0, negResponse.Data, 8, msg.Length);
+					Array.Copy(msg, 0, negResponse.Data, negResponse.Offset, msg.Length);
 
 					negResponse.Offset += msg.Length;
 					negResponse.Length = negResponse.Offset;
@@ -559,7 +559,7 @@
 					#endregion
 					break;
 				case RISOPCodes.OFF:
-					var off_packet = Functions.Unpack_Packet(packet.Data);
+					var off_packet = Functions.Unpack_Packet(packet);
 					break;
 				default:
 					break;

@@ -5,7 +5,6 @@
 	using System.IO;
 	using System.Net;
 	using System.Text;
-	using System.Threading.Tasks;
 
 	public static class Functions
 	{
@@ -29,23 +28,23 @@
 			return 0;
 		}
 
-		public static byte[] Unpack_Packet(byte[] packet)
+		public static RISPacket Unpack_Packet(RISPacket packet)
 		{
-			var data = new byte[(packet.Length - 8)];
-			CopyTo(ref packet, 8, ref data, 0, data.Length);
+			var data = new RISPacket(new byte[packet.Length - 8]);
+			CopyTo(packet.Data, 8, data.Data, 0, data.Length);
 
 			return data;
 		}
 
-		public static byte[] Pack_Packet(byte[] data)
+		public static RISPacket Pack_Packet(RISPacket data)
 		{
-			var packet = new byte[(data.Length + 8)];
-			CopyTo(ref data, 0, ref packet, 8, data.Length);
+			var packet = new RISPacket(new byte[(data.Length + 8)]);
+			CopyTo(data.Data, 0, packet.Data, 8, data.Length);
 
 			return data;
 		}
 
-		public static int CalcBlocksize(long tsize, ushort blksize)
+		public static ushort CalcBlocksize(long tsize, ushort blksize)
 		{
 			var res = tsize / blksize;
 			if (res < ushort.MaxValue)
@@ -53,7 +52,7 @@
 			else
 			{
 				if (res <= blksize)
-					return Convert.ToInt32(res);
+					return Convert.ToUInt16(res);
 				else
 					return blksize;
 			}
@@ -119,7 +118,7 @@
 				var type = (Definitions.BootServerTypes)int.Parse(list[i].Attributes["type"].InnerText);
 
 				var bootfile = list[i].Attributes["bootfile"].InnerText;
-				var ident = (short)(servers.Count + 1);
+				var ident = (ushort)(servers.Count + 1);
 				var e = new Serverentry(ident, hostname, bootfile, addr, type);
 
 				if (!servers.ContainsKey(hostname))

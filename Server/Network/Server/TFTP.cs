@@ -228,7 +228,7 @@
 						Options[parts[i]] = parts[i + 1];
 
 					if (Clients.ContainsKey(data.Source.Address))
-						Clients[data.Source.Address].BlockSize = int.Parse(Options["blksize"]);
+						Clients[data.Source.Address].BlockSize = ushort.Parse(Options["blksize"]);
 				}
 
 				if (parts[i] == "tsize")
@@ -292,7 +292,7 @@
 		{
 		}
 
-		internal void Handle_Option_request(long tsize, int blksize, int winsize, ushort mswinsize, IPEndPoint client)
+		internal void Handle_Option_request(long tsize, ushort blksize, int winsize, ushort mswinsize, IPEndPoint client)
 		{
 			lock (Clients)
 			{
@@ -309,7 +309,6 @@
 
 				var blksize_value = Exts.StringToByte(blksize.ToString(), Encoding.ASCII);
 				offset += Functions.CopyTo(ref blksize_value, 0, ref tmpbuffer, offset, blksize_value.Length) + 1;
-
 
 				var tsizeOpt = Exts.StringToByte("tsize", Encoding.ASCII);
 				offset += Functions.CopyTo(ref tsizeOpt, 0, ref tmpbuffer, offset, tsizeOpt.Length) + 1;
@@ -356,7 +355,7 @@
 					// Align the last Block
 					if (Clients[client.Address].TransferSize <= Clients[client.Address].BlockSize)
 					{
-						Clients[client.Address].BlockSize = Convert.ToInt32(Clients[client.Address].TransferSize);
+						Clients[client.Address].BlockSize = Convert.ToUInt16(Clients[client.Address].TransferSize);
 						done = true;
 					}
 
