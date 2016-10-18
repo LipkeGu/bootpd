@@ -118,6 +118,10 @@
 				var type = (Definitions.BootServerTypes)int.Parse(list[i].Attributes["type"].InnerText);
 
 				var bootfile = list[i].Attributes["bootfile"].InnerText;
+
+				if (string.IsNullOrEmpty(hostname))
+					continue;
+
 				var ident = (ushort)(servers.Count + 1);
 				var e = new Serverentry(ident, hostname, bootfile, addr, type);
 
@@ -179,7 +183,7 @@
 					if (isrv2 > byte.MaxValue)
 						break;
 
-					var name = Exts.StringToByte("{0} ({1})".F(server.Value.Hostname, server.Value.IPAddress),Encoding.ASCII);
+					var name = Exts.StringToByte("{0} ({1})".F(server.Value.Hostname, server.Value.IPAddress), Encoding.ASCII);
 					var ident = BitConverter.GetBytes(server.Value.Ident);
 					var nlen = name.Length;
 
@@ -381,7 +385,7 @@
 				client.BCDPath = bcdpath;
 			}
 			else
-				Errorhandler.Report(Definitions.LogTypes.Error, "Can not find Bootfile: {0}".F(bootfile));
+				Errorhandler.Report(Definitions.LogTypes.Error, "File not Found: {0}".F(bootfile));
 		}
 	}
 }

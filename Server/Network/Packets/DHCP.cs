@@ -169,7 +169,7 @@
 			set
 			{
 				this.data[240] = Convert.ToByte(DHCPOptionEnum.DHCPMessageType);
-				this.data[241] = 1;
+				this.data[241] = sizeof(byte);
 				this.data[242] = Convert.ToByte(value);
 			}
 		}

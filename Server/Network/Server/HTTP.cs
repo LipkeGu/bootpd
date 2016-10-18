@@ -395,11 +395,8 @@
 				output += "<div id=\"nv_cbox_content\" style=\"width: 50%\">Maximale Blocksize:</div><div id=\"nv_cbox_content\" style=\"width: 50%\">{0} Bytes</div>".F(Settings.MaximumAllowedBlockSize);
 
 				var varwindow_str = string.Empty;
-				if (Settings.AllowVariableWindowSize)
-					varwindow_str = "(Dynamisch)";
-				else
-					varwindow_str = "";
-
+				varwindow_str = Settings.AllowVariableWindowSize ? "(Dynamisch)" : string.Empty;
+				
 				output += "<div id=\"nv_cbox_content\" style=\"width: 50%\">Windowsize:</div><div id=\"nv_cbox_content\" style=\"width: 50%\">{0} {1}</div>".F(Settings.MaximumAllowedWindowSize, varwindow_str);
 
 				output += "</div>";
@@ -516,20 +513,10 @@
 			output += "<div id=\"nv_cbox_header\">DHCP-/BINL-Server</div>";
 			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><label for=\"pxe_enable_dhcp\">Port 67 nicht abhören</label></div>";
 
-			var enable_dhcp_pxe = string.Empty;
-			if (!Settings.EnableDHCP)
-				enable_dhcp_pxe = "checked";
-			else
-				enable_dhcp_pxe = string.Empty;
-
-
+			var enable_dhcp_pxe = !Settings.EnableDHCP ? "checked" : string.Empty;
 			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><input type=\"checkbox\" name=\"pxe_enable_dhcp\" id=\"pxe_enable_dhcp\" {0}/></div>".F(enable_dhcp_pxe);
 
-			var checkbox_advert_servers = string.Empty;
-			if (!Settings.AdvertPXEServerList)
-				checkbox_advert_servers = "checked";
-			else
-				checkbox_advert_servers = string.Empty;
+			var checkbox_advert_servers = !Settings.AdvertPXEServerList ? "checked" : string.Empty;
 
 			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><label for=\"pxe_advert_srvlist\">Serverliste verteilen</label></div>";
 			output += "<div id=\"nv_cbox_content\" style=\"width: 50%\"><input type=\"checkbox\" name=\"pxe_advert_srvlist\" id=\"pxe_advert_srvlist\" {0}/></div>".F(checkbox_advert_servers);

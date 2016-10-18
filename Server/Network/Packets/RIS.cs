@@ -13,10 +13,7 @@
 			this.offset = 0;
 			this.type = SocketType.BINL;
 
-			if (length == 0)
-				this.length = this.data.Length;
-			else
-				this.length = length;
+			this.length = length == 0 ? this.data.Length : this.length = length;
 		}
 
 		public override byte[] Add

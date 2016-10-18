@@ -6,7 +6,7 @@
 	{
 		public static void Report(Definitions.LogTypes level, string message)
 		{
-			if (message == string.Empty)
+			if (string.IsNullOrEmpty(message))
 				return;
 
 			var lvl = string.Empty;

@@ -74,7 +74,7 @@
 			if (bytesRead == 0 || bytesRead == -1)
 				return;
 
-			if (this.state.Buffer[0] == 0)
+			if (this.state.Buffer[0] == byte.MinValue)
 			{
 				length = Functions.FindEndOption(ref this.state.Buffer);
 				if (length == 0)

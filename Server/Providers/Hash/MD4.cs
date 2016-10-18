@@ -102,10 +102,10 @@ public class MD4 : HashAlgorithm
 
 	private IEnumerable<byte> Bytes(uint word)
 	{
-		yield return (byte)(word & 255);
-		yield return (byte)((word >> 8) & 255);
-		yield return (byte)((word >> 16) & 255);
-		yield return (byte)((word >> 24) & 255);
+		yield return (byte)(word & byte.MaxValue);
+		yield return (byte)((word >> 8) & byte.MaxValue);
+		yield return (byte)((word >> 16) & byte.MaxValue);
+		yield return (byte)((word >> 24) & byte.MaxValue);
 	}
 
 	private IEnumerable<byte> Repeat(byte value, int count)

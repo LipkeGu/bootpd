@@ -37,8 +37,7 @@
 			evtargs.BytesSend = bytessend;
 			evtargs.RemoteEndpoint = endpoint;
 
-			if (this.DataSend != null)
-				this.DataSend(this, evtargs);
+			this.DataSend?.Invoke(this, evtargs);
 		}
 
 		internal void OnDataReceived(byte[] data, IPEndPoint endpoint, SocketType type)
@@ -48,8 +47,7 @@
 			evtargs.Data = data;
 			evtargs.RemoteEndpoint = endpoint;
 
-			if (this.DataReceived != null)
-				this.DataReceived(this, evtargs);
+			this.DataReceived?.Invoke(this, evtargs);
 		}
 
 		protected class SocketState

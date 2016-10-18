@@ -282,7 +282,7 @@
 			offset += Functions.CopyTo(ref domain, 0, ref message, offset, domain.Length);
 		
 			/*
-			TODO: Our C- Version is skipping this o.o" (Why?!) 
+			TODO: Our C-Version is skipping this o.o" (Why?!) 
 			offset += Functions.CopyTo(ref tib, 0, ref Message, offset, tib.Length);
 			*/
 
@@ -402,7 +402,7 @@
 			des.Mode = CipherMode.ECB;
 			var ct = (ICryptoTransform)null;
 
-			if ((password == null) || (password.Length < 1))
+			if (string.IsNullOrEmpty(password))
 				Buffer.BlockCopy(nullEncMagic, 0, this.lmpassword, 0, 8);
 			else
 			{
@@ -424,7 +424,7 @@
 
 			md4.Initialize();
 
-			var data = (password == null) ? new byte[0] : Exts.StringToByte(password, Encoding.Unicode);
+			var data = string.IsNullOrEmpty(password) ? new byte[0] : Exts.StringToByte(password, Encoding.Unicode);
 			var hash = md4.ComputeHash(data);
 			Buffer.BlockCopy(hash, 0, this.ntpassword, 0, 16);
 

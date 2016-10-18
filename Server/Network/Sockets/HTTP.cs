@@ -8,9 +8,6 @@
 		HttpListener socket;
 
 		HttpListenerContext context;
-
-		int port;
-
 		public HTTPSocket(int port)
 		{
 			if (!Settings.EnableHTTP)
@@ -18,10 +15,8 @@
 
 			try
 			{
-				this.port = port;
-
 				this.socket = new HttpListener();
-				var endpoint = "http://{0}:{1}/".F(Environment.MachineName, this.port);
+				var endpoint = "http://{0}:{1}/".F(Environment.MachineName, port);
 				this.socket.Prefixes.Add(endpoint);
 
 				this.socket.Start();
@@ -59,8 +54,7 @@
 		{
 			var evtargs = new HTTPDataSendEventArgs();
 
-			if (this.HTTPDataSend != null)
-				this.HTTPDataSend(this, evtargs);
+			this.HTTPDataSend?.Invoke(this, evtargs);
 		}
 
 		internal void OnHTTPDataReceived(HttpListenerContext context)

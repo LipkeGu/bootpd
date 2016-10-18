@@ -754,10 +754,7 @@
 				oscContent = Exts.Replace(oscContent, "%SERVERDOMAIN%", Settings.ServerDomain, encoding);
 				oscContent = Exts.Replace(oscContent, "%NTLMV2Enabled%", Settings.EnableNTLMV2 ? "1" : "0", encoding);
 
-				if (encrypted)
-					return RC4.Encrypt(key, oscContent);
-				else
-					return oscContent;
+				return (encrypted) ? RC4.Encrypt(key, oscContent) : oscContent;
 			}
 			catch
 			{

@@ -27,7 +27,7 @@
 
 			for (int i = 0, j = 0; i < 256; i++)
 			{
-				j = (j + key[i % key.Length] + s[i]) & 255;
+				j = (j + key[i % key.Length] + s[i]) & byte.MaxValue;
 				Swap(s, i, j);
 			}
 
@@ -43,12 +43,12 @@
 
 			return data.Select((b) =>
 			{
-				i = (i + 1) & 255;
-				j = (j + s[i]) & 255;
+				i = (i + 1) & byte.MaxValue;
+				j = (j + s[i]) & byte.MaxValue;
 
 				Swap(s, i, j);
 
-				return (byte)(b ^ s[(s[i] + s[j]) & 255]);
+				return (byte)(b ^ s[(s[i] + s[j]) & byte.MaxValue]);
 			});
 		}
 

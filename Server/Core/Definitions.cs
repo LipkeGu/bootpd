@@ -118,7 +118,7 @@
 			Unknown,
 			FileNotFound,
 			AccessViolation,
-			DiskFull,           // and Allocation Exceeded
+			DiskFull,
 			IllegalOperation,
 			UnknownTID,
 			FileExists,
@@ -185,7 +185,7 @@
 		// TODO: This List is not complete!
 		public enum DHCPOptionEnum
 		{
-			Pad = 0,
+			Pad = byte.MinValue,
 			SubnetMask = 1,
 			TimeOffset = 2,
 			Router = 3,
@@ -277,7 +277,7 @@
 			BCDPath = 252,
 			#endregion
 
-			End = 255
+			End = byte.MaxValue
 		}
 
 		/// <summary>
