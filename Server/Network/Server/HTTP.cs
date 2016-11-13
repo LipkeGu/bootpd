@@ -16,6 +16,7 @@
 		{
 			if (!Settings.EnableHTTP)
 				return;
+
 			this.Formdata = new Dictionary<string, string>();
 
 			this.socket = new HTTPSocket(port);
@@ -189,11 +190,6 @@
 					if (item.Key == "pxe_advert_srvlist")
 					{
 						Settings.AdvertPXEServerList = item.Value == "on" ? true : false;
-
-						if (Settings.AdvertPXEServerList)
-							DHCP.ReadServerList();
-						else
-							DHCP.Servers.Clear();
 					}
 
 					if (item.Key == "pxe_menu_prompt")
@@ -528,6 +524,7 @@
 
 			output += "</div>";
 			#endregion
+
 			output += "<div id=\"nv_cbox\">";
 			output += "<div id=\"nv_cbox_header\" style=\"width: 100%\"> <input type=\"submit\" value=\"Speichern\" /></div>";
 			output += "</div>";

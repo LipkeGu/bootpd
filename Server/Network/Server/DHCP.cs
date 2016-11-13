@@ -10,7 +10,7 @@
 	{
 		public static Dictionary<string, DHCPClient> Clients = new Dictionary<string, DHCPClient>();
 
-		public static Dictionary<string, Serverentry> Servers = new Dictionary<string, Serverentry>();
+		public static Dictionary<string, Serverentry<uint>> Servers = new Dictionary<string, Serverentry<uint>>();
 
 		public DHCPSocket DHCPsocket;
 
@@ -40,13 +40,13 @@
 				this.DHCPsocket.DataSend += this.DataSend;
 
 				if (Settings.AdvertPXEServerList)
-					ReadServerList();
+					ReadServerList(ref Server.Database);
 			}
 		}
 
-		public static void ReadServerList()
+		public static void ReadServerList(ref SQLDatabase db)
 		{
-			Functions.ReadServerList(Settings.ServersFile, ref Servers);
+			Functions.ReadServerList(ref db, ref Servers);
 		}
 
 		public static int RequestID
@@ -175,7 +175,6 @@
 					client.MsgType = DHCPMsgType.Offer;
 					break;
 				case SocketType.BINL:
-
 					client.MsgType = DHCPMsgType.Ack;
 					break;
 				default:
@@ -239,7 +238,7 @@
 			}
 
 			// Option 252 - BCDStore
-			if (client.BCDPath != null && client.ActionDone && client.IsWDSClient)
+			if (!string.IsNullOrEmpty(client.BCDPath) && client.ActionDone && client.IsWDSClient)
 			{
 				var bcdstore = Exts.SetDHCPOption(DHCPOptionEnum.BCDPath, Exts.StringToByte(client.BCDPath, Encoding.ASCII));
 
@@ -248,7 +247,7 @@
 			}
 
 			#region "Server selection"
-			if (Settings.AdvertPXEServerList && Servers.Count > 0 && client.UNDI_Major > 1)
+			if (Settings.AdvertPXEServerList && Servers.Count > 1 && client.UNDI_Major > 1)
 			{
 				var optionoffset = Functions.GetOptionOffset(ref packet, DHCPOptionEnum.VendorSpecificInformation);
 				if (optionoffset != 0)
@@ -260,7 +259,7 @@
 					var value = data[0];
 					switch (value)
 					{
-						case (byte)Definitions.PXEVendorEncOptions.BootItem:
+						case (byte)PXEVendorEncOptions.BootItem:
 							bootitem = BitConverter.ToUInt16(data, 2);
 							break;
 						default:
@@ -492,49 +491,61 @@
 					#region "NTLM Authenticate"
 					/* Extract the NTLMSSP Packet :) */
 					var ntlmssp_packet = Functions.Unpack_Packet(packet);
-					
-
 					if (packet.Length >= 28)
 					{
-						var auth_ok = false;
 						Array.Copy(ntlmssp_packet.Data, ntlmssp_packet.Data[48], this.ntlmkey, 0, ntlmssp_packet.Data[44]);
 
 						/* Domain */
 						var domain = new byte[ntlmssp_packet.Data[30]];
-						Functions.CopyTo(ntlmssp_packet.Data, ntlmssp_packet.Data[32], domain, 0, ntlmssp_packet.Data[30]);
-
-						/* Username */
-						var username = new byte[ntlmssp_packet.Data[36]];
-						Functions.CopyTo(ntlmssp_packet.Data, ntlmssp_packet.Data[40], username, 0, ntlmssp_packet.Data[36]);
-
-						if (Exts.EncodeTo(domain, Encoding.ASCII) == Settings.ServerDomain && Exts.EncodeTo(username, Encoding.ASCII) == Settings.OSC_DEFAULT_USER)
-							auth_ok = true;
-						else 
-							auth_ok = false;
-
-						var res = BitConverter.GetBytes(0xffffffff);
-
-						if (auth_ok)
-						{
-							res = BitConverter.GetBytes(0x00000000);
-							Errorhandler.Report(LogTypes.Info, "Authentication Succeded!");
-						}
+						Functions.CopyTo(ntlmssp_packet.Data, ntlmssp_packet.Data[32], domain, 0, domain.Length);
+						var sDomain = Exts.EncodeTo(domain, Encoding.ASCII);
+						if (string.IsNullOrEmpty(sDomain))
+							Errorhandler.Report(LogTypes.Info, "Authentication Failed! (0x80090311: SEC_E_NO_AUTHENTICATING_AUTHORITY)");
 						else
 						{
-							res = BitConverter.GetBytes(0xC00000DF);
-							Errorhandler.Report(LogTypes.Info, "Authentication Failed!");
+							/* Username */
+							var username = new byte[ntlmssp_packet.Data[36]];
+							Functions.CopyTo(ntlmssp_packet.Data, ntlmssp_packet.Data[40], username, 0, username.Length);
+							var sUser = Exts.EncodeTo(username, Encoding.ASCII);
+
+							if (string.IsNullOrEmpty(sUser))
+								Errorhandler.Report(LogTypes.Info, "Authentication Failed! (0x8009030E: SEC_E_NO_CREDENTIALS)");
+							else
+							{
+								var numUsers = Server.Database.Count("Usernames", "Name", sUser);
+
+								var res = NTStausCodes.SSPI_LOGON_DENIED;
+								if (Exts.EncodeTo(domain, Encoding.ASCII) == Settings.ServerDomain && numUsers != 0)
+									res = NTStausCodes.ERROR_SUCCESS;
+								else
+									res = NTStausCodes.SSPI_LOGON_DENIED;
+
+								switch (res)
+								{
+									case NTStausCodes.ERROR_SUCCESS:
+										Errorhandler.Report(LogTypes.Info, "Authentication OK!! (0x00000000: SEC_E_OK)");
+										break;
+									case NTStausCodes.SSPI_LOGON_DENIED:
+										Errorhandler.Report(LogTypes.Info, "Authentication Failed! (0x8009030c: SSPI_E_LOGON_DENIED)");
+										break;
+									default:
+										break;
+								}
+
+								var result = BitConverter.GetBytes((uint)res);
+								var resPacket = new RISPacket(new byte[10]);
+								resPacket.OPCode = RISOPCodes.RES;
+								resPacket.RequestType = "RES";
+								resPacket.Orign = 130;
+
+								resPacket.Offset += 4;
+								resPacket.Length = 4;
+
+								Array.Copy(result, 0, resPacket.Data, resPacket.Offset, result.Length);
+								resPacket.Offset += result.Length;
+								this.Send(ref resPacket, client.Endpoint);
+							}
 						}
-
-						var resPacket = new RISPacket(new byte[10]);
-						resPacket.RequestType = "RES";
-						resPacket.Orign = 130;
-
-						resPacket.Offset += 4;
-						resPacket.Length = 4;
-
-						Array.Copy(res, 0, resPacket.Data, resPacket.Offset, res.Length);
-						resPacket.Offset += res.Length;
-						this.Send(ref resPacket, client.Endpoint);
 					}
 					#endregion
 					break;
@@ -559,6 +570,9 @@
 					#endregion
 					break;
 				case RISOPCodes.OFF:
+					if (packet.Length == 0)
+						return;
+
 					var off_packet = Functions.Unpack_Packet(packet);
 					break;
 				default:
@@ -604,6 +618,17 @@
 							}
 
 							var c = Clients[clientTag];
+
+							if (Server.Database.Count("Computer", "UUID", c.Guid.ToString()) != 0)
+							{
+								var dbQuery = Server.Database.SQLQuery("SELECT * FROM Computer WHERE UUID LIKE '{0}' LIMIT 1".F(c.Guid));
+								for (var i = 0U; i < dbQuery.Count; i++)
+								{
+									c.NextAction = (NextActionOptionValues)int.Parse(dbQuery[i]["NextAction"]);
+									c.ActionDone = bool.Parse(dbQuery[i]["ActionDone"]);
+								}
+							}
+
 							switch (request.MessageType)
 							{
 								case DHCPMsgType.Request:

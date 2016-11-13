@@ -5,6 +5,8 @@
 
 	public class Server : Definitions
 	{
+		public static SQLDatabase Database = new SQLDatabase();
+		 
 		[STAThread]
 		static void Main()
 		{
@@ -22,6 +24,7 @@
 			tftp.Dispose();
 			dhcp.Dispose();
 			http.Dispose();
+			Database.Close();
 		}
 	}
 }

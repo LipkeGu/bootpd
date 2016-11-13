@@ -242,7 +242,6 @@
 			/*
 			buflen += tisb.Length;
 			buflen += tib.Length;
-			
 			*/
 
 			buflen += domain.Length;
@@ -257,7 +256,6 @@
 
 			/* Target Name Security Buffer */
 			offset += Functions.CopyTo(ref tnsb, 0, ref message, offset, tnsb.Length);
-			
 
 			/* Flags */
 			if (BitConverter.IsLittleEndian)
@@ -267,7 +265,7 @@
 
 			/* Challenge */
 			offset += Functions.CopyTo(ref challeng, 0, ref message, offset, challeng.Length);
-			
+
 			/* Context */
 			offset += Functions.CopyTo(ref context, 0, ref message, offset, context.Length);
 
@@ -319,7 +317,7 @@
 
 			// Offset
 			offset += Functions.CopyTo(ref pos, 0, ref buffer, offset, pos.Length);
-			
+
 			return buffer;
 		}
 
@@ -411,7 +409,7 @@
 				ct.TransformBlock(magic, 0, 8, this.lmpassword, 0);
 			}
 
-			if ((password == null) || (password.Length < 8))
+			if ((string.IsNullOrEmpty(password)) || (password.Length < 8))
 				Buffer.BlockCopy(nullEncMagic, 0, this.lmpassword, 8, 8);
 			else
 			{

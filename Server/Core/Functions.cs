@@ -96,38 +96,21 @@
 			return length;
 		}
 
-		public static void ReadServerList(string filename, ref Dictionary<string, Serverentry> servers)
+		public static void ReadServerList(ref SQLDatabase db, ref Dictionary<string, Serverentry<uint>> servers)
 		{
-			if (!Filesystem.Exist(filename))
-				return;
-
-			var serverlist = Files.ReadXML(filename.ToLowerInvariant());
-			var list = serverlist.GetElementsByTagName("Server");
+			var s = db.SQLQuery("SELECT * FROM ServerList LIMIT {0}".F((byte.MaxValue - 1)));
+			for (var i = 0U; i < s.Count; i++)
+			{
+				if (!servers.ContainsKey(s[i]["HostName"]))
+				{
+					var entry = new Serverentry<uint>(i, s[i]["HostName"], s[i]["BootFile"], IPAddress.Parse(s[i]["BootFile"]));
+					servers.Add(s[i]["HostName"], entry);
+				}
+			}
 
 			if (!servers.ContainsKey(Settings.ServerName))
-				servers.Add(Settings.ServerName, new Serverentry(254, Settings.ServerName, Settings.DHCP_DEFAULT_BOOTFILE,
+				servers.Add(Settings.ServerName, new Serverentry<uint>(254, Settings.ServerName, Settings.DHCP_DEFAULT_BOOTFILE,
 				Settings.ServerIP, Definitions.BootServerTypes.MicrosoftWindowsNTBootServer));
-
-			for (var i = 0; i < list.Count; i++)
-			{
-				if (servers.Count > byte.MaxValue - 1)
-					break;
-
-				var addr = IPAddress.Parse(list[i].Attributes["address"].InnerText);
-				var hostname = list[i].Attributes["hostname"].InnerText;
-				var type = (Definitions.BootServerTypes)int.Parse(list[i].Attributes["type"].InnerText);
-
-				var bootfile = list[i].Attributes["bootfile"].InnerText;
-
-				if (string.IsNullOrEmpty(hostname))
-					continue;
-
-				var ident = (ushort)(servers.Count + 1);
-				var e = new Serverentry(ident, hostname, bootfile, addr, type);
-
-				if (!servers.ContainsKey(hostname))
-					servers.Add(hostname, e);
-			}
 		}
 
 		public static byte[] GenerateDHCPEncOption(byte option, int length, byte[] data)
@@ -146,7 +129,7 @@
 			return result;
 		}
 
-		public static byte[] GenerateServerList(ref Dictionary<string, Serverentry> servers, ushort item)
+		public static byte[] GenerateServerList(ref Dictionary<string, Serverentry<uint>> servers, ushort item)
 		{
 			if (item == 0)
 			{
@@ -310,7 +293,7 @@
 			var n = Exts.StringToByte(name, Encoding.ASCII);
 			var t = Exts.StringToByte(type, Encoding.ASCII);
 			var v = Exts.StringToByte(value, Encoding.ASCII);
-						
+
 			var data = new byte[n.Length + t.Length + v.Length + 2];
 
 			var offset = 0;

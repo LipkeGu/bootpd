@@ -537,5 +537,11 @@
 			TpmBootEntropyPolicy = 0x25000100,
 			XSaveDisable = 0x2500012b
 		}
+
+		public enum NTStausCodes : uint
+		{
+			ERROR_SUCCESS = 0x00000000,
+			SSPI_LOGON_DENIED = 0x8009030c
+		}
 	}
 }

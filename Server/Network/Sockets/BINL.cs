@@ -6,7 +6,7 @@
 
 	public sealed class BINLSocket : SocketProvider
 	{
-		public BINLSocket(IPEndPoint endpoint, bool broadcast = false, bool enableMulticast = false, int buffersize = 1024, SocketType type = SocketType.BINL)
+		public BINLSocket(IPEndPoint endpoint, bool broadcast = false, int buffersize = 1024, SocketType type = SocketType.BINL)
 		{
 			try
 			{

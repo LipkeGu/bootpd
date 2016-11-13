@@ -1,8 +1,8 @@
-﻿namespace bootpd
-{
-	using System;
-	using System.Net;
+﻿using System;
+using System.Net;
 
+namespace bootpd
+{
 	public sealed class HTTPSocket : IDisposable
 	{
 		HttpListener socket;
@@ -38,7 +38,7 @@
 
 		~HTTPSocket()
 		{
-			this.Close();
+			this.Dispose();
 		}
 
 		public event HTTPDataReceivedEventHandler HTTPDataReceived;
@@ -52,9 +52,7 @@
 
 		internal void OnHTTPDataSend(HttpListenerContext context)
 		{
-			var evtargs = new HTTPDataSendEventArgs();
-
-			this.HTTPDataSend?.Invoke(this, evtargs);
+			this.HTTPDataSend?.Invoke(this, new HTTPDataSendEventArgs());
 		}
 
 		internal void OnHTTPDataReceived(HttpListenerContext context)
@@ -62,8 +60,7 @@
 			var evtargs = new HTTPDataReceivedEventArgs();
 			evtargs.Request = this.context.Request;
 
-			if (this.HTTPDataReceived != null)
-				this.HTTPDataReceived(this, evtargs);
+			this.HTTPDataReceived?.Invoke(this, evtargs);
 		}
 
 		internal void Send(byte[] buffer, int statuscode, string description)

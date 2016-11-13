@@ -7,18 +7,19 @@
 	public abstract class SocketProvider : Definitions
 	{
 		protected SocketState state;
-		protected MulticastOption mcastoption;
-		protected EndPoint localEndPoint;
-		protected IPAddress multicstAddress;
-		protected EndPoint remoteEndPoint;
-		protected Socket socket;
-		protected int sendBuffer;
-		protected bool reuseAddress;
 		protected SocketType type;
-		protected bool broadcast;
-		protected bool enablemulticast;
+		protected Socket socket;
+
+		protected EndPoint localEndPoint;
+		protected EndPoint remoteEndPoint;
+
+		protected int sendBuffer;
 		protected int buffersize;
 
+		protected bool reuseAddress;
+		protected bool broadcast;
+		protected bool enablemulticast;
+		
 		public event DataReceivedEventHandler DataReceived;
 
 		public event DataSendEventHandler DataSend;

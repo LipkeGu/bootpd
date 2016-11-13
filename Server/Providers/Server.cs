@@ -5,9 +5,7 @@
 	public abstract class ServerProvider : Definitions
 	{
 		protected IPEndPoint endp;
-
 		protected IPEndPoint remoteEndp;
-
 		protected SocketType type;
 
 		public abstract IPEndPoint LocalEndPoint
@@ -21,7 +19,6 @@
 		}
 
 		internal abstract void DataReceived(object sender, DataReceivedEventArgs e);
-
 		internal abstract void DataSend(object sender, DataSendEventArgs e);
 	}
 }

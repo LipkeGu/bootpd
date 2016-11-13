@@ -1,16 +1,16 @@
 ﻿namespace bootpd
 {
 	using System.Net;
-	public class Serverentry
+	public class Serverentry<T>
 	{
 		Definitions.BootServerTypes type;
 		string hostname;
 		string bootfile;
 
-		ushort ident;
+		T ident;
 		IPAddress address;
 
-		public Serverentry(ushort ident, string hostname, string bootfile, IPAddress address,
+		public Serverentry(T ident, string hostname, string bootfile, IPAddress address,
 			Definitions.BootServerTypes type = Definitions.BootServerTypes.PXEBootstrapServer)
 		{
 			this.ident = ident;
@@ -40,7 +40,7 @@
 			get { return this.type; }
 		}
 
-		public ushort Ident
+		public T Ident
 		{
 			get { return this.ident; }
 		}

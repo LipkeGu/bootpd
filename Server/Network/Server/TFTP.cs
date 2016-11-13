@@ -283,7 +283,7 @@
 					ack_thread.Start(request);
 					break;
 				default:
-					this.Handle_Error_Request(TFTPErrorCode.IllegalOperation, "Unknown OPCode: {0}".F(request.OPCode), request.Source);
+					this.Handle_Error_Request(TFTPErrorCode.IllegalOperation, "Unknown TFTP OPCode: {0}".F(request.OPCode), request.Source);
 					break;
 			}
 		}

@@ -40,7 +40,7 @@
 			this.actionDone = false;
 			this.guid = guid;
 			this.mac = mac;
-			this.id = string.Format("{0}-{1}", this.guid, this.mac);
+			this.id = "{0}-{1}".F(this.guid, this.mac);
 			this.adminMessage = "Client ID: {0}".F(this.id);
 			this.nextAction = NextActionOptionValues.Approval;
 			this.msgType = DHCPMsgType.Offer;

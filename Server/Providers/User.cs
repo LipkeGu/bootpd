@@ -4,10 +4,11 @@
 	{
 		protected string username;
 		protected string email;
-		protected Definitions.UserGroup userGroup;
 		protected string fullname;
 		protected string password;
 		protected string location;
+
+		protected Definitions.UserGroup userGroup;
 
 		protected bool active;
 		protected bool autoLogon;
