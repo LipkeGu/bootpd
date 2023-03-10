@@ -229,9 +229,8 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
-
+*.wim
+*.exe
 *.exe
 *.manifest
-
-TFTPRoot/
 *.db
