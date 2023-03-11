@@ -2,12 +2,41 @@
 {
 	using Extensions;
 	using System;
+	using System.Collections.Generic;
 	using System.Net;
 
 	public sealed class DHCPClient : ClientProvider, IDHCPClient_Provider
 	{
 		string bootfile;
 		Guid guid;
+
+
+
+		public class BSDPClient
+		{
+			public BSDPArch Architecture { get; set; } = BSDPArch.I386;
+			public bool NetBoot10CLient { get; set; } = false;
+			public BSDPMsgType MsgType { get; set; } = BSDPMsgType.Failed;
+			public ushort Version { get; set; } = 0x0000;
+			public IPAddress ServerIdent { get; internal set; }
+			public ushort ServerPriority { get; internal set; }
+			public ushort ReplyPort { get; internal set; }
+			public uint DefaultImage { get; private set; } = 0;
+			public uint SelectedImage { get; private set; } = 0;
+			public ushort MaxMessageSize { get; set; } = 1500;
+
+			public List<BSDPImageAttributes> ImageAttributes { get; set; }
+
+			/// <summary>
+			/// TBD
+			/// </summary>
+			public string ImageListPath { get; set; } = string.Empty;
+
+			public BSDPClient()
+			{
+				ImageAttributes = new List<BSDPImageAttributes>();
+			}
+		}
 
 		public class RBCPClient
 		{
@@ -17,12 +46,15 @@
 
 			public RBCPClient()
 			{
+				Layer = 0;
 			}
 		}
 
 		public RBCPClient RBCP { get; private set; }
 
 		public WDSClient WDS { get; private set; }
+
+		public BSDPClient BSDP { get; private set; }
 
 		public class WDSClient
 		{
@@ -61,6 +93,7 @@
 		{
 			WDS = new WDSClient();
 			RBCP = new RBCPClient();
+			BSDP = new BSDPClient();
 
 			this.type = type;
 			endp = endpoint;

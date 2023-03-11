@@ -11,7 +11,8 @@
 	{
 		#region "Generic Functions"
 		public Dictionary<byte, DHCPOption> DHCPOptions;
-
+		bool sNamefieldOverloaded = false;
+		bool filefieldOverloaded = false;
 
 		public DHCPPacket(byte[] data, SocketType type, bool parse = false)
 		{
@@ -117,6 +118,27 @@
 					break;
 				}
 			}
+
+			if (HasOption(52))
+            {
+				var ovld = Convert.ToByte(GetOption(52).Data);
+
+                switch (ovld)
+                {
+					case 1:
+						filefieldOverloaded = true;
+						break;
+					case 2:
+						sNamefieldOverloaded = true;
+						break;
+					case 3:
+						sNamefieldOverloaded = filefieldOverloaded = true;
+						break;
+                    default:
+                        break;
+                }
+            }
+
 		}
 
 		public BootMessageType BootpType
@@ -304,16 +326,26 @@
 		{
 			get
 			{
-				return BitConverter.ToString(Data, 44, 64);
+					return sNamefieldOverloaded ? BitConverter.ToString(Data, 44, 64):
+						Encoding.ASCII.GetString(GetOption(66).Data);
 			}
 
 			set
 			{
-				Array.Clear(Data, 44, 64);
 
-				var bytes = new byte[64];
-				bytes = Exts.StringToByte(value, Encoding.ASCII);
-				CopyTo(bytes, 0, Data, 44);
+
+
+
+				if (!sNamefieldOverloaded)
+				{
+					Array.Clear(Data, 44, 64);
+
+					var bytes = new byte[64];
+					bytes = Exts.StringToByte(value, Encoding.ASCII);
+					CopyTo(bytes, 0, Data, 44);
+				}
+				else
+					AddOption(new DHCPOption(66, value));
 			}
 		}
 

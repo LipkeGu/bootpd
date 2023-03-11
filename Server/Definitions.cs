@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using System.Text;
 
 namespace Server.Network
 {
@@ -391,7 +392,17 @@ namespace Server.Network
 		Ack = 5,
 		Nak = 6,
 		Release = 7,
-		Inform = 8
+		Inform = 8,
+		ForceRenew = 9,
+		LeaseQuery = 10,
+		LeaseUnassined = 11,
+		LeaseUnknown = 12,
+		LeaseActive = 13,
+		BulkLeaseQuery = 14,
+		LeaseQueryDone = 15,
+		ActiveLeaseQuery = 16,
+		LeasequeryStatus = 17,
+		Tls = 18
 	}
 
 	/// <summary>
@@ -563,8 +574,8 @@ namespace Server.Network
 		STDAServer = 76,
 		Architecture = 93,
 		ClientInterfaceIdent = 94,
-
 		GUID = 97,
+		VOIPTFTPServer = 120,
 
 		#region "PXELinux"
 		MAGICOption = 208,
@@ -593,6 +604,71 @@ namespace Server.Network
 		CAUnicenterTNGBootServer,
 		HPOpenViewBootServer
 	}
+		public enum BSDPImageAttributes : ushort
+		{
+			Diagnostic = 0x0300
+		}
+
+	public class BSDPImageListEntry 
+	{
+		public uint Id { get; private set; }
+		
+		public byte Count { get; private set; }
+
+		// utf-8
+		public byte[] Name { get; private set; }
+
+
+
+		public BSDPImageListEntry( uint id, byte count, string name)
+        {
+			Id = id;
+			Count = count;
+			Name = Encoding.UTF8.GetBytes(name);
+        }
+
+		public byte[] GetBytes()
+        {
+			var offset = 0;
+			var buffer = new byte[sizeof(uint) + sizeof(byte) + Name.Length];
+			offset += Functions.CopyTo(BitConverter.GetBytes(Id), 0, buffer, offset);
+			offset += Functions.CopyTo(Count, buffer, offset);
+			offset += Functions.CopyTo(Name, 0, buffer, offset);
+
+			return buffer;
+		}
+
+	}
+
+	public enum BSDPArch
+    {
+		PPC = 0x0000,
+		I386 = 0x0001
+    }
+
+	public enum BSDPEncOptions
+    {
+		MessageType = 1,
+		Version = 2,
+		ServerIdent = 3,
+		ServerPriority = 4,
+		ReplyPort = 5,
+		BoorImageListPath = 6,
+		DefaultBootimageId = 7,
+		SelectedBootImage = 8,
+		BootImageList = 9,
+		Netboot10Firmware = 10,
+		BootimageAttribs = 11,
+		MaxMessageSize = 12
+
+    }
+
+
+	public enum BSDPMsgType
+    {
+		List = 1, Select = 2, Failed = 3
+    }
+
 
 	public enum PXEVendorEncOptions : byte
 	{

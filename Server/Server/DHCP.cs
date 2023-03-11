@@ -47,6 +47,10 @@
 		public static int RequestID { get; set; }
 
 		public DHCPMsgType MsgType { get; set; }
+		public void Handle_DHCP_Discover(DHCPPacket packet, string client)
+		{
+
+		}
 
 		public void Handle_DHCP_Request(DHCPPacket packet, string client)
 		{
@@ -55,15 +59,16 @@
 			Clients[client].VendorIdent = VendorIdents.UNKN;
 
 			var vendor_str = Encoding.ASCII.GetString(packet.GetOption(60).Data);
-			if (vendor_str.Contains(VendorIdents.PXEClient.ToString()))
+			if (vendor_str.Contains("PXEClient"))
 				Clients[client].VendorIdent = VendorIdents.PXEClient;
-			else if (vendor_str.Contains(VendorIdents.PXEServer.ToString()))
+			else if (vendor_str.Contains("PXEServer"))
 				Clients[client].VendorIdent = VendorIdents.PXEServer;
-			else if (vendor_str.Contains(VendorIdents.BSDP.ToString()))
+			else if (vendor_str.Contains("AAPLBSDPC")) //AAPLBSDPC/i386/iMac4,1
 				Clients[client].VendorIdent = VendorIdents.BSDP;
 
 			switch (Clients[client].VendorIdent)
 			{
+				case VendorIdents.PXEServer:
 				case VendorIdents.PXEClient:
 
 					if (vendor_str.Contains(":"))
@@ -73,11 +78,7 @@
 						{
 							Clients[client].PXEFramework = PXEFrameworks.UNDI;
 							if (vendor_parts[1].ToUpper() == "ARCH" && !Clients[client].IsWDSClient)
-							{
-								var archPart = BitConverter.GetBytes(ushort.Parse(vendor_parts[2]));
-								Array.Reverse(archPart);
-								Clients[client].Arch = (Architecture)BitConverter.ToUInt16(archPart, 0);
-							}
+								Clients[client].Arch = (Architecture)LE16(ushort.Parse(vendor_parts[2]));
 
 							if (vendor_parts[3].ToUpper() == PXEFrameworks.UNDI.ToString())
 							{
@@ -88,11 +89,87 @@
 					}
 
 					break;
-				case VendorIdents.PXEServer:
-					/* Server <-> Server Communication */
-					break;
 				case VendorIdents.BSDP:
 					/* Apple Boot server discovery Protocol */
+					var vendoridenParts = Encoding.ASCII.GetString(packet.GetOption(60).Data).Split('/');
+					if (vendoridenParts[1].Contains("ppc"))
+						Clients[client].BSDP.Architecture = BSDPArch.PPC;
+					else if (vendoridenParts[1].Contains("i386"))
+						Clients[client].BSDP.Architecture = BSDPArch.I386;
+
+					var encBSDPopts = packet.GetEncOptions(43);
+
+					foreach (var option in encBSDPopts)
+					{
+						switch ((BSDPEncOptions)option.Option)
+						{
+							case BSDPEncOptions.MessageType:
+								Clients[client].BSDP.MsgType = (BSDPMsgType)Convert.ToByte(option.Data);
+								break;
+							case BSDPEncOptions.Version:
+								Clients[client].BSDP.Version = BitConverter.ToUInt16(option.Data, 0);
+								break;
+							case BSDPEncOptions.ServerIdent:
+								if (Clients[client].BSDP.MsgType != BSDPMsgType.Select)
+									continue;
+
+								Clients[client].BSDP.ServerIdent = new IPAddress(option.Data);
+								break;
+							case BSDPEncOptions.ServerPriority:
+								Clients[client].BSDP.ServerPriority = ushort.MaxValue;
+
+								break;
+							case BSDPEncOptions.ReplyPort:
+								if (Clients[client].BSDP.MsgType != BSDPMsgType.Select ||
+									Clients[client].BSDP.MsgType != BSDPMsgType.List)
+									continue;
+
+								Clients[client].BSDP.ReplyPort
+									= BitConverter.ToUInt16(option.Data, 0);
+
+								if (Clients[client].BSDP.ReplyPort >= 1024)
+									Console.WriteLine("[W] ReplyPort must be less than 1024!");
+
+								break;
+							case BSDPEncOptions.BoorImageListPath:
+								if (Clients[client].BSDP.MsgType != BSDPMsgType.List)
+									continue;
+
+								/* Not used, too large and has to be downloaded by TFTP */
+
+								Clients[client].BSDP.ImageListPath
+									= Encoding.ASCII.GetString(option.Data);
+								break;
+							case BSDPEncOptions.DefaultBootimageId:
+								break;
+							case BSDPEncOptions.SelectedBootImage:
+								break;
+							case BSDPEncOptions.BootImageList:
+								break;
+							case BSDPEncOptions.Netboot10Firmware:
+								Clients[client].BSDP.NetBoot10CLient = true;
+								Clients[client].BSDP.Version = 0x0000;
+								break;
+							case BSDPEncOptions.BootimageAttribs:
+								var attribCount = option.Length / sizeof(ushort);
+								Console.WriteLine("[D] Got {0} image attributes", attribCount);
+								for (var i = 0; i < attribCount;)
+								{
+									Clients[client].BSDP.ImageAttributes
+										.Add((BSDPImageAttributes)BitConverter.ToUInt16(option.Data, i));
+
+									i += sizeof(ushort);
+								}
+								break;
+							case BSDPEncOptions.MaxMessageSize:
+								Clients[client].BSDP.MaxMessageSize
+									= BitConverter.ToUInt16(option.Data, 0);
+								break;
+							default:
+								break;
+						}
+					}
+
 					break;
 				default:
 					Console.WriteLine("[D] Got DHCP Request for {0}",

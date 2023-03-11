@@ -158,39 +158,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
-    <None Include="database.sqlite">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="TFTPRoot\Boot\x86\apitest.0">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="TFTPRoot\Boot\x86\bisconfig.0">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="TFTPRoot\Boot\x86\boot.sdi">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="TFTPRoot\Boot\x86\boot.wim">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="TFTPRoot\Boot\x86\bstrap.0">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="TFTPRoot\Boot\x86\default.bcd">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="TFTPRoot\Boot\x86\pxeboot.com">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="TFTPRoot\Boot\x86\pxeboot.n12">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="TFTPRoot\Boot\x86\wdsmgfw.efi">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="TFTPRoot\Boot\x86\wdsnbp.com">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    <None Include="TFTPRoot\Docs\bisspec.pdf" />
+    <None Include="TFTPRoot\Docs\pxespec.pdf" />
   </ItemGroup>
   <ItemGroup>
     <None Include="http\Datasets\index.xml">
@@ -269,14 +238,12 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="serverlist.xml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <Content Include="TFTPRoot\Config\config.txt" />
+    <Content Include="TFTPRoot\Config\leases.txt" />
+    <Content Include="TFTPRoot\Config\servers.txt" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="TFTPRoot\Boot\x86\bootmgr.exe">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    <Folder Include="TFTPRoot\Boot\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
