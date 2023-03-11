@@ -300,7 +300,6 @@
 			Bootservers.Clear();
 		}
 
-
 		private DHCPOption Handle_RBCP_Request(string client, DHCPPacket request)
 		{
 

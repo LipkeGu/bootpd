@@ -51,7 +51,7 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
-    <StartupObject>bootpd.Bootpd</StartupObject>
+    <StartupObject>server.Program</StartupObject>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
     <DebugSymbols>true</DebugSymbols>
@@ -102,6 +102,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Bootpd\BootpdCommon.cs" />
+    <Compile Include="Bootpd\Common\Network\Functions.cs" />
+    <Compile Include="Bootpd\Network\Interfaces\IServer.cs" />
+    <Compile Include="Bootpd\Network\Interfaces\ISocket.cs" />
+    <Compile Include="Bootpd\Network\Server\BaseServer.cs" />
+    <Compile Include="Bootpd\Network\Server\Event\ServerDataReceived.cs" />
+    <Compile Include="Bootpd\Network\Sockets\BaseSocket.cs" />
+    <Compile Include="Bootpd\Network\Sockets\Events\SocketDataReceived.cs" />
     <Compile Include="Client\DHCP.cs" />
     <Compile Include="Client\RIS.cs" />
     <Compile Include="Client\TFTP.cs" />
@@ -243,6 +251,8 @@
     <Content Include="TFTPRoot\Config\servers.txt" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Bootpd\Common\Interfaces\" />
+    <Folder Include="Sockets\Eventhandler\" />
     <Folder Include="TFTPRoot\Boot\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

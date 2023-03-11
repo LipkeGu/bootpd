@@ -604,15 +604,15 @@ namespace Server.Network
 		CAUnicenterTNGBootServer,
 		HPOpenViewBootServer
 	}
-		public enum BSDPImageAttributes : ushort
-		{
-			Diagnostic = 0x0300
-		}
+	public enum BSDPImageAttributes : ushort
+	{
+		Diagnostic = 0x0300
+	}
 
-	public class BSDPImageListEntry 
+	public class BSDPImageListEntry
 	{
 		public uint Id { get; private set; }
-		
+
 		public byte Count { get; private set; }
 
 		// utf-8
@@ -620,15 +620,15 @@ namespace Server.Network
 
 
 
-		public BSDPImageListEntry( uint id, byte count, string name)
-        {
+		public BSDPImageListEntry(uint id, byte count, string name)
+		{
 			Id = id;
 			Count = count;
 			Name = Encoding.UTF8.GetBytes(name);
-        }
+		}
 
 		public byte[] GetBytes()
-        {
+		{
 			var offset = 0;
 			var buffer = new byte[sizeof(uint) + sizeof(byte) + Name.Length];
 			offset += Functions.CopyTo(BitConverter.GetBytes(Id), 0, buffer, offset);
@@ -641,13 +641,13 @@ namespace Server.Network
 	}
 
 	public enum BSDPArch
-    {
+	{
 		PPC = 0x0000,
 		I386 = 0x0001
-    }
+	}
 
 	public enum BSDPEncOptions
-    {
+	{
 		MessageType = 1,
 		Version = 2,
 		ServerIdent = 3,
@@ -661,13 +661,13 @@ namespace Server.Network
 		BootimageAttribs = 11,
 		MaxMessageSize = 12
 
-    }
+	}
 
 
 	public enum BSDPMsgType
-    {
+	{
 		List = 1, Select = 2, Failed = 3
-    }
+	}
 
 
 	public enum PXEVendorEncOptions : byte
@@ -782,6 +782,13 @@ namespace Server.Network
 	{
 		AllowAll,
 		KnownOnly
+	}
+
+	public enum ServerType
+	{
+		DHCP,
+		BOOTP,
+		TFTP
 	}
 
 	public delegate void DataReceivedEventHandler(object sender, DataReceivedEventArgs e);
