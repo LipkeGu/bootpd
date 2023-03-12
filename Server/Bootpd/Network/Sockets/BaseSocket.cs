@@ -47,9 +47,12 @@ namespace Bootpd.Network.Sockets
 	public partial class BaseSocket : ISocket
 	{
 		public EndPoint LocalEndPoint;
+		public EndPoint RemoteEndpoint;
+
 		public Guid Id { get; }
 
 		public bool Bound { get; private set; }
+		public IPAddress ServerIP { get; }
 
 		public int Buffersize { get; private set; } = 1500;
 
@@ -57,6 +60,7 @@ namespace Bootpd.Network.Sockets
 		public BaseSocket(System.Net.Sockets.SocketType socketType, ServerType serverType, IPEndPoint endPoint, ushort size = 1500)
 		{
 			Id = Guid.NewGuid();
+			ServerIP = endPoint.Address;
 			LocalEndPoint = endPoint;
 			state = new SocketState(size, endPoint.AddressFamily, serverType, socketType);
 			Buffersize = size;
@@ -87,13 +91,16 @@ namespace Bootpd.Network.Sockets
 			var data = new byte[bytesRead];
 
 			Array.Copy(state.Buffer, 0, data, 0, data.Length);
-			IPacket packet = null;
+			BasePacket packet = null;
 
 			switch (state.ServerType)
 			{
 				case ServerType.DHCP:
 				case ServerType.BOOTP:
 					packet = new Packet.DHCPPacket(data);
+					break;
+				case ServerType.TFTP:
+					packet = new Packet.TFTPPacket(data);
 					break;
 			}
 

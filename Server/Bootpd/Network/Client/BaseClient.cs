@@ -52,7 +52,7 @@ namespace Bootpd.Network.Client
 				{
 					Console.WriteLine("[D] LocalClient: Got {1} packet from {0}!", e.RemoteEndpoint, type);
 					RemoteEndpoint = e.RemoteEndpoint;
-					ClientDataReceived.Invoke(this, new ClientDataReceivedEventArgs(Id, e.Socket, e.RemoteEndpoint, e.Data));
+					ClientDataReceived?.Invoke(this, new ClientDataReceivedEventArgs(Id, e.Socket, e.RemoteEndpoint, e.Data));
 				};
 			}
 		}

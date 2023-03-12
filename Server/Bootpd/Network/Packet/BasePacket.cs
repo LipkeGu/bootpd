@@ -18,6 +18,9 @@ namespace Bootpd.Network.Packet
 		{
 		}
 
+
+		public abstract void ParsePacket();
+
 		public void Dispose()
 		{
 			Buffer.Close();

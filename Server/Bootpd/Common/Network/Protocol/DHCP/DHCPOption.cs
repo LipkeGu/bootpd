@@ -81,7 +81,7 @@ namespace Bootpd.Common.Network.Protocol.DHCP
 		{
 			Option = option;
 			Data = Encoding.ASCII.GetBytes(data);
-			Length = Convert.ToByte(Data.Length);
+			Length = Convert.ToByte(data.Length);
 		}
 
 		public DHCPOption(byte option, Guid data)

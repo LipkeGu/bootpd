@@ -8,16 +8,20 @@ namespace Bootpd
 {
 	public static class Extensions
 	{
+		public static string GetString(this byte[] input)
+			=> Encoding.ASCII.GetString(input);
+
+		public static string GetString(this byte[] input, Encoding encoding)
+			=> encoding.GetString(input);
+
 		public static byte[] GetBytes(this int input)
 			=> BitConverter.GetBytes(input);
 
 		public static byte[] GetBytes(this uint input)
 			=> BitConverter.GetBytes(input);
 
-
 		public static byte[] GetBytes(this long input)
 			=> BitConverter.GetBytes(input);
-
 
 		public static byte[] GetBytes(this ulong input)
 			=> BitConverter.GetBytes(input);
@@ -34,7 +38,7 @@ namespace Bootpd
 		public static byte[] GetBytes(this string input, Encoding encoding)
 			=> encoding.GetBytes(input);
 
-		public static short Toint16(this Stream input)
+		public static short ToInt16(this Stream input)
 		{
 			var buffer = new byte[sizeof(short)];
 			input.Read(buffer, 0, buffer.Length);
@@ -42,7 +46,7 @@ namespace Bootpd
 			return BitConverter.ToInt16(buffer, 0);
 		}
 
-		public static ushort ToUint16(this Stream input)
+		public static ushort ToUInt16(this Stream input)
 		{
 			var buffer = new byte[sizeof(ushort)];
 			input.Read(buffer, 0, buffer.Length);
@@ -50,7 +54,7 @@ namespace Bootpd
 			return BitConverter.ToUInt16(buffer, 0);
 		}
 
-		public static int Toint32(this Stream input)
+		public static int ToInt32(this Stream input)
 		{
 			var buffer = new byte[sizeof(int)];
 			input.Read(buffer, 0, buffer.Length);
@@ -138,8 +142,9 @@ namespace Bootpd
 		public static byte[] Read(this Stream input, int count)
 		{
 			var buffer = new byte[count];
-
+			var curpos = input.Position;
 			input.Read(buffer, 0, buffer.Length);
+			input.Position = curpos;
 
 			return buffer;
 		}
@@ -167,6 +172,6 @@ namespace Bootpd
 		}
 
 		public static string ReadString(this Stream input, int count)
-			=> BitConverter.ToString(Read(input, count));
+			=> Encoding.ASCII.GetString(Read(input, count));
 	}
 }

@@ -66,7 +66,7 @@
 			{
 				offset += CopyTo(option.Option, Data, offset);
 
-				if (option.Option == 255)
+				if (option.Option == byte.MaxValue)
 					break;
 
 				offset += CopyTo(option.Length, Data, offset);
@@ -81,7 +81,7 @@
 			var end = Data.Length;
 
 			for (var i = end; i > 240; i--)
-				if (Data[i - 1] == 255)
+				if (Data[i - 1] == byte.MaxValue)
 				{
 					end = i;
 					break;
@@ -101,8 +101,7 @@
 			for (var i = 240; i < Data.Length;)
 			{
 				var opt = Data[i];
-
-				if (opt != 255)
+				if (opt != byte.MaxValue)
 				{
 					var len = Data[i + 1];
 					var data = new byte[len];
@@ -332,10 +331,6 @@
 
 			set
 			{
-
-
-
-
 				if (!sNamefieldOverloaded)
 				{
 					Array.Clear(Data, 44, 64);

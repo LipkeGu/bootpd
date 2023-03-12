@@ -2,14 +2,14 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
-using static bootpd.Functions;
 
 namespace Bootpd.Network.Packet
 {
 	public class DHCPPacket : BasePacket
 	{
-		Dictionary<byte, DHCPOption> DHCPOptions;
+		SortedDictionary<byte, DHCPOption> Options;
 
 		public DHCPMsgType MessageType { get; private set; }
 		bool sNamefieldOverloaded = false;
@@ -96,7 +96,7 @@ namespace Bootpd.Network.Packet
 			get
 			{
 				Buffer.Position = 8;
-				return Buffer.ToUint16().LE16();
+				return Buffer.ToUInt16().LE16();
 			}
 
 			set
@@ -112,7 +112,7 @@ namespace Bootpd.Network.Packet
 			get
 			{
 				Buffer.Position = 10;
-				return (BootpFlags)Buffer.ToUint16();
+				return (BootpFlags)Buffer.ToUInt16();
 			}
 
 			set
@@ -202,14 +202,34 @@ namespace Bootpd.Network.Packet
 		{
 			get
 			{
-				Buffer.Position = 44;
-				return Buffer.ReadString(BootpHWLen);
+				if (!sNamefieldOverloaded)
+				{
+					Buffer.Position = 44;
+					return Buffer.ReadString(64);
+				}
+				else
+				{
+					if (HasOption(66))
+					{
+						return GetOption(66).Data.GetString();
+					}
+					else
+						return string.Empty;
+				}
 			}
 
 			set
 			{
-				Buffer.Position = 44;
-				Buffer.Write(value, 64);
+				if (!sNamefieldOverloaded)
+				{
+					Buffer.Position = 44;
+					Buffer.Write(value, 64);
+				}
+				else
+				{
+					Buffer.Position = 44;
+					Buffer.WriteByte(255);
+				}
 			}
 		}
 
@@ -217,14 +237,33 @@ namespace Bootpd.Network.Packet
 		{
 			get
 			{
-				Buffer.Position = 108;
-				return Buffer.ReadString(BootpHWLen);
+				if (!filefieldOverloaded)
+				{
+					Buffer.Position = sNamefieldOverloaded ? (108 - 63) : 108;
+					return Buffer.ReadString(128);
+				}
+				else
+				{
+					if (HasOption(67))
+						return GetOption(67).Data.GetString();
+					else
+						return string.Empty;
+				}
 			}
 
 			set
 			{
-				Buffer.Position = 108;
-				Buffer.Write(value, 128);
+				if (!filefieldOverloaded)
+				{
+					Buffer.Position = sNamefieldOverloaded ? (108 - 63) : 108;
+					Buffer.Write(value.Trim());
+					Buffer.Position += (128 - value.Trim().Length);
+				}
+				else
+				{
+					Buffer.Position = 108;
+					Buffer.WriteByte(255);
+				}
 			}
 		}
 
@@ -246,17 +285,17 @@ namespace Bootpd.Network.Packet
 
 		public DHCPPacket(byte[] data) : base(data)
 		{
-			DHCPOptions = new Dictionary<byte, DHCPOption>();
+			Options = new SortedDictionary<byte, DHCPOption>();
 			if (HasOption(53))
 				MessageType = (DHCPMsgType)Convert.ToByte(GetOption(53).Data);
 
-			ParseDHCPPacket();
+			ParsePacket();
 		}
 
 		public DHCPPacket(DHCPMsgType msgType, int size = 0)
 		{
 			Buffer = (size != 0) ? new MemoryStream(size) : new MemoryStream();
-			DHCPOptions = new Dictionary<byte, DHCPOption>();
+			Options = new SortedDictionary<byte, DHCPOption>();
 			MessageType = msgType;
 			BootpMsgType = BootpMsgType.Request;
 			BootpHWType = BootpHWType.Ethernet;
@@ -270,11 +309,10 @@ namespace Bootpd.Network.Packet
 			ServerIP = IPAddress.Any;
 			RelayIP = IPAddress.Any;
 			HWAddr = "b8:27:eb:97:b6:39".MacAsBytes();
-			ServerName = string.Empty;
+			ServerName = Environment.MachineName;
 			Bootfile = string.Empty;
 			MagicCookie = new byte[] { 99, 130, 83, 99 };
 			AddOption(new DHCPOption(53, (byte)MessageType));
-			Console.WriteLine(Seconds);
 		}
 
 		public List<DHCPOption> GetEncOptions(byte opt)
@@ -287,12 +325,12 @@ namespace Bootpd.Network.Packet
 			{
 				var o = optionData[i];
 
-				if (o != 255)
+				if (o != byte.MaxValue)
 				{
 					var len = optionData[i + 1];
 					var data = new byte[len];
 
-					CopyTo(optionData, (i + 2), data, 0, len);
+					Functions.CopyTo(optionData, (i + 2), data, 0, len);
 					dict.Add(new DHCPOption(o, data));
 
 					i += 2 + len;
@@ -307,34 +345,104 @@ namespace Bootpd.Network.Packet
 			return dict;
 		}
 
+		public DHCPPacket CreateResponse(IPAddress serverIP)
+		{
+			DHCPPacket packet = null;
+			var msgType = (DHCPMsgType)Convert.ToByte(GetOption(53).Data[0]);
+
+			switch (BootpMsgType)
+			{
+				case BootpMsgType.Request:
+					switch (msgType)
+					{
+						case DHCPMsgType.Discover:
+							packet = new DHCPPacket(DHCPMsgType.Offer);
+							break;
+						case DHCPMsgType.Request:
+						case DHCPMsgType.Inform:
+							packet = new DHCPPacket(DHCPMsgType.Ack);
+							break;
+						default:
+							break;
+					}
+					packet.BootpMsgType = BootpMsgType.Reply;
+					packet.AddOption(new DHCPOption(60, "PXEClient"));
+					packet.AddOption(new DHCPOption(54, serverIP));
+					break;
+				case BootpMsgType.Reply:
+					switch (msgType)
+					{
+						case DHCPMsgType.Offer:
+							packet = new DHCPPacket(DHCPMsgType.Request);
+							break;
+						case DHCPMsgType.Ack:
+							break;
+						default:
+							break;
+					}
+					packet.BootpMsgType = BootpMsgType.Request;
+					packet.AddOption(new DHCPOption(60, "PXEClient:Arch:00000:UNDI:002001"));
+					break;
+				default:
+					break;
+			}
+
+			packet.ServerName = Environment.MachineName;
+			packet.BootpHWType = BootpHWType;
+			packet.BootpHWLen = BootpHWLen;
+			packet.BootpHops = BootpHops;
+			packet.TransactionId = TransactionId;
+			packet.Seconds = Seconds;
+			packet.Flags = Flags;
+			packet.ClientIP = ClientIP;
+			packet.YourIP = YourIP;
+			packet.ServerIP = serverIP;
+			packet.RelayIP = RelayIP;
+			packet.HWAddr = HWAddr;
+			packet.MagicCookie = MagicCookie;
+			packet.AddOption(GetOption(97));
+			packet.AddOption(GetOption(61));
+			packet.AddOption(new DHCPOption(54, serverIP));
+			packet.AddOption(new DHCPOption(66, Environment.MachineName));
+			packet.AddOption(new DHCPOption(67, "Boot\\x86\\wdsnbp.com"));
+
+			return packet;
+		}
+
+
 		public void AddOption(DHCPOption dhcpoption)
 		{
-			if (!DHCPOptions.ContainsKey(dhcpoption.Option))
-				DHCPOptions.Add(dhcpoption.Option, dhcpoption);
+			if (dhcpoption == null)
+				return;
+
+			if (!Options.ContainsKey(dhcpoption.Option))
+				Options.Add(dhcpoption.Option, dhcpoption);
 			else
-				DHCPOptions[dhcpoption.Option] = dhcpoption;
+				Options[dhcpoption.Option] = dhcpoption;
 		}
 
 		public DHCPOption GetOption(byte opt)
-			=> DHCPOptions[opt];
+			=> HasOption(opt) ? Options[opt] : null;
 
 		public bool HasOption(byte opt)
-			=> DHCPOptions.ContainsKey(opt);
+			=> Options.ContainsKey(opt);
 
-		private void ParseDHCPPacket()
+		public override void ParsePacket()
 		{
-			for (var i = 240; i < Buffer.Length;)
+			Options.Clear();
+			var cookieoffset = FindMagicCookie() + 4;
+
+			for (var i = cookieoffset; i < Buffer.Length;)
 			{
 				Buffer.Position = i;
+
 				var opt = (byte)Buffer.ReadByte();
 
-				if (opt != 255)
+				if (opt != byte.MaxValue)
 				{
 					Buffer.Position = i + 1;
 					var len = Buffer.ReadByte();
 					var data = new byte[len];
-
-
 
 					Buffer.Position = i + 2;
 					Buffer.Read(data, 0, len);
@@ -352,45 +460,101 @@ namespace Bootpd.Network.Packet
 
 			if (HasOption(52))
 			{
-				var ovld = Convert.ToByte(GetOption(52).Data);
+				var ovld = Convert.ToByte(GetOption(52).Data[0]);
 
 				switch (ovld)
 				{
 					case 1:
 						filefieldOverloaded = true;
+						Bootfile = "";
 						break;
 					case 2:
 						sNamefieldOverloaded = true;
+						ServerName = "";
 						break;
 					case 3:
 						sNamefieldOverloaded = filefieldOverloaded = true;
+						Bootfile = "";
+						ServerName = "";
 						break;
 					default:
 						break;
 				}
 			}
+
+			Options.OrderBy(key => key.Key);
+
+			if (HasOption(77) && GetOption(77).Data.GetString().Contains("PXE"))
+			{
+				Console.WriteLine("[W] Option 77: Non RFC compilant option data! (iPXE)");
+			}
+		}
+
+		private long FindMagicCookie()
+		{
+			Buffer.Position = 236;
+
+			for (var i = 0U; i < Buffer.Length - 4;)
+			{
+				Buffer.Position = i;
+
+				if (Buffer.ToUint32() == 1666417251U)
+				{
+					Buffer.Position = i;
+
+					return Buffer.Position;
+				}
+
+				i += sizeof(uint);
+			}
+
+			Buffer.Position = 236;
+			return Buffer.Position;
 		}
 
 		public override void CommitOptions()
 		{
-			AddOption(new DHCPOption(255));
-			var length = 0;
-
-			// Calculate the Length of the TargetBuffer Options!
-			foreach (var option in DHCPOptions.Values)
+			if (HasOption(52))
 			{
-				length += option.Option != 255 ? 2 + option.Length : 1;
+				var ovld = Convert.ToByte(GetOption(52).Data[0]);
+
+				switch (ovld)
+				{
+					case 1:
+						filefieldOverloaded = true;
+						Bootfile = "";
+						break;
+					case 2:
+						sNamefieldOverloaded = true;
+						ServerName = "";
+						break;
+					case 3:
+						sNamefieldOverloaded = filefieldOverloaded = true;
+						Bootfile = "";
+						ServerName = "";
+						break;
+					default:
+						break;
+				}
 			}
 
-			var offset = 240;
+			Options.OrderBy(key => key.Key);
+			AddOption(new DHCPOption(byte.MaxValue));
+			var length = 0;
+
+			foreach (var option in Options.Values)
+				length += option.Option != byte.MaxValue ? 2 + option.Length : 1;
+
+			// Finde the Magic and increment it by 4!
+			var offset = FindMagicCookie() + 4;
 			Buffer.Position = offset;
 
-			foreach (var option in DHCPOptions.Values)
+			foreach (var option in Options.Values)
 			{
 				offset += Buffer._WriteByte(option.Option);
 				Buffer.Position = offset;
 
-				if (option.Option == 255)
+				if (option.Option == byte.MaxValue)
 					break;
 
 				offset += Buffer._WriteByte(option.Length);
@@ -402,14 +566,13 @@ namespace Bootpd.Network.Packet
 					offset += option.Length;
 				}
 				else
-				{
 					offset += Buffer._WriteByte(Convert.ToByte(option.Data[0]));
-				}
+
 				Buffer.Position = offset;
 			}
 
 			Buffer.SetLength(offset);
-			Buffer.Capacity = offset;
+			Buffer.Capacity = (int)offset;
 			Length = Buffer.Capacity;
 		}
 	}

@@ -107,6 +107,7 @@
     <Compile Include="Bootpd\Common\Network\Functions.cs" />
     <Compile Include="Bootpd\Common\Network\Protocol\DHCP\Definitions.cs" />
     <Compile Include="Bootpd\Common\Network\Protocol\DHCP\DHCPOption.cs" />
+    <Compile Include="Bootpd\Common\Network\Protocol\TFTP\TFTPDefines.cs" />
     <Compile Include="Bootpd\Network\Client\BaseClient.cs" />
     <Compile Include="Bootpd\Network\Client\DHCPClient.cs" />
     <Compile Include="Bootpd\Network\Events\ClientDataReceived.cs" />
@@ -116,8 +117,11 @@
     <Compile Include="Bootpd\Network\Interfaces\ISocket.cs" />
     <Compile Include="Bootpd\Network\Packet\BasePacket.cs" />
     <Compile Include="Bootpd\Network\Packet\DHCPPacket.cs" />
+    <Compile Include="Bootpd\Network\Packet\TFTPPacket.cs" />
     <Compile Include="Bootpd\Network\Server\BaseServer.cs" />
     <Compile Include="Bootpd\Network\Events\ServerDataReceived.cs" />
+    <Compile Include="Bootpd\Network\Server\DHCPServer.cs" />
+    <Compile Include="Bootpd\Network\Server\TFTPServer.cs" />
     <Compile Include="Bootpd\Network\Sockets\BaseSocket.cs" />
     <Compile Include="Bootpd\Network\Events\SocketDataReceived.cs" />
     <Compile Include="Client\DHCP.cs" />

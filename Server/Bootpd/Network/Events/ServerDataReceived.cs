@@ -4,7 +4,7 @@ using System.Net;
 
 namespace Bootpd.Network.Server
 {
-	public partial class BaseServer
+	public abstract partial class BaseServer
 	{
 		public delegate void ServerDataReceivedEventHandler(object sender, ServerDataReceivedEventArgs e);
 		public event ServerDataReceivedEventHandler ServerDataReceived;

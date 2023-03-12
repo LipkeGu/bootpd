@@ -7,7 +7,7 @@ using System.Net.NetworkInformation;
 
 namespace Bootpd.Network.Server
 {
-	public partial class BaseServer : IServer
+	public abstract partial class BaseServer : IServer
 	{
 		#region "Mutexes"
 		object __LocksocketsMutex = new object();
@@ -38,10 +38,10 @@ namespace Bootpd.Network.Server
 					break;
 			}
 
-			Sockets = new Dictionary<Guid, ISocket>();
+			Sockets = new Dictionary<Guid, BaseSocket>();
 		}
 
-		public Dictionary<Guid, ISocket> Sockets { get; set; }
+		public Dictionary<Guid, BaseSocket> Sockets { get; set; }
 		public ushort Port { get; set; }
 
 		public void AddSocket(IPEndPoint endpoint)
@@ -57,8 +57,6 @@ namespace Bootpd.Network.Server
 
 				Sockets.Add(socket.Id, socket);
 			}
-
-			Console.WriteLine("Added Socket {0}...", endpoint);
 		}
 
 		public void Bootstrap()
@@ -100,7 +98,7 @@ namespace Bootpd.Network.Server
 			}
 		}
 
-		public ISocket GetSocket(Guid id)
+		public BaseSocket GetSocket(Guid id)
 		{
 			lock (__LocksocketsMutex)
 			{
