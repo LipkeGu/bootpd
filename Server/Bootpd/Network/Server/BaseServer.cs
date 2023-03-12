@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Net.Sockets;
 
 namespace Bootpd.Network.Server
 {
@@ -13,11 +14,17 @@ namespace Bootpd.Network.Server
 
 		public string Hostname { get; private set; }
 		public ServerType ServerType { get; private set; }
-		public BaseServer(ServerType type)
+
+		public SocketType SocketType { get; private set; }
+
+		public BaseServer(ServerType type, SocketType socketType)
 		{
+
 			Id = Guid.NewGuid();
 			Hostname = Environment.MachineName;
 			ServerType = type;
+			SocketType = socketType;
+
 			Sockets = new Dictionary<Guid, ISocket>();
 		}
 
@@ -26,7 +33,7 @@ namespace Bootpd.Network.Server
 
 		public void AddSocket(IPEndPoint endpoint)
 		{
-			var socket = new BaseSocket(Guid.NewGuid(), endpoint);
+			var socket = new BaseSocket(SocketType, Guid.NewGuid(), endpoint);
 			socket.SocketDataReceived += (sender, e) =>
 			{
 				ServerDataReceived?.Invoke(this,
@@ -63,7 +70,8 @@ namespace Bootpd.Network.Server
 
 		public void Bootstrap()
 		{
-			throw new NotImplementedException();
+			foreach (var socket in Sockets.Values)
+				socket.Bootstrap();
 		}
 
 		public void Dispose()
@@ -90,6 +98,10 @@ namespace Bootpd.Network.Server
 		}
 
 		public void Stop()
+		{
+		}
+
+		public void HeartBeat()
 		{
 		}
 	}

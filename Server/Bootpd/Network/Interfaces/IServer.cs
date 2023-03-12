@@ -12,6 +12,7 @@ namespace Bootpd.Network.Server
 		void Bootstrap();
 		void Start();
 		void Stop();
+		void HeartBeat();
 
 		void AddSocket(IPEndPoint endpoint);
 		void RemoveSocket(Guid id);

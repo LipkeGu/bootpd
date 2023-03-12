@@ -104,12 +104,16 @@
   <ItemGroup>
     <Compile Include="Bootpd\BootpdCommon.cs" />
     <Compile Include="Bootpd\Common\Network\Functions.cs" />
+    <Compile Include="Bootpd\Network\Client\BaseClient.cs" />
+    <Compile Include="Bootpd\Network\Interfaces\IClient.cs" />
+    <Compile Include="Bootpd\Network\Interfaces\IPacket.cs" />
     <Compile Include="Bootpd\Network\Interfaces\IServer.cs" />
     <Compile Include="Bootpd\Network\Interfaces\ISocket.cs" />
+    <Compile Include="Bootpd\Network\Packet\BasePacket.cs" />
     <Compile Include="Bootpd\Network\Server\BaseServer.cs" />
-    <Compile Include="Bootpd\Network\Server\Event\ServerDataReceived.cs" />
+    <Compile Include="Bootpd\Network\Events\ServerDataReceived.cs" />
     <Compile Include="Bootpd\Network\Sockets\BaseSocket.cs" />
-    <Compile Include="Bootpd\Network\Sockets\Events\SocketDataReceived.cs" />
+    <Compile Include="Bootpd\Network\Events\SocketDataReceived.cs" />
     <Compile Include="Client\DHCP.cs" />
     <Compile Include="Client\RIS.cs" />
     <Compile Include="Client\TFTP.cs" />

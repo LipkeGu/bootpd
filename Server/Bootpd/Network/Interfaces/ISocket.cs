@@ -7,5 +7,6 @@ namespace Bootpd.Network.Sockets
 		void Bootstrap();
 		void Start();
 		void Stop();
+		void HeartBeat();
 	}
 }

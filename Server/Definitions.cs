@@ -449,17 +449,6 @@ namespace Server.Network
 	}
 
 	/// <summary>
-	/// ClientTypes
-	/// </summary>
-	public enum SocketType
-	{
-		TFTP = 0,
-		DHCP = 1,
-		BINL = 2,
-		RIS = 3
-	}
-
-	/// <summary>
 	/// TFTP Stage Indicator Types
 	/// </summary>
 	public enum TFTPStage
