@@ -7,7 +7,7 @@ namespace Bootpd.Network.Server
 {
 	public interface IServer : IDisposable
 	{
-		int Port { get; set; }
+		ushort Port { get; set; }
 		Dictionary<Guid, ISocket> Sockets { get; set; }
 		void Bootstrap();
 		void Start();

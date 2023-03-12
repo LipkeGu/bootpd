@@ -1,14 +1,29 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 
-namespace bootpd.Bootpd.Network.Packet
+namespace Bootpd.Network.Packet
 {
-	public class BasePacket : IPacket
+	public abstract class BasePacket : IPacket, IDisposable
 	{
 		public MemoryStream Buffer { get; set; }
+		public long Length { get; set; }
 
 		public BasePacket(byte[] data)
 		{
 			Buffer = new MemoryStream(data);
+			Length = Buffer.Length;
 		}
+
+		public BasePacket()
+		{
+		}
+
+		public void Dispose()
+		{
+			Buffer.Close();
+			Buffer.Dispose();
+		}
+
+		public abstract void CommitOptions();
 	}
 }

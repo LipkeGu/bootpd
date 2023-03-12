@@ -1,12 +1,13 @@
 ﻿using System.IO;
 
-namespace bootpd.Bootpd.Network
+namespace Bootpd.Network.Packet
 {
 	public interface IPacket
 	{
 		MemoryStream Buffer { get; set; }
 
-		int Length { get; set; }
+		long Length { get; set; }
 
+		void CommitOptions();
 	}
 }

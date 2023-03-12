@@ -120,11 +120,11 @@
 			}
 
 			if (HasOption(52))
-            {
+			{
 				var ovld = Convert.ToByte(GetOption(52).Data);
 
-                switch (ovld)
-                {
+				switch (ovld)
+				{
 					case 1:
 						filefieldOverloaded = true;
 						break;
@@ -134,10 +134,10 @@
 					case 3:
 						sNamefieldOverloaded = filefieldOverloaded = true;
 						break;
-                    default:
-                        break;
-                }
-            }
+					default:
+						break;
+				}
+			}
 
 		}
 
@@ -326,8 +326,8 @@
 		{
 			get
 			{
-					return sNamefieldOverloaded ? BitConverter.ToString(Data, 44, 64):
-						Encoding.ASCII.GetString(GetOption(66).Data);
+				return sNamefieldOverloaded ? BitConverter.ToString(Data, 44, 64) :
+					Encoding.ASCII.GetString(GetOption(66).Data);
 			}
 
 			set

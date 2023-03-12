@@ -18,6 +18,14 @@ namespace Server.Network
 		}
 	}
 
+	public enum SocketType
+	{
+		TFTP = 0,
+		DHCP = 1,
+		BINL = 2,
+		RIS = 3
+	}
+
 	/// <summary>
 	/// Indicates the type of data in a subblock 
 	/// </summary>

@@ -1,4 +1,5 @@
-﻿using bootpd.Bootpd.Network;
+﻿using Bootpd.Network.Packet;
+using Server.Network;
 using System;
 using System.Net;
 using System.Net.Sockets;
@@ -9,29 +10,29 @@ namespace Bootpd.Network.Sockets
 	{
 		public byte[] Buffer;
 		public Socket Socket;
+		public ServerType ServerType;
 
-
-		internal SocketState(int buffersize, AddressFamily addressFamily, SocketType socketType)
+		internal SocketState(int buffersize, AddressFamily addressFamily, ServerType serverType, System.Net.Sockets.SocketType socketType)
 		{
 			var proto = ProtocolType.Unknown;
-			var sockType = SocketType.Raw;
-
+			var sockType = System.Net.Sockets.SocketType.Raw;
+			ServerType = serverType;
 
 			switch (socketType)
 			{
-				case SocketType.Stream:
+				case System.Net.Sockets.SocketType.Stream:
 					proto = ProtocolType.Tcp;
-					sockType = SocketType.Stream;
+					sockType = System.Net.Sockets.SocketType.Stream;
 					break;
-				case SocketType.Dgram:
+				case System.Net.Sockets.SocketType.Dgram:
 
 					proto = ProtocolType.Udp;
-					sockType = SocketType.Dgram;
+					sockType = System.Net.Sockets.SocketType.Dgram;
 					break;
 				default:
-				case SocketType.Raw:
+				case System.Net.Sockets.SocketType.Raw:
 					proto = ProtocolType.Raw;
-					sockType = SocketType.Unknown;
+					sockType = System.Net.Sockets.SocketType.Unknown;
 					break;
 			}
 
@@ -50,12 +51,15 @@ namespace Bootpd.Network.Sockets
 
 		public bool Bound { get; private set; }
 
+		public int Buffersize { get; private set; } = 1500;
+
 		SocketState state;
-		public BaseSocket(SocketType socketType, Guid id, IPEndPoint endPoint, ushort size = 1500)
+		public BaseSocket(System.Net.Sockets.SocketType socketType, ServerType serverType, IPEndPoint endPoint, ushort size = 1500)
 		{
-			Id = id;
+			Id = Guid.NewGuid();
 			LocalEndPoint = endPoint;
-			state = new SocketState(size, endPoint.AddressFamily, socketType);
+			state = new SocketState(size, endPoint.AddressFamily, serverType, socketType);
+			Buffersize = size;
 		}
 
 		public void Bootstrap()
@@ -83,8 +87,17 @@ namespace Bootpd.Network.Sockets
 			var data = new byte[bytesRead];
 
 			Array.Copy(state.Buffer, 0, data, 0, data.Length);
+			IPacket packet = null;
 
-			SocketDataReceived?.Invoke(this, new SocketDataReceivedEventArgs(Id, (IPEndPoint)LocalEndPoint, data));
+			switch (state.ServerType)
+			{
+				case ServerType.DHCP:
+				case ServerType.BOOTP:
+					packet = new Packet.DHCPPacket(data);
+					break;
+			}
+
+			SocketDataReceived?.Invoke(this, new SocketDataReceivedEventArgs(Id, (IPEndPoint)LocalEndPoint, packet));
 
 			state.Socket.BeginReceiveFrom(state.Buffer, 0, state.Buffer.Length,
 				0, ref LocalEndPoint, new AsyncCallback(Received), state);
@@ -92,8 +105,9 @@ namespace Bootpd.Network.Sockets
 
 		public void Start()
 		{
-			if (Bound)
+			if (!Bound)
 				return;
+			Buffersize = state.Socket.ReceiveBufferSize;
 
 			state.Socket.BeginReceiveFrom(state.Buffer, 0, state.Buffer.Length,
 				0, ref LocalEndPoint, new AsyncCallback(Received), state);
@@ -107,20 +121,18 @@ namespace Bootpd.Network.Sockets
 			state.Socket.Shutdown(SocketShutdown.Both);
 		}
 
-		public void Send(IPEndPoint target, IPacket packet)
+		public int Send(IPEndPoint target, IPacket packet)
 		{
-			Send(target, packet);
-		}
+			if (!Bound)
+				return -1;
 
-
-		public int Send(IPEndPoint target, IPacket packet, int length = 0)
-		{
 			return state.Socket.SendTo(packet.Buffer.GetBuffer(),
 				packet.Buffer.GetBuffer().Length, SocketFlags.None, target);
 		}
 
 		public void HeartBeat()
 		{
+			Buffersize = state.Socket.ReceiveBufferSize;
 		}
 	}
 }

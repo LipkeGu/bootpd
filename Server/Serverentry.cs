@@ -1,5 +1,6 @@
 ﻿namespace Server.Network
 {
+	using System;
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Net;
@@ -19,8 +20,17 @@
 		{
 			Type = type;
 			Hostname = hostname;
-			Addresses = Functions.DNSLookup(Hostname)
-				.Where(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).ToList();
+			try
+			{
+				Addresses = Functions.DNSLookup(Hostname)
+					.Where(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).ToList();
+			}
+			catch (Exception)
+			{
+				if (Addresses == null)
+					Addresses = Functions.DNSLookup(Environment.MachineName)
+						.Where(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).ToList();
+			}
 		}
 
 		public BootServer(IPAddress addr, BootServerTypes bootServerType = BootServerTypes.PXEBootstrapServer)
