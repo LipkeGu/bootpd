@@ -11,7 +11,7 @@ namespace Bootpd.Network.Client
 		public BaseSocket Socket { get; set; }
 
 		public bool LocalInstance { get; private set; } = false;
-		private IPEndPoint RemoteEndpoint { get; set; }
+		public IPEndPoint RemoteEndpoint { get; set; }
 
 		public Guid Id { get; }
 
@@ -27,9 +27,11 @@ namespace Bootpd.Network.Client
 
 		}
 
-		public BaseClient(ServerType type, bool localInstance)
+		public BaseClient(ServerType type, IPEndPoint endpoint, bool localInstance)
 		{
 			LocalInstance = localInstance;
+			RemoteEndpoint = endpoint;
+
 			Id = Guid.NewGuid();
 
 			if (LocalInstance)

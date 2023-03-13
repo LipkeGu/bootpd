@@ -14,8 +14,8 @@ namespace Bootpd
 		object __LockClientsMutex = new object();
 		#endregion
 
-		public static readonly Dictionary<Guid, IServer> Servers = new Dictionary<Guid, IServer>();
-		public static readonly Dictionary<Guid, IClient> Clients = new Dictionary<Guid, IClient>();
+		public static readonly Dictionary<Guid, BaseServer> Servers = new Dictionary<Guid, BaseServer>();
+		public static readonly Dictionary<Guid, BaseClient> Clients = new Dictionary<Guid, BaseClient>();
 
 		public static string TFTPRoot { get; set; }
 
@@ -27,7 +27,7 @@ namespace Bootpd
 				var value = "";
 				var line = item;
 
-				if (line.StartsWith("/") || line.StartsWith("-")) ;
+				if (line.StartsWith("/") || line.StartsWith("-"))
 				{
 					if (line.Contains("="))
 					{
@@ -76,6 +76,9 @@ namespace Bootpd
 					case ServerType.BOOTP:
 					case ServerType.DHCP:
 						{
+							var clientId = AddClient(type, e.RemoteEndpoint);
+
+
 							var dhcpRequest = (Network.Packet.DHCPPacket)e.Data;
 							if (!dhcpRequest.HasOption(60))
 							{
@@ -96,10 +99,10 @@ namespace Bootpd
 							switch ((DHCPMsgType)Convert.ToByte(dhcpRequest.GetOption(53).Data[0]))
 							{
 								case DHCPMsgType.Discover:
-									Functions.InvokeMethod(server, "Handle_Discover_Request", new object[] { e.Socket, dhcpRequest });
+									Functions.InvokeMethod(server, "Handle_Discover_Request", new object[] { clientId, e.Socket, dhcpRequest });
 									break;
 								case DHCPMsgType.Request:
-									Functions.InvokeMethod(server, "Handle_Request_Request", new object[] { e.Socket, dhcpRequest });
+									Functions.InvokeMethod(server, "Handle_Request_Request", new object[] { clientId, e.Socket, dhcpRequest });
 									break;
 								case DHCPMsgType.Decline:
 									break;
@@ -110,7 +113,7 @@ namespace Bootpd
 								case DHCPMsgType.Release:
 									break;
 								case DHCPMsgType.Inform:
-									Functions.InvokeMethod(server, "Handle_Inform_Request", new object[] { e.Server, dhcpRequest });
+									Functions.InvokeMethod(server, "Handle_Inform_Request", new object[] { clientId, e.Server, dhcpRequest });
 									break;
 								case DHCPMsgType.ForceRenew:
 									break;
@@ -166,7 +169,7 @@ namespace Bootpd
 			Servers.Add(server.Id, server);
 		}
 
-		public void AddClient(ServerType type)
+		public Guid AddClient(ServerType type, IPEndPoint endpoint, bool local = false)
 		{
 			BaseClient client = null;
 
@@ -174,7 +177,7 @@ namespace Bootpd
 			{
 				case ServerType.BOOTP:
 				case ServerType.DHCP:
-					client = new Network.Client.DHCPClient(type, true);
+					client = new Network.Client.DHCPClient(type, endpoint, local);
 					break;
 				case ServerType.TFTP:
 
@@ -184,7 +187,7 @@ namespace Bootpd
 			}
 
 			Clients.Add(client.Id, client);
-			Console.WriteLine("[D] Local Client added!");
+			return client.Id;
 		}
 
 		public void Bootstrap()
@@ -199,7 +202,6 @@ namespace Bootpd
 					server.Bootstrap();
 			}
 
-			AddClient(ServerType.DHCP);
 
 			lock (__LockClientsMutex)
 			{

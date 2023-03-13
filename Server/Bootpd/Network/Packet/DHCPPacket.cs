@@ -402,6 +402,7 @@ namespace Bootpd.Network.Packet
 			packet.MagicCookie = MagicCookie;
 			packet.AddOption(GetOption(97));
 			packet.AddOption(GetOption(61));
+			packet.AddOption(GetOption(77));
 			packet.AddOption(new DHCPOption(54, serverIP));
 			packet.AddOption(new DHCPOption(66, Environment.MachineName));
 			packet.AddOption(new DHCPOption(67, "Boot\\x86\\wdsnbp.com"));
