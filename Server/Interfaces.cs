@@ -6,7 +6,6 @@
 
 	interface IDHCPServer_Provider
 	{
-		void Handle_DHCP_Request(DHCPPacket data, string client);
 	}
 
 	interface IDHCPClient_Provider

@@ -209,12 +209,7 @@ namespace Bootpd.Network.Packet
 				}
 				else
 				{
-					if (HasOption(66))
-					{
-						return GetOption(66).Data.GetString();
-					}
-					else
-						return string.Empty;
+					return HasOption(66) ? GetOption(66).Data.GetString() : string.Empty;
 				}
 			}
 
@@ -406,7 +401,7 @@ namespace Bootpd.Network.Packet
 			packet.AddOption(new DHCPOption(54, serverIP));
 			packet.AddOption(new DHCPOption(66, Environment.MachineName));
 			packet.AddOption(new DHCPOption(67, "Boot\\x86\\wdsnbp.com"));
-
+			packet.AddOption(new DHCPOption(208, 0xf100747e));  // PXELinux Magic
 			return packet;
 		}
 
@@ -546,7 +541,7 @@ namespace Bootpd.Network.Packet
 			foreach (var option in Options.Values)
 				length += option.Option != byte.MaxValue ? 2 + option.Length : 1;
 
-			// Finde the Magic and increment it by 4!
+			// Find the Magic and increment it by 4!
 			var offset = FindMagicCookie() + 4;
 			Buffer.Position = offset;
 

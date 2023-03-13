@@ -1,10 +1,10 @@
 ﻿namespace Server.Network
 {
-	using Extensions;
+	using Bootpd;
 	using System;
 	using System.Text;
+	using static Bootpd.Functions;
 	using static Functions;
-
 	public sealed class RISPacket : PacketProvider, IDisposable
 	{
 		Encoding encoding;

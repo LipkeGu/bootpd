@@ -1,5 +1,6 @@
 ﻿namespace Server.Network
 {
+	using Bootpd;
 	using Extensions;
 	using System;
 	using System.Collections.Generic;
@@ -7,8 +8,8 @@
 	using System.Net;
 	using System.Text;
 	using System.Threading;
+	using static Bootpd.Functions;
 	using static Functions;
-
 	public sealed class TFTP : ServerProvider, ITFTPServer_Provider, IDisposable
 	{
 		public Dictionary<IPAddress, TFTPClient> Clients;

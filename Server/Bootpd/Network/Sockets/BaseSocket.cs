@@ -104,7 +104,9 @@ namespace Bootpd.Network.Sockets
 					break;
 			}
 
-			SocketDataReceived?.Invoke(this, new SocketDataReceivedEventArgs(Id, (IPEndPoint)LocalEndPoint, packet));
+			SocketDataReceived?.Invoke(this,
+				new SocketDataReceivedEventArgs(Id,
+					(IPEndPoint)LocalEndPoint, packet));
 
 			state.Socket.BeginReceiveFrom(state.Buffer, 0, state.Buffer.Length,
 				0, ref LocalEndPoint, new AsyncCallback(Received), state);
@@ -114,6 +116,7 @@ namespace Bootpd.Network.Sockets
 		{
 			if (!Bound)
 				return;
+
 			Buffersize = state.Socket.ReceiveBufferSize;
 
 			state.Socket.BeginReceiveFrom(state.Buffer, 0, state.Buffer.Length,

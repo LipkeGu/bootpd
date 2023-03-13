@@ -1,10 +1,11 @@
-﻿namespace Server.Network
+﻿namespace Bootpd.Common.Network.Protocol.RBCP
 {
+	using Server.Network;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Net;
-
+	using static Bootpd.Functions;
 
 	public class BootServer
 	{
@@ -22,13 +23,13 @@
 			Hostname = hostname;
 			try
 			{
-				Addresses = Functions.DNSLookup(Hostname)
+				Addresses = DNSLookup(Hostname)
 					.Where(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).ToList();
 			}
 			catch (Exception)
 			{
 				if (Addresses == null)
-					Addresses = Functions.DNSLookup(Environment.MachineName)
+					Addresses = DNSLookup(Environment.MachineName)
 						.Where(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).ToList();
 			}
 		}

@@ -1,23 +1,9 @@
 ﻿using System;
 using System.Net;
 using System.Text;
-
+using static Bootpd.Functions;
 namespace Server.Network
 {
-
-	public class BootMenueEntry
-	{
-		public ushort Id { get; private set; }
-
-		public string Description { get; private set; }
-
-		public BootMenueEntry(ushort id, string desc)
-		{
-			Id = id;
-			Description = desc;
-		}
-	}
-
 	public enum SocketType
 	{
 		TFTP = 0,
@@ -628,9 +614,9 @@ namespace Server.Network
 		{
 			var offset = 0;
 			var buffer = new byte[sizeof(uint) + sizeof(byte) + Name.Length];
-			offset += Functions.CopyTo(BitConverter.GetBytes(Id), 0, buffer, offset);
-			offset += Functions.CopyTo(Count, buffer, offset);
-			offset += Functions.CopyTo(Name, 0, buffer, offset);
+			offset += CopyTo(BitConverter.GetBytes(Id), 0, buffer, offset);
+			offset += CopyTo(Count, buffer, offset);
+			offset += CopyTo(Name, 0, buffer, offset);
 
 			return buffer;
 		}

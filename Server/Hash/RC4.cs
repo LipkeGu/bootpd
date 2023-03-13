@@ -1,6 +1,6 @@
 ﻿namespace bootpd
 {
-	using Server.Extensions;
+	using Bootpd;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;

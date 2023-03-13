@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 
 namespace Bootpd
 {
-	public static class Functions
+	public static partial class Functions
 	{
 		public static string GetHostName(this IPAddress ipAddress)
 		{
@@ -18,6 +20,18 @@ namespace Bootpd
 
 			return len;
 		}
+
+		public static int CopyTo(byte src, byte[] dst, int dstoffset = 0)
+		{
+			var len = 1;
+
+			dst[dstoffset] = src;
+
+			return len;
+		}
+
+		public static List<IPAddress> DNSLookup(string hostname)
+			=> Dns.GetHostAddresses(hostname).ToList();
 
 		public static T AsType<T>(object obj) => (T)Convert.ChangeType(obj, typeof(T));
 

@@ -1,11 +1,12 @@
 ﻿namespace Server.Network
 {
+	using Bootpd;
 	using Extensions;
 	using System;
 	using System.Collections.Generic;
 	using System.Net;
 
-	public sealed class DHCPClient : ClientProvider, IDHCPClient_Provider
+	public sealed class aDHCPClient : ClientProvider, IDHCPClient_Provider
 	{
 		string bootfile;
 		Guid guid;
@@ -89,7 +90,7 @@
 			}
 		}
 
-		public DHCPClient(string mac, SocketType type, IPEndPoint endpoint)
+		public aDHCPClient(string mac, SocketType type, IPEndPoint endpoint)
 		{
 			WDS = new WDSClient();
 			RBCP = new RBCPClient();

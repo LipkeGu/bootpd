@@ -1,10 +1,10 @@
 ﻿namespace Server.Network
 {
-	using Extensions;
+	using Bootpd;
 	using System;
 	using System.Net;
 	using System.Text;
-	using static Functions;
+	using static Bootpd.Functions;
 
 	public sealed class TFTPPacket : PacketProvider
 	{

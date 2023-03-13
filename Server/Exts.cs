@@ -1,6 +1,5 @@
-﻿namespace Server.Extensions
+﻿namespace Bootpd
 {
-	using Server.Network;
 	using System;
 	using System.Linq;
 	using System.Net;

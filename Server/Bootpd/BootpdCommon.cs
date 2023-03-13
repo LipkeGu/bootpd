@@ -3,8 +3,8 @@ using Bootpd.Network.Server;
 using Server.Network;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
-
 namespace Bootpd
 {
 	public class BootpdCommon
@@ -180,7 +180,7 @@ namespace Bootpd
 					client = new Network.Client.DHCPClient(type, endpoint, local);
 					break;
 				case ServerType.TFTP:
-
+					client = new Network.Client.TFTPClient(type, endpoint, local);
 					break;
 				default:
 					break;
@@ -198,43 +198,47 @@ namespace Bootpd
 
 			lock (__LockServersMutex)
 			{
-				foreach (var server in Servers.Values)
-					server.Bootstrap();
+				for (var i = Servers.Values.Count - 1; i >= 0; i--)
+					Servers.Values.ElementAt(i).Bootstrap();
 			}
 
+			AddClient(ServerType.DHCP, new IPEndPoint(IPAddress.Any, 68), true);
 
 			lock (__LockClientsMutex)
 			{
-				foreach (var client in Clients.Values)
-					client.Bootstrap();
+				for (var i = Clients.Values.Count - 1; i >= 0; i--)
+					Clients.Values.ElementAt(i).Bootstrap();
 			}
 		}
+
 		public void Start()
 		{
 			lock (__LockServersMutex)
 			{
-				foreach (var server in Servers.Values)
-					server.Start();
+				for (var i = Servers.Values.Count - 1; i >= 0; i--)
+					Servers.Values.ElementAt(i).Start();
 			}
 
 			lock (__LockClientsMutex)
 			{
-				foreach (var client in Clients.Values)
-					client.Start();
+				for (var i = Clients.Values.Count - 1; i >= 0; i--)
+					Clients.Values.ElementAt(i).Start();
 			}
 		}
+
 		public void Stop()
 		{
 			lock (__LockServersMutex)
 			{
-				foreach (var server in Servers.Values)
-					server.Stop();
+				for (var i = Servers.Values.Count - 1; i >= 0; i--)
+					Servers.Values.ElementAt(i).Stop();
 			}
 
 			lock (__LockClientsMutex)
 			{
-				foreach (var client in Clients.Values)
-					client.Stop();
+				for (var i = Clients.Values.Count - 1; i >= 0; i--)
+					Clients.Values.ElementAt(i).Stop();
+
 			}
 		}
 
@@ -242,14 +246,15 @@ namespace Bootpd
 		{
 			lock (__LockServersMutex)
 			{
-				foreach (var server in Servers.Values)
-					server.HeartBeat();
+				for (var i = Servers.Values.Count - 1; i >= 0; i--)
+					Servers.Values.ElementAt(i).HeartBeat();
 			}
 
 			lock (__LockClientsMutex)
 			{
-				foreach (var client in Clients.Values)
-					client.HeartBeat();
+
+				for (var i = Clients.Values.Count - 1; i >= 0; i--)
+					Clients.Values.ElementAt(i).HeartBeat();
 			}
 		}
 
@@ -263,8 +268,12 @@ namespace Bootpd
 
 			lock (__LockClientsMutex)
 			{
-				foreach (var client in Clients.Values)
-					client.Dispose();
+				for (var i = Clients.Count - 1; i >= 0; i--)
+				{
+					var id = Clients.ElementAt(i).Key;
+					Clients.ElementAt(i).Value.Dispose();
+					Clients.Remove(id);
+				}
 			}
 		}
 	}

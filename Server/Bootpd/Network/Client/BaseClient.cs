@@ -69,6 +69,9 @@ namespace Bootpd.Network.Client
 
 		public void Dispose()
 		{
+			if (Socket == null)
+				return;
+
 			Socket.Dispose();
 		}
 
@@ -82,6 +85,9 @@ namespace Bootpd.Network.Client
 
 		public void Stop()
 		{
+			if (Socket == null)
+				return;
+
 			Socket.Stop();
 		}
 

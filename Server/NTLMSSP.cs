@@ -1,9 +1,10 @@
-﻿using Server.Extensions;
+﻿using Bootpd;
 using Server.Network;
 using System;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using static Bootpd.Functions;
 
 namespace Server.Crypto
 {
@@ -251,11 +252,11 @@ namespace Server.Crypto
 
 			var offset = 0;
 
-			offset += Functions.CopyTo(domainname, 0, block, offset, domainname.Length);
-			offset += Functions.CopyTo(servername, 0, block, offset, servername.Length);
-			offset += Functions.CopyTo(dnsdomain, 0, block, offset, dnsdomain.Length);
-			offset += Functions.CopyTo(fqdnservername, 0, block, offset, fqdnservername.Length);
-			offset += Functions.CopyTo(terminator, 0, block, offset, terminator.Length);
+			offset += CopyTo(domainname, 0, block, offset, domainname.Length);
+			offset += CopyTo(servername, 0, block, offset, servername.Length);
+			offset += CopyTo(dnsdomain, 0, block, offset, dnsdomain.Length);
+			offset += CopyTo(fqdnservername, 0, block, offset, fqdnservername.Length);
+			offset += CopyTo(terminator, 0, block, offset, terminator.Length);
 
 			return block;
 		}
@@ -285,9 +286,9 @@ namespace Server.Crypto
 
 			var block = new byte[(d.Length + t.Length + l.Length)];
 
-			offset += Functions.CopyTo(t, 0, block, offset, t.Length);
-			offset += Functions.CopyTo(l, 0, block, offset, l.Length);
-			offset += Functions.CopyTo(d, 0, block, offset, d.Length);
+			offset += CopyTo(t, 0, block, offset, t.Length);
+			offset += CopyTo(l, 0, block, offset, l.Length);
+			offset += CopyTo(d, 0, block, offset, d.Length);
 
 			return block;
 		}
@@ -323,11 +324,11 @@ namespace Server.Crypto
 			var pos = BitConverter.GetBytes(position);
 
 			// length + Allocated Space!
-			offset += Functions.CopyTo(length, 0, buffer, offset, length.Length);
-			offset += Functions.CopyTo(length, 0, buffer, offset, length.Length);
+			offset += CopyTo(length, 0, buffer, offset, length.Length);
+			offset += CopyTo(length, 0, buffer, offset, length.Length);
 
 			// Offset
-			offset += Functions.CopyTo(pos, 0, buffer, offset, pos.Length);
+			offset += CopyTo(pos, 0, buffer, offset, pos.Length);
 
 			return buffer;
 		}
@@ -340,11 +341,11 @@ namespace Server.Crypto
 			var pos = BitConverter.GetBytes(position);
 
 			// length + Allocated Space!
-			offset += Functions.CopyTo(length, 0, buffer, offset, length.Length);
-			offset += Functions.CopyTo(length, 0, buffer, offset, length.Length);
+			offset += CopyTo(length, 0, buffer, offset, length.Length);
+			offset += CopyTo(length, 0, buffer, offset, length.Length);
 
 			// Offset
-			offset += Functions.CopyTo(pos, 0, buffer, offset, pos.Length);
+			offset += CopyTo(pos, 0, buffer, offset, pos.Length);
 
 			return buffer;
 		}
@@ -358,9 +359,9 @@ namespace Server.Crypto
 
 			var block = new byte[(d.Length + t.Length + l.Length)];
 
-			offset += Functions.CopyTo(t, 0, block, offset, t.Length);
-			offset += Functions.CopyTo(l, 0, block, offset, l.Length);
-			offset += Functions.CopyTo(d, 0, block, offset, d.Length);
+			offset += CopyTo(t, 0, block, offset, t.Length);
+			offset += CopyTo(l, 0, block, offset, l.Length);
+			offset += CopyTo(d, 0, block, offset, d.Length);
 
 			return block;
 		}

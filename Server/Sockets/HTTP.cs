@@ -1,7 +1,7 @@
-﻿using Server.Extensions;
+﻿using Bootpd;
+using Server.Extensions;
 using System;
 using System.Net;
-
 namespace Server.Network
 {
 	public sealed class HTTPSocket : IDisposable

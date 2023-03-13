@@ -1,11 +1,11 @@
 ﻿namespace Server.Network
 {
+	using Bootpd;
 	using Extensions;
 	using System;
 	using System.Net;
 	using System.Net.Sockets;
-	using static Functions;
-
+	using static Bootpd.Functions;
 	public sealed class TFTPSocket : SocketProvider
 	{
 		public TFTPSocket(IPEndPoint endpoint, bool broadcast = false, int buffersize = 1024, SocketType type = SocketType.TFTP)

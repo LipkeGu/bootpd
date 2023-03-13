@@ -2,6 +2,7 @@
 using Server.Network;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 
@@ -84,8 +85,8 @@ namespace Bootpd.Network.Server
 
 			lock (__LocksocketsMutex)
 			{
-				foreach (var socket in Sockets.Values)
-					socket.Bootstrap();
+				for (var i = Sockets.Count - 1; i >= 0; i--)
+					Sockets.ElementAt(i).Value.Bootstrap();
 			}
 		}
 
@@ -93,8 +94,8 @@ namespace Bootpd.Network.Server
 		{
 			lock (__LocksocketsMutex)
 			{
-				foreach (var socket in Sockets.Values)
-					socket.Dispose();
+				for (var i = Sockets.Count - 1; i >= 0; i--)
+					Sockets.ElementAt(i).Value.Dispose();
 			}
 		}
 
@@ -123,8 +124,8 @@ namespace Bootpd.Network.Server
 		{
 			lock (__LocksocketsMutex)
 			{
-				foreach (var socket in Sockets.Values)
-					socket.Start();
+				for (var i = Sockets.Count - 1; i >= 0; i--)
+					Sockets.ElementAt(i).Value.Start();
 			}
 		}
 
@@ -132,8 +133,8 @@ namespace Bootpd.Network.Server
 		{
 			lock (__LocksocketsMutex)
 			{
-				foreach (var socket in Sockets.Values)
-					socket.Stop();
+				for (var i = Sockets.Count - 1; i >= 0; i--)
+					Sockets.ElementAt(i).Value.Stop();
 			}
 		}
 
@@ -141,8 +142,8 @@ namespace Bootpd.Network.Server
 		{
 			lock (__LocksocketsMutex)
 			{
-				foreach (var socket in Sockets.Values)
-					socket.HeartBeat();
+				for (var i = Sockets.Count - 1; i >= 0; i--)
+					Sockets.ElementAt(i).Value.HeartBeat();
 			}
 		}
 	}

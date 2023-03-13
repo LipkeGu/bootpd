@@ -1,5 +1,6 @@
 ﻿namespace Server.Network
 {
+	using Bootpd;
 	using Extensions;
 	using System;
 	using System.IO;

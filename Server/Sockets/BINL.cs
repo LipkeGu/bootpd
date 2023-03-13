@@ -1,10 +1,11 @@
 ﻿namespace Server.Network
 {
+	using Bootpd;
 	using Extensions;
 	using System;
 	using System.Net;
 	using System.Net.Sockets;
-	using static Functions;
+	using static Bootpd.Functions;
 
 	public sealed class BINLSocket : SocketProvider
 	{
