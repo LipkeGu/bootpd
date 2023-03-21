@@ -377,45 +377,6 @@ namespace Server.Network
 		NTLMSSP_REVISION_W2K3 = 0x0f
 	}
 
-	public enum DHCPMsgType : byte
-	{
-		Discover = 1,
-		Offer = 2,
-		Request = 3,
-		Decline = 4,
-		Ack = 5,
-		Nak = 6,
-		Release = 7,
-		Inform = 8,
-		ForceRenew = 9,
-		LeaseQuery = 10,
-		LeaseUnassined = 11,
-		LeaseUnknown = 12,
-		LeaseActive = 13,
-		BulkLeaseQuery = 14,
-		LeaseQueryDone = 15,
-		ActiveLeaseQuery = 16,
-		LeasequeryStatus = 17,
-		Tls = 18
-	}
-
-	/// <summary>
-	/// Options used by the WDSNBPOptions.Architecture
-	/// </summary>
-	public enum Architecture : ushort
-	{
-		Intelx86PC = 0,
-		NEC_PC98 = 1,
-		EFIItanium = 2,
-		DECAlpha = 3,
-		Arcx86 = 4,
-		IntelLeanClient = 5,
-		EFIIA32 = 6,
-		EFIBC = 7,
-		EFIXscale = 8,
-		EFIx8664 = 9
-	}
-
 	public enum TFTPOPCodes : ushort
 	{
 		UNK = 0,
@@ -429,18 +390,6 @@ namespace Server.Network
 		OCK = 6
 	}
 
-	public enum TFTPErrorCode : ushort
-	{
-		Unknown,
-		FileNotFound,
-		AccessViolation,
-		DiskFull,
-		IllegalOperation,
-		UnknownTID,
-		FileExists,
-		NoSuchUser,
-		InvalidOption
-	}
 
 	/// <summary>
 	/// TFTP Stage Indicator Types
@@ -671,50 +620,11 @@ namespace Server.Network
 		End = byte.MaxValue
 	}
 
-	/// <summary>
-	/// Options used by the Windows Deployment Server NBP
-	/// </summary>
-	public enum WDSNBPOptions
-	{
-		Unknown,
-		Architecture,
-		NextAction,
-		PollInterval,
-		PollRetryCount,
-		RequestID,
-		Message,
-		VersionQuery,
-		ServerVersion,
-		ReferralServer,
-		PXEClientPrompt,
-		PxePromptDone,
-		NBPVersion,
-		ActionDone,
-		AllowServerSelection,
-		End = byte.MaxValue
-	}
 
-	/// <summary>
-	/// Options used by the WDSNBPOptions.NextAction
-	/// </summary>
-	public enum NextActionOptionValues : int
-	{
-		Drop = 0,
-		Approval = 1,
-		Referral = 3,
-		Abort = 5
-	}
 
-	/// <summary>
-	/// Options used by the WDSNBPOptions.PXEClientPrompt and WDSNBPOptions.PXEPromptDone
-	/// </summary>
-	public enum PXEPromptOptionValues
-	{
-		Unknown,
-		OptIn,
-		NoPrompt,
-		OptOut
-	}
+
+
+
 
 	public enum PXEFrameworks
 	{
@@ -738,15 +648,7 @@ namespace Server.Network
 		NetASCII
 	}
 
-	/// <summary>
-	/// Options used by the WDSNBPOptions.NBPVersion
-	/// </summary>
-	public enum NBPVersionValues
-	{
-		Seven = 7,
-		Eight = 8,
-		Unknown = byte.MaxValue
-	}
+
 
 	/// <summary>
 	/// Definitions for Packets used by the Server
@@ -767,12 +669,7 @@ namespace Server.Network
 		KnownOnly
 	}
 
-	public enum ServerType
-	{
-		DHCP,
-		BOOTP,
-		TFTP
-	}
+
 
 	public delegate void DataReceivedEventHandler(object sender, DataReceivedEventArgs e);
 

@@ -4,7 +4,7 @@ namespace Bootpd.Network.Client
 {
 	public interface IClient : IDisposable
 	{
-		Guid Id { get; }
+		string Id { get; }
 
 		void Bootstrap();
 		void Start();

@@ -1,5 +1,7 @@
 ﻿namespace Server.Network
 {
+	using Bootpd.Common.Network.Protocol.DHCP;
+	using Bootpd.Common.Network.Protocol.TFTP;
 	using System;
 	using System.IO;
 	using System.Net;

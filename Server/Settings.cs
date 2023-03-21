@@ -28,14 +28,24 @@
 		public static string WDS_BCD_FileName = "default.bcd";
 		public static string WDS_BOOT_PREFIX_X86 = "Boot/x86/";
 		public static string WDS_BOOT_PREFIX_X64 = "Boot/x64/";
-		public static string WDS_BOOT_PREFIX_EFI = "Boot/EFI/";
+		public static string WDS_BOOT_PREFIX_EFI = "Boot/efi/";
 		public static string WDS_BOOT_PREFIX_IA64 = "Boot/ia64/";
-		public static string WDS_BOOTFILE_X86 = "pxeboot.n12";
+
+		public static string WDS_BOOTFILE_X86 = "wdsnbp.com";
+		public static string WDS_BOOTFILE_x86_Done = "pxeboot.n12";
+
 		public static string WDS_BOOTFILE_X64 = "pxeboot.n12";
-		public static string WDS_BOOTFILE_IA64 = "Bootmgfw.efi";
-		public static string WDS_BOOTFILE_EFI = "Bootmgfw.efi";
+		public static string WDS_BOOTFILE_x64_Done = "pxeboot.n12";
+
+		public static string WDS_BOOTFILE_IA64_Done = "bootmgfw.efi";
+		public static string WDS_BOOTFILE_IA64 = "wdsmgfw.efi";
+
+		public static string WDS_BOOTFILE_EFI = "wdsmgfw.efi";
+		public static string WDS_BOOTFILE_EFI_Done = "bootmgfw.efi";
+
 		public static string WDS_BOOTFILE_ABORT = "abortpxe.com";
 		public static string DHCP_DEFAULT_BOOTFILE = "wdsnbp.com";
+
 		public static string DHCP_MENU_PROMPT = "Select Server...";
 
 		public static ushort PollInterval = 3;
@@ -53,7 +63,7 @@
 		public static string TFTPRoot = Path.Combine(Filesystem.ReplaceSlashes(Environment.CurrentDirectory), "TFTPRoot");
 		public static string DriverFile = Path.Combine(Filesystem.ReplaceSlashes(Environment.CurrentDirectory), "drivers.xml");
 
-		public static ServerMode Servermode = ServerMode.KnownOnly;
+		public static ServerMode Servermode = ServerMode.AllowAll;
 
 		public static long MaxAllowedFileLength = 10485760;
 
@@ -74,6 +84,7 @@
 		public static int HTTPPort = 8080;
 		public static int ReadBuffer = 2 << 64;
 		public static int DiscoveryType = 7;
+
 		#endregion
 	}
 }

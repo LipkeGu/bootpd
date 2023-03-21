@@ -9,9 +9,8 @@ namespace Bootpd.Network.Packet
 {
 	public class DHCPPacket : BasePacket
 	{
-		SortedDictionary<byte, DHCPOption> Options;
+		Dictionary<byte, DHCPOption> Options;
 
-		public DHCPMsgType MessageType { get; private set; }
 		bool sNamefieldOverloaded = false;
 		bool filefieldOverloaded = false;
 
@@ -280,18 +279,14 @@ namespace Bootpd.Network.Packet
 
 		public DHCPPacket(byte[] data) : base(data)
 		{
-			Options = new SortedDictionary<byte, DHCPOption>();
-			if (HasOption(53))
-				MessageType = (DHCPMsgType)Convert.ToByte(GetOption(53).Data);
-
+			Options = new Dictionary<byte, DHCPOption>();
 			ParsePacket();
 		}
 
-		public DHCPPacket(DHCPMsgType msgType, int size = 0)
+		public DHCPPacket(int size = 0)
 		{
 			Buffer = (size != 0) ? new MemoryStream(size) : new MemoryStream();
-			Options = new SortedDictionary<byte, DHCPOption>();
-			MessageType = msgType;
+			Options = new Dictionary<byte, DHCPOption>();
 			BootpMsgType = BootpMsgType.Request;
 			BootpHWType = BootpHWType.Ethernet;
 			BootpHWLen = 6;
@@ -307,7 +302,6 @@ namespace Bootpd.Network.Packet
 			ServerName = Environment.MachineName;
 			Bootfile = string.Empty;
 			MagicCookie = new byte[] { 99, 130, 83, 99 };
-			AddOption(new DHCPOption(53, (byte)MessageType));
 		}
 
 		public List<DHCPOption> GetEncOptions(byte opt)
@@ -344,67 +338,63 @@ namespace Bootpd.Network.Packet
 		{
 			DHCPPacket packet = null;
 			var msgType = (DHCPMsgType)Convert.ToByte(GetOption(53).Data[0]);
-
 			switch (BootpMsgType)
 			{
 				case BootpMsgType.Request:
+					packet = new DHCPPacket
+					{
+						ServerName = Environment.MachineName,
+						BootpHWType = BootpHWType,
+						BootpHWLen = BootpHWLen,
+						BootpHops = BootpHops,
+						TransactionId = TransactionId,
+						Seconds = Seconds,
+						Flags = Flags,
+						ClientIP = ClientIP,
+						YourIP = YourIP,
+						ServerIP = serverIP,
+						RelayIP = RelayIP,
+						MagicCookie = MagicCookie,
+						BootpMsgType = BootpMsgType.Reply
+					};
+
+
+					Buffer.CopyTo(packet.Buffer, 28, 28, 6);
+
+					packet.AddOption(new DHCPOption(54, packet.ServerIP));
+					packet.AddOption(GetOption(97));
+					packet.AddOption(new DHCPOption(60, "PXEClient"));
+
 					switch (msgType)
 					{
 						case DHCPMsgType.Discover:
-							packet = new DHCPPacket(DHCPMsgType.Offer);
+							packet.AddOption(new DHCPOption(53, DHCPMsgType.Offer));
 							break;
 						case DHCPMsgType.Request:
 						case DHCPMsgType.Inform:
-							packet = new DHCPPacket(DHCPMsgType.Ack);
+							packet.AddOption(new DHCPOption(53, DHCPMsgType.Ack));
 							break;
 						default:
 							break;
 					}
-					packet.BootpMsgType = BootpMsgType.Reply;
-					packet.AddOption(new DHCPOption(60, "PXEClient"));
-					packet.AddOption(new DHCPOption(54, serverIP));
 					break;
 				case BootpMsgType.Reply:
 					switch (msgType)
 					{
 						case DHCPMsgType.Offer:
-							packet = new DHCPPacket(DHCPMsgType.Request);
 							break;
 						case DHCPMsgType.Ack:
 							break;
 						default:
 							break;
 					}
-					packet.BootpMsgType = BootpMsgType.Request;
-					packet.AddOption(new DHCPOption(60, "PXEClient:Arch:00000:UNDI:002001"));
 					break;
 				default:
 					break;
 			}
 
-			packet.ServerName = Environment.MachineName;
-			packet.BootpHWType = BootpHWType;
-			packet.BootpHWLen = BootpHWLen;
-			packet.BootpHops = BootpHops;
-			packet.TransactionId = TransactionId;
-			packet.Seconds = Seconds;
-			packet.Flags = Flags;
-			packet.ClientIP = ClientIP;
-			packet.YourIP = YourIP;
-			packet.ServerIP = serverIP;
-			packet.RelayIP = RelayIP;
-			packet.HWAddr = HWAddr;
-			packet.MagicCookie = MagicCookie;
-			packet.AddOption(GetOption(97));
-			packet.AddOption(GetOption(61));
-			packet.AddOption(GetOption(77));
-			packet.AddOption(new DHCPOption(54, serverIP));
-			packet.AddOption(new DHCPOption(66, Environment.MachineName));
-			packet.AddOption(new DHCPOption(67, "Boot\\x86\\wdsnbp.com"));
-			packet.AddOption(new DHCPOption(208, 0xf100747e));  // PXELinux Magic
 			return packet;
 		}
-
 
 		public void AddOption(DHCPOption dhcpoption)
 		{

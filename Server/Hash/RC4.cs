@@ -1,6 +1,6 @@
 ﻿namespace bootpd
 {
-	using Bootpd;
+	using global::Bootpd;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;

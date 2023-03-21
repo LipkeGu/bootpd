@@ -1,5 +1,4 @@
-﻿using Bootpd;
-using Server.Extensions;
+﻿using Server.Extensions;
 using System;
 using System.IO;
 using System.Text;
@@ -9,20 +8,6 @@ namespace Server.Network
 {
 	public static class Functions
 	{
-		/// <summary>
-		/// Copies the contents of an array to the specified position in the destination array.
-		/// </summary>
-		/// <param name="src">Source</param>
-		/// <param name="srcoffset">Source Index</param>
-		/// <param name="dst">Target</param>
-		/// <param name="dstoffset">Target Array Index</param>
-		/// <param name="length">Length to copy (formerly count)</param>
-		/// <returns>the new length of the target Array</returns>
-
-
-
-
-
 		public static Encoding TestEncoding(byte[] data, int offset = 1)
 		{
 			return data[offset] == '\0' ? Encoding.Unicode : Encoding.ASCII;

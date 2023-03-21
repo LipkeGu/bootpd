@@ -8,14 +8,14 @@ namespace Bootpd.Network.Server
 	public interface IServer : IDisposable
 	{
 		ushort Port { get; set; }
-		Dictionary<Guid, BaseSocket> Sockets { get; set; }
+		Dictionary<string, BaseSocket> Sockets { get; set; }
 		void Bootstrap();
 		void Start();
 		void Stop();
 		void HeartBeat();
 
 		void AddSocket(IPEndPoint endpoint);
-		void RemoveSocket(Guid id);
-		BaseSocket GetSocket(Guid id);
+		void RemoveSocket(string id);
+		BaseSocket GetSocket(string id);
 	}
 }

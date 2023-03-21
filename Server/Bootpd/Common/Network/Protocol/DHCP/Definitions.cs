@@ -29,6 +29,21 @@ public enum BootpFlags : ushort
 	Broadcast = 128
 }
 
+public enum Architecture : ushort
+{
+	Intelx86PC = 0,
+	NEC_PC98 = 1,
+	EFIItanium = 2,
+	DECAlpha = 3,
+	Arcx86 = 4,
+	IntelLeanClient = 5,
+	EFIIA32 = 6,
+	EFIBC = 7,
+	EFIXscale = 8,
+	EFIx8664 = 9,
+	EFIHTTP = 16
+}
+
 public enum BootpHWType : byte
 {
 	Ethernet = 1

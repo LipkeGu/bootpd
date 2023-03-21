@@ -25,6 +25,13 @@ namespace Bootpd.Common.Network.Protocol.DHCP
 			Length = Convert.ToByte(Data.Length);
 		}
 
+		public DHCPOption(byte option, uint data)
+		{
+			Option = option;
+			Data = BitConverter.GetBytes(data);
+			Length = Convert.ToByte(Data.Length);
+		}
+
 		public DHCPOption(byte option, ulong data)
 		{
 			Option = option;
@@ -39,7 +46,6 @@ namespace Bootpd.Common.Network.Protocol.DHCP
 			Length = Convert.ToByte(Data.Length);
 		}
 
-
 		public DHCPOption(byte option, int data)
 		{
 			Option = option;
@@ -50,7 +56,7 @@ namespace Bootpd.Common.Network.Protocol.DHCP
 		public DHCPOption(byte option, byte data)
 		{
 			Option = option;
-			Data = BitConverter.GetBytes(Convert.ToByte(data));
+			Data = new byte[1] { Convert.ToByte(data) };
 			Length = sizeof(byte);
 		}
 
@@ -102,6 +108,9 @@ namespace Bootpd.Common.Network.Protocol.DHCP
 				if (item.Option == 255)
 					break;
 
+				if (item.Length == 0)
+					continue;
+
 				offset += CopyTo(item.Length, block, offset);
 				offset += CopyTo(item.Data, 0, block, offset);
 			}
@@ -120,5 +129,19 @@ namespace Bootpd.Common.Network.Protocol.DHCP
 			Array.Copy(data.ToByteArray(), 0, Data, 1, Data.Length - 1);
 			Length = Convert.ToByte(Data.Length);
 		}
+
+		public uint AsUInt32() => BitConverter.ToUInt32(Data, 0).LE32();
+
+		public bool AsBool() => BitConverter.ToBoolean(Data, 0);
+
+		public ushort AsUInt16() => BitConverter.ToUInt16(Data, 0).LE16();
+
+		public IPAddress AsIPAddress() => new IPAddress(Data);
+
+		public string AsString() => Encoding.ASCII.GetString(Data);
+
+		public string AsString(Encoding encoding) => encoding.GetString(Data);
+
+		public byte AsByte() => Convert.ToByte(Data[0]);
 	}
 }

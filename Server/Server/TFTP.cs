@@ -1,6 +1,7 @@
 ﻿namespace Server.Network
 {
 	using Bootpd;
+	using Bootpd.Common.Network.Protocol.TFTP;
 	using Extensions;
 	using System;
 	using System.Collections.Generic;
@@ -12,14 +13,14 @@
 	using static Functions;
 	public sealed class TFTP : ServerProvider, ITFTPServer_Provider, IDisposable
 	{
-		public Dictionary<IPAddress, TFTPClient> Clients;
+		public Dictionary<IPAddress, aTFTPClient> Clients;
 		public Dictionary<string, string> Options;
 
 		TFTPSocket socket;
 
 		public TFTP(IPEndPoint endpoint)
 		{
-			Clients = new Dictionary<IPAddress, TFTPClient>();
+			Clients = new Dictionary<IPAddress, aTFTPClient>();
 			Options = new Dictionary<string, string>();
 			endp = endpoint;
 			socket = new TFTPSocket(endp);
@@ -128,7 +129,7 @@
 
 				if (!Clients.ContainsKey(packet.Source.Address))
 				{
-					Clients.Add(packet.Source.Address, new TFTPClient(packet.Source));
+					Clients.Add(packet.Source.Address, new aTFTPClient(packet.Source));
 					Clients[packet.Source.Address].Stage = TFTPStage.Handshake;
 
 					ExtractOptions(ref packet);

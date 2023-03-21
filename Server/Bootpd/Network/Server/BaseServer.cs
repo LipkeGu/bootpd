@@ -1,5 +1,5 @@
-﻿using Bootpd.Network.Sockets;
-using Server.Network;
+﻿using Bootpd.Common;
+using Bootpd.Network.Sockets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +14,7 @@ namespace Bootpd.Network.Server
 		object __LocksocketsMutex = new object();
 		#endregion
 
-		public Guid Id { get; private set; }
+		public string Id { get; private set; }
 
 		public string Hostname { get; private set; }
 		public ServerType ServerType { get; private set; }
@@ -23,7 +23,7 @@ namespace Bootpd.Network.Server
 
 		public BaseServer(ServerType type)
 		{
-			Id = Guid.NewGuid();
+			Id = Guid.NewGuid().ToString();
 			Hostname = Environment.MachineName;
 			ServerType = type;
 
@@ -39,10 +39,10 @@ namespace Bootpd.Network.Server
 					break;
 			}
 
-			Sockets = new Dictionary<Guid, BaseSocket>();
+			Sockets = new Dictionary<string, BaseSocket>();
 		}
 
-		public Dictionary<Guid, BaseSocket> Sockets { get; set; }
+		public Dictionary<string, BaseSocket> Sockets { get; set; }
 		public ushort Port { get; set; }
 
 		public void AddSocket(IPEndPoint endpoint)
@@ -81,7 +81,8 @@ namespace Bootpd.Network.Server
 				foreach (var addr in netInterface.GetIPProperties().UnicastAddresses)
 					if (addr.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
 						if (addr.SuffixOrigin != SuffixOrigin.LinkLayerAddress)
-							AddSocket(new IPEndPoint(addr.Address, Port));
+							if (addr.SuffixOrigin != SuffixOrigin.WellKnown)
+								AddSocket(new IPEndPoint(addr.Address, Port));
 
 			lock (__LocksocketsMutex)
 			{
@@ -99,7 +100,7 @@ namespace Bootpd.Network.Server
 			}
 		}
 
-		public BaseSocket GetSocket(Guid id)
+		public BaseSocket GetSocket(string id)
 		{
 			lock (__LocksocketsMutex)
 			{
@@ -107,7 +108,7 @@ namespace Bootpd.Network.Server
 			}
 		}
 
-		public void RemoveSocket(Guid id)
+		public void RemoveSocket(string id)
 		{
 			lock (__LocksocketsMutex)
 			{

@@ -14,12 +14,12 @@
 			return size;
 		}
 
-		public static bool Exist(string filename) => File.Exists(filename.ToLowerInvariant());
+		public static bool Exist(string filename) => File.Exists(filename);
 
 		public static string ResolvePath(string path, string directory = "")
 		{
 			var givenPath =
-				ReplaceSlashes(!string.IsNullOrEmpty(directory) ? StripRoot(path.ToLowerInvariant(), directory) : path.ToLowerInvariant());
+				ReplaceSlashes(!string.IsNullOrEmpty(directory) ? StripRoot(path, directory) : path);
 
 			if (givenPath.EndsWith(".html") || givenPath.EndsWith(".htm") ||
 			givenPath.EndsWith(".css") || givenPath.EndsWith(".js") || givenPath.EndsWith(".xml"))

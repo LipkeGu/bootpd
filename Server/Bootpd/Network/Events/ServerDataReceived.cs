@@ -1,5 +1,4 @@
 ﻿using Bootpd.Network.Packet;
-using System;
 using System.Net;
 
 namespace Bootpd.Network.Server
@@ -13,12 +12,12 @@ namespace Bootpd.Network.Server
 		{
 
 			public IPacket Data { get; }
-			public Guid Socket { get; }
-			public Guid Server { get; }
+			public string Socket { get; }
+			public string Server { get; }
 
 			public IPEndPoint RemoteEndpoint { get; }
 
-			public ServerDataReceivedEventArgs(Guid server, Guid socket, IPEndPoint endPoint, IPacket data)
+			public ServerDataReceivedEventArgs(string server, string socket, IPEndPoint endPoint, IPacket data)
 			{
 				Socket = socket;
 				Server = server;

@@ -1,6 +1,7 @@
 ﻿namespace Server.Network
 {
 	using Bootpd;
+	using Bootpd.Common.Network.Protocol.DHCP;
 	using Bootpd.Common.Network.Protocol.RBCP;
 	using Bootpd.Network.Packet;
 	using Crypto;

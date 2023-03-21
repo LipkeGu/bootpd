@@ -1,6 +1,7 @@
 ﻿namespace Server.Network
 {
 	using Bootpd;
+	using Bootpd.Common.Network.Protocol.TFTP;
 	using System;
 	using System.Net;
 	using System.Text;

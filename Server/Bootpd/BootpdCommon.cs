@@ -1,5 +1,8 @@
-﻿using Bootpd.Network.Client;
+﻿using Bootpd.Common;
+using Bootpd.Common.Network.Protocol.DHCP;
+using Bootpd.Network.Client;
 using Bootpd.Network.Server;
+using Server.Extensions;
 using Server.Network;
 using System;
 using System.Collections.Generic;
@@ -14,13 +17,15 @@ namespace Bootpd
 		object __LockClientsMutex = new object();
 		#endregion
 
-		public static readonly Dictionary<Guid, BaseServer> Servers = new Dictionary<Guid, BaseServer>();
-		public static readonly Dictionary<Guid, BaseClient> Clients = new Dictionary<Guid, BaseClient>();
+		public static readonly Dictionary<string, BaseServer> Servers = new Dictionary<string, BaseServer>();
+		public static readonly Dictionary<string, BaseClient> Clients = new Dictionary<string, BaseClient>();
 
-		public static string TFTPRoot { get; set; }
+		public static string TFTPRoot { get; set; } = Settings.TFTPRoot;
 
 		public BootpdCommon(string[] args)
 		{
+			TFTPRoot = Filesystem.ResolvePath(TFTPRoot);
+
 			foreach (var item in args)
 			{
 				var tag = "";
@@ -70,39 +75,26 @@ namespace Bootpd
 
 			server.ServerDataReceived += (sender, e) =>
 			{
+				var clientid = string.Empty;
+				var endpoint = e.RemoteEndpoint;
 
 				switch (type)
 				{
 					case ServerType.BOOTP:
 					case ServerType.DHCP:
 						{
-							var clientId = AddClient(type, e.RemoteEndpoint);
-
-
+							clientid = AddClient(Guid.NewGuid().ToString(), type, endpoint);
 							var dhcpRequest = (Network.Packet.DHCPPacket)e.Data;
-							if (!dhcpRequest.HasOption(60))
-							{
-								Console.WriteLine("[E] DHCP Option 60 (Vendor Ident): Not found!");
+							if (dhcpRequest.GetOption(60).AsString().Contains("MSFT"))
 								return;
-							}
 
-							if (dhcpRequest.GetOption(60).Data.Length <= 9)
-							{
-								Console.WriteLine("[E] DHCP Option 60 (Vendor Ident): malformed!");
-							}
-
-							if (dhcpRequest.HasOption(54))
-								if (new IPAddress(dhcpRequest.GetOption(54).Data) != ((IPEndPoint)Servers[e.Server]
-									.GetSocket(e.Socket).LocalEndPoint).Address)
-									return;
-
-							switch ((DHCPMsgType)Convert.ToByte(dhcpRequest.GetOption(53).Data[0]))
+							switch ((DHCPMsgType)dhcpRequest.GetOption(53).AsByte())
 							{
 								case DHCPMsgType.Discover:
-									Functions.InvokeMethod(server, "Handle_Discover_Request", new object[] { clientId, e.Socket, dhcpRequest });
+									Functions.InvokeMethod(server, "Handle_Discover_Request", new object[] { clientid, e.Socket, dhcpRequest });
 									break;
 								case DHCPMsgType.Request:
-									Functions.InvokeMethod(server, "Handle_Request_Request", new object[] { clientId, e.Socket, dhcpRequest });
+									Functions.InvokeMethod(server, "Handle_Request_Request", new object[] { clientid, e.Socket, dhcpRequest });
 									break;
 								case DHCPMsgType.Decline:
 									break;
@@ -113,7 +105,7 @@ namespace Bootpd
 								case DHCPMsgType.Release:
 									break;
 								case DHCPMsgType.Inform:
-									Functions.InvokeMethod(server, "Handle_Inform_Request", new object[] { clientId, e.Server, dhcpRequest });
+									Functions.InvokeMethod(server, "Handle_Inform_Request", new object[] { clientid, e.Server, dhcpRequest });
 									break;
 								case DHCPMsgType.ForceRenew:
 									break;
@@ -139,20 +131,25 @@ namespace Bootpd
 									break;
 							}
 						}
+
+						Clients.Remove(clientid);
 						break;
 					case ServerType.TFTP:
 						{
+
+							clientid = AddClient(endpoint.Address.ToString(), type, endpoint);
 							var tftpRequest = (Network.Packet.TFTPPacket)e.Data;
 							switch (tftpRequest.MessageType)
 							{
 								case Common.Network.Protocol.TFTP.TFTPMsgType.RRQ:
-									Functions.InvokeMethod(server, "Handle_Read_Request", new object[] { e.Socket, tftpRequest });
+									Console.WriteLine("TFTP : Got Read Request from {0}", endpoint);
+									Functions.InvokeMethod(server, "Handle_Read_Request", new object[] { clientid, e.Socket, tftpRequest });
 									break;
 								case Common.Network.Protocol.TFTP.TFTPMsgType.ACK:
-									Functions.InvokeMethod(server, "Handle_Ack_Request", new object[] { e.Socket, tftpRequest });
+									Functions.InvokeMethod(server, "Handle_Ack_Request", new object[] { clientid, e.Socket, tftpRequest });
 									break;
 								case Common.Network.Protocol.TFTP.TFTPMsgType.ERR:
-									Functions.InvokeMethod(server, "Handle_Err_Request", new object[] { e.Socket, tftpRequest });
+									Functions.InvokeMethod(server, "Handle_Error_Request", new object[] { clientid, e.Socket, tftpRequest });
 									break;
 								default:
 									break;
@@ -162,32 +159,39 @@ namespace Bootpd
 					default:
 						break;
 				}
-
-
 			};
 
 			Servers.Add(server.Id, server);
 		}
 
-		public Guid AddClient(ServerType type, IPEndPoint endpoint, bool local = false)
+		public string AddClient(string id, ServerType type, IPEndPoint endpoint, bool local = false)
 		{
 			BaseClient client = null;
 
-			switch (type)
+			if (!Clients.ContainsKey(id))
 			{
-				case ServerType.BOOTP:
-				case ServerType.DHCP:
-					client = new Network.Client.DHCPClient(type, endpoint, local);
-					break;
-				case ServerType.TFTP:
-					client = new Network.Client.TFTPClient(type, endpoint, local);
-					break;
-				default:
-					break;
+				switch (type)
+				{
+					case ServerType.BOOTP:
+					case ServerType.DHCP:
+						client = new DHCPClient(id, type, endpoint, local);
+						break;
+					case ServerType.TFTP:
+						client = new TFTPClient(id, type, endpoint, local);
+						break;
+					default:
+						break;
+				}
+
+				Clients.Add(client.Id, client);
+			}
+			else
+			{
+				Clients[id].RemoteEndpoint = endpoint;
+				Clients[id].LocalInstance = local;
 			}
 
-			Clients.Add(client.Id, client);
-			return client.Id;
+			return Clients[id].Id;
 		}
 
 		public void Bootstrap()
@@ -202,7 +206,7 @@ namespace Bootpd
 					Servers.Values.ElementAt(i).Bootstrap();
 			}
 
-			AddClient(ServerType.DHCP, new IPEndPoint(IPAddress.Any, 68), true);
+			//	AddClient(ServerType.DHCP, new IPEndPoint(IPAddress.Any, 68), true);
 
 			lock (__LockClientsMutex)
 			{

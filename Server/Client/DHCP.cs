@@ -1,6 +1,7 @@
 ﻿namespace Server.Network
 {
 	using Bootpd;
+	using Bootpd.Common.Network.Protocol.DHCP;
 	using Extensions;
 	using System;
 	using System.Collections.Generic;
@@ -64,6 +65,12 @@
 
 			public ushort RetryCount { get; set; }
 
+			public PXEPromptOptionValues PXEPromptDone { get; set; } = PXEPromptOptionValues.OptIn;
+
+			public PXEPromptOptionValues PXEPromptAction { get; set; } = PXEPromptOptionValues.OptIn;
+
+			public uint ServerFeatures { get; set; }
+
 			public bool ActionDone { get; set; }
 			public NextActionOptionValues NextAction { get; set; }
 			public string BCDPath { get; set; }
@@ -71,19 +78,21 @@
 			public Architecture Architecure { get; set; }
 			public bool ServerSelection { get; set; }
 
+			public bool VersionQery { get; set; } = false;
+
 			public uint RequestId { get; set; } = 0;
 			public string VersionQuery { get; set; }
 			public NBPVersionValues ServerVersion { get; set; }
 			public IPAddress ReferralServer { get; set; }
 			public PXEPromptOptionValues ClientPrompt { get; set; } = PXEPromptOptionValues.OptIn;
-			public PXEPromptOptionValues PromptDone { get; set; } = PXEPromptOptionValues.OptIn;
+			public PXEPromptOptionValues PromptDone { get; set; } = PXEPromptOptionValues.NoPrompt;
 			public NBPVersionValues NBPVersiopn { get; set; }
 
 			public WDSClient()
 			{
 				PollInterval = Convert.ToUInt16(5);
 				RetryCount = ushort.MaxValue;
-				ActionDone = false;
+				ActionDone = true;
 				AdminMessage = "Waiting for Approval...";
 				NextAction = NextActionOptionValues.Approval;
 				Architecure = Architecture.Intelx86PC;

@@ -4,14 +4,14 @@
 	using System.IO;
 	using System.Net;
 
-	public sealed class TFTPClient : ClientProvider, IDisposable, ITFTPClient_Provider
+	public sealed class aTFTPClient : ClientProvider, IDisposable, ITFTPClient_Provider
 	{
 		ushort blksize;
 		ushort winsize;
 		ushort msftwindow;
 		Guid guid;
 
-		public TFTPClient(IPEndPoint endpoint)
+		public aTFTPClient(IPEndPoint endpoint)
 		{
 			endp = endpoint;
 			type = SocketType.TFTP;
@@ -26,7 +26,7 @@
 			Blocks = ushort.MinValue;
 		}
 
-		~TFTPClient()
+		~aTFTPClient()
 		{
 			Dispose();
 		}

@@ -18,6 +18,18 @@ namespace Bootpd.Network.Packet
 		{
 		}
 
+		public void SetCapacity(int size)
+		{
+			Buffer.Capacity = size;
+		}
+
+		public void Dump(string filename)
+		{
+			var buffer = new byte[Buffer.Length];
+			Buffer.Read(buffer, 0, buffer.Length);
+
+			File.WriteAllBytes(filename, buffer);
+		}
 
 		public abstract void ParsePacket();
 

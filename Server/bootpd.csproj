@@ -103,10 +103,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Bootpd\BootpdCommon.cs" />
+    <Compile Include="Bootpd\Common\Definitions.cs" />
     <Compile Include="Bootpd\Common\Extensions.cs" />
     <Compile Include="Bootpd\Common\Network\Functions.cs" />
     <Compile Include="Bootpd\Common\Network\Protocol\DHCP\Definitions.cs" />
     <Compile Include="Bootpd\Common\Network\Protocol\DHCP\DHCPOption.cs" />
+    <Compile Include="Bootpd\Common\Network\Protocol\DHCP\WDS\Definitions.cs" />
     <Compile Include="Bootpd\Common\Network\Protocol\RBCP\Functions.cs" />
     <Compile Include="Bootpd\Common\Network\Protocol\TFTP\Definitions.cs" />
     <Compile Include="Bootpd\Network\Client\BaseClient.cs" />
@@ -180,6 +182,72 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
+    <None Include="TFTPRoot\Boot\efi\bootmgfw.efi">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TFTPRoot\Boot\efi\default.bcd">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TFTPRoot\Boot\efi\wdsmgfw.efi">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TFTPRoot\Boot\x64\apitest.0">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TFTPRoot\Boot\x64\bisconfig.0">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TFTPRoot\Boot\x64\boot.sdi">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TFTPRoot\Boot\x64\boot.wim">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TFTPRoot\Boot\x64\bstrap.0">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TFTPRoot\Boot\x64\default.bcd">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TFTPRoot\Boot\x64\pxeboot.n12">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TFTPRoot\Boot\x64\wdsmgfw.efi">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TFTPRoot\Boot\x64\wdsnbp.com">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TFTPRoot\Boot\x86\apitest.0">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TFTPRoot\Boot\x86\bisconfig.0">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TFTPRoot\Boot\x86\boot.sdi">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TFTPRoot\Boot\x86\boot.wim">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TFTPRoot\Boot\x86\bstrap.0">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TFTPRoot\Boot\x86\default.bcd">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TFTPRoot\Boot\x86\pxeboot.com">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TFTPRoot\Boot\x86\pxeboot.n12">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TFTPRoot\Boot\x86\wdsmgfw.efi">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TFTPRoot\Boot\x86\wdsnbp.com">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="TFTPRoot\Docs\bisspec.pdf" />
     <None Include="TFTPRoot\Docs\pxespec.pdf" />
   </ItemGroup>
@@ -260,6 +328,12 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="TFTPRoot\Boot\x64\bootmgr.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TFTPRoot\Boot\x86\bootmgr.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TFTPRoot\Config\config.txt" />
     <Content Include="TFTPRoot\Config\leases.txt" />
     <Content Include="TFTPRoot\Config\servers.txt" />
@@ -267,7 +341,6 @@
   <ItemGroup>
     <Folder Include="Bootpd\Common\Interfaces\" />
     <Folder Include="Sockets\Eventhandler\" />
-    <Folder Include="TFTPRoot\Boot\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

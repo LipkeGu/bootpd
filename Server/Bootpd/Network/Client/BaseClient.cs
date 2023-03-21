@@ -1,6 +1,6 @@
-﻿using Bootpd.Network.Packet;
+﻿using Bootpd.Common;
+using Bootpd.Network.Packet;
 using Bootpd.Network.Sockets;
-using Server.Network;
 using System;
 using System.Net;
 
@@ -10,14 +10,15 @@ namespace Bootpd.Network.Client
 	{
 		public BaseSocket Socket { get; set; }
 
-		public bool LocalInstance { get; private set; } = false;
+		public bool LocalInstance { get; set; } = false;
 		public IPEndPoint RemoteEndpoint { get; set; }
 
-		public Guid Id { get; }
+		public string Id { get; }
 
-		public BaseClient(ServerType type)
+		public BaseClient(string id, ServerType type)
 		{
-			Id = Guid.NewGuid();
+			Id = id == string.Empty ? Guid.NewGuid().ToString() : id;
+
 		}
 
 		public ServerType ServerType { get; set; }
@@ -27,24 +28,23 @@ namespace Bootpd.Network.Client
 
 		}
 
-		public BaseClient(ServerType type, IPEndPoint endpoint, bool localInstance)
+		public BaseClient(string id, ServerType type, IPEndPoint endpoint, bool localInstance)
 		{
 			LocalInstance = localInstance;
-			RemoteEndpoint = endpoint;
-
-			Id = Guid.NewGuid();
+			Id = id == string.Empty ? Guid.NewGuid().ToString() : id;
 
 			if (LocalInstance)
 			{
+				RemoteEndpoint = endpoint;
 				switch (type)
 				{
 					case ServerType.BOOTP:
 					case ServerType.DHCP:
-						Socket = new BaseSocket(System.Net.Sockets.SocketType.Dgram, type, new System.Net.IPEndPoint(IPAddress.Any, 68));
+						Socket = new BaseSocket(System.Net.Sockets.SocketType.Dgram, type, new IPEndPoint(IPAddress.Any, 68));
 						break;
 					case ServerType.TFTP:
 						var cPort = new Random(1).Next(40000, 50000);
-						Socket = new BaseSocket(System.Net.Sockets.SocketType.Dgram, type, new System.Net.IPEndPoint(IPAddress.Any, cPort));
+						Socket = new BaseSocket(System.Net.Sockets.SocketType.Dgram, type, new IPEndPoint(IPAddress.Any, cPort));
 						break;
 					default:
 						break;
@@ -56,6 +56,12 @@ namespace Bootpd.Network.Client
 					RemoteEndpoint = e.RemoteEndpoint;
 					ClientDataReceived?.Invoke(this, new ClientDataReceivedEventArgs(Id, e.Socket, e.RemoteEndpoint, e.Data));
 				};
+			}
+			else
+			{
+				RemoteEndpoint = endpoint;
+				if (RemoteEndpoint.Address.Equals(IPAddress.Any))
+					RemoteEndpoint.Address = IPAddress.Broadcast;
 			}
 		}
 
